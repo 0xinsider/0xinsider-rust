@@ -1764,7 +1764,7 @@ pub struct EventReplayEvent {
     pub published_at: String,
     /// What the event announces. Every field is present on every event; a field added later is additive, so a client tolerates keys it does not know.
     pub payload: EventReplayEventPayload,
-    /// Present only with expand=trade: the public trade read for this row, the same object GET /api/v1/whale-trades/{id} returns, read at request time from one query per page. traded_at, side, size_usd, price, outcome and token_id are the row's event-time facts; trader.grade, trader.username, signal_score, recorded_signal_score, suspicion_score, suspicion_track and market title/slug/category are enrichment that can move after the event. null when that route would answer 404 for the row (its trader or market is not synced yet).
+    /// Present only with expand=trade: the public trade read for this row, the same object GET /api/v1/whale-trades/{id} returns, read at request time from one query per page. traded_at, side, size_usd, price, outcome, token_id, recorded_signal_score and trader.grade_at_trade with its status are the row's event-time facts; trader.grade, trader.username, signal_score, suspicion_score, suspicion_track and market title/slug/category are enrichment that can move after the event. null when that route would answer 404 for the row (its trader or market is not synced yet).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub trade: Option<WhaleTrade>,
     pub source: EventReplaySource,
@@ -2136,17 +2136,17 @@ pub struct ExploreGroup {
     pub r#type: String,
     pub event_slug: String,
     pub parent_title: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub image: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub platform: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub category: Option<String>,
     /// Markets in the event cluster, ranked by volume with condition_id as the tie-breaker. The selected representative is retained within the 12-market cap.
     pub markets: Vec<ExploreMarket>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub rep_volume: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub rep_whales: Option<i64>,
 }
 
@@ -2158,84 +2158,84 @@ pub struct ExploreMarket {
     /// Non-empty market title.
     pub title: String,
     /// Provider-native market slug.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub slug: Option<String>,
     /// First-party market page slug used for internal links.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub url_slug: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub image: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub icon: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub category: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub platform: Option<String>,
     pub status: MarketSearchResultStatus,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub volume: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub liquidity: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub whale_trade_count: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub whale_distinct_wallets: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub whale_total_usd: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub whale_last_trade_at: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub end_date: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub created_at: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub outcome_yes: Option<String>,
     /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for the YES outcome; null when unavailable (e.g. unsynced markets).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub token_id_yes: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub outcome_no: Option<String>,
     /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for the NO outcome; null when unavailable (e.g. unsynced markets).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub token_id_no: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub event_slug: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub smart_score: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub smart_count: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub smart_label: Option<String>,
     /// Display label for the YES/outcome_index=0 side, enriched from provider outcome metadata when available.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub outcome_yes_label: Option<String>,
     /// Display label for the NO/outcome_index=1 side, enriched from provider outcome metadata when available.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub outcome_no_label: Option<String>,
     /// Provider-owned YES/outcome_index=0 identifier when available for trade-ticket wiring.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub outcome_yes_provider_id: Option<i64>,
     /// Provider-owned NO/outcome_index=1 identifier when available for trade-ticket wiring.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub outcome_no_provider_id: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub open_interest: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub oi_change_pct: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub price_points: Option<Vec<Vec<f64>>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub no_price_points: Option<Vec<Vec<f64>>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub last_price: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub no_last_price: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub change_pct_24h: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub no_change_pct_24h: Option<f64>,
     /// Backend-owned deterministic market discovery score used by the hot sort.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub discover_score: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub score_components: Option<ExploreMarketScoreComponents>,
@@ -2253,17 +2253,17 @@ pub struct ExploreMarketFreshness {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct ExploreMarketScoreComponents {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub volume_signal: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub whale_signal: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub liquidity_signal: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub recency_signal: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub smart_money_signal: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub price_move_signal: Option<f64>,
     pub missing_price_penalty: f64,
 }
@@ -2316,13 +2316,13 @@ pub struct ExportCounts {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct ExportSourceRange {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub first_pnl_date: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub last_pnl_date: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub latest_trade_at: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub latest_market_activity_at: Option<String>,
 }
 
@@ -2330,13 +2330,13 @@ pub struct ExportSourceRange {
 #[non_exhaustive]
 pub struct ExportVolumeReconciliation {
     /// Verified full-history both-sides USD cash volume. Null without coverage; the local activity numerator may cover only a subset of history.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub provider_lifetime_volume: Option<f64>,
     pub exported_activity_volume: f64,
     pub exported_market_cost_basis: f64,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub provider_activity_volume_gap: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub activity_volume_coverage: Option<f64>,
 }
 
@@ -2718,7 +2718,8 @@ pub struct GetMarketHoldersResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
     /// Holders matching the request's `outcome` and `min_grade` filters across every page.
-    pub total: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total: Option<i64>,
     pub market: MarketHoldersMarket,
     pub scan: MarketHoldersScan,
     pub totals: MarketHoldersTotals,
@@ -2789,7 +2790,7 @@ pub struct GetPositionTimelineByIdResponse {
     pub has_more: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
-    /// Total matching rows when the read model exposes a count; absent (or null) when it does not.
+    /// Total matching rows when the read model exposes a count; the key is absent when it does not.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub total: Option<i64>,
     pub meta: ResponseMeta,
@@ -2803,7 +2804,7 @@ pub struct GetPositionTimelineResponse {
     pub has_more: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
-    /// Total matching rows when the read model exposes a count; absent (or null) when it does not.
+    /// Total matching rows when the read model exposes a count; the key is absent when it does not.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub total: Option<i64>,
     pub meta: ResponseMeta,
@@ -2944,6 +2945,59 @@ impl std::fmt::Display for Grade {
 }
 
 impl AsRef<str> for Grade {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum GradeAtTradeStatus {
+    /// `graded`
+    #[serde(rename = "graded")]
+    Graded,
+    /// `ungraded`
+    #[serde(rename = "ungraded")]
+    Ungraded,
+    /// `unknown`
+    #[serde(rename = "unknown")]
+    Unknown,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl GradeAtTradeStatus {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Graded => "graded",
+            Self::Ungraded => "ungraded",
+            Self::Unknown => "unknown",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for GradeAtTradeStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "graded" => Self::Graded,
+            "ungraded" => Self::Ungraded,
+            "unknown" => Self::Unknown,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for GradeAtTradeStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for GradeAtTradeStatus {
     fn as_ref(&self) -> &str {
         self.as_str()
     }
@@ -3157,10 +3211,10 @@ pub struct LargePosition {
     pub id: String,
     /// Provider discriminator. Always polymarket.
     pub platform: String,
-    /// Provider currentValue in USD for the outcome named by outcome_label / token_id, and for that outcome only. Null means the provider supplied no value for this leg, not a zero position. combined_value_usd carries the wallet's whole-market total.
+    /// Provider currentValue in USD for the outcome named by outcome_label / token_id, and for that outcome only. An absent key means the provider supplied no value for this leg, not a zero position. combined_value_usd carries the wallet's whole-market total.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub total_size_usd: Option<f64>,
-    /// Provider unrealized mark-to-market P&L (Polymarket cashPnl) for that same one outcome. Null means unavailable, not break-even.
+    /// Provider unrealized mark-to-market P&L (Polymarket cashPnl) for that same one outcome. An absent key means unavailable, not break-even.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub position_unrealized_pnl: Option<f64>,
     /// The wallet's currentValue across every outcome it holds in this market. Equals total_size_usd unless is_two_sided is true, and is the value the feed ranked this row by.
@@ -3185,11 +3239,11 @@ pub struct LargePosition {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub outcome_label: Option<String>,
     /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for this outcome; null when unavailable (e.g. unsynced markets).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub token_id: Option<String>,
     /// Legs collapsed into this representative row for one (wallet, event, outcome side) group. 1 means standalone.
     pub event_leg_count: i64,
-    /// Sum of the collapsed sibling legs' own holding values for this (wallet, event) group; equals total_size_usd when event_leg_count = 1, and null when any member's value is unknown.
+    /// Sum of the collapsed sibling legs' own holding values for this (wallet, event) group; equals total_size_usd when event_leg_count = 1, and omitted when any member's value is unknown.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub event_total_value_usd: Option<f64>,
     pub first_seen_at: String,
@@ -3217,10 +3271,10 @@ pub struct LargePositionHoldingsItem {
     /// Provider mark price for this outcome.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub current_price: Option<f64>,
-    /// Provider currentValue for this outcome. Null means unavailable, not zero.
+    /// Provider currentValue for this outcome. An absent key means unavailable, not zero.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub value_usd: Option<f64>,
-    /// Provider unrealized P&L for this outcome. Null means unavailable, not break-even.
+    /// Provider unrealized P&L for this outcome. An absent key means unavailable, not break-even.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unrealized_pnl: Option<f64>,
 }
@@ -3269,7 +3323,7 @@ pub struct LeaderboardEntry {
     pub username: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub grade: Option<String>,
-    /// Hot-streak tier (trailing-7d cross-sectional percentile); a separate axis from the all-time grade. Null when no recent activity.
+    /// Hot-streak tier (trailing-7d cross-sectional percentile); a separate axis from the all-time grade. Omitted when there is no recent activity.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub streak_tier: Option<StreakTier>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -3303,7 +3357,7 @@ pub struct ListInsiderRadarResponse {
     pub has_more: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
-    /// Total matching rows when the read model exposes a count; absent (or null) when it does not.
+    /// Total matching rows when the read model exposes a count; the key is absent when it does not.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub total: Option<i64>,
     pub meta: ResponseMeta,
@@ -3332,7 +3386,7 @@ pub struct ListLeaderboardResponse {
     pub has_more: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
-    /// Total matching rows when the read model exposes a count; absent (or null) when it does not.
+    /// Total matching rows when the read model exposes a count; the key is absent when it does not.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub total: Option<i64>,
     pub meta: ResponseMeta,
@@ -3346,7 +3400,7 @@ pub struct ListPositionsResponse {
     pub has_more: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
-    /// Total matching rows when the read model exposes a count; absent (or null) when it does not.
+    /// Total matching rows when the read model exposes a count; the key is absent when it does not.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub total: Option<i64>,
     pub meta: ResponseMeta,
@@ -3384,7 +3438,7 @@ pub struct ListSportsEdgeObservationsResponse {
     pub object: String,
     pub data: Vec<SportsEdgeObservation>,
     pub has_more: bool,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
     /// Completion time of the shared observation snapshot pinned by the cursor.
     pub snapshot_as_of: String,
@@ -3485,7 +3539,7 @@ pub struct ListWhaleTradeHistoryResponse {
     pub has_more: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
-    /// Total matching rows when the read model exposes a count; absent (or null) when it does not.
+    /// Total matching rows when the read model exposes a count; the key is absent when it does not.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub total: Option<i64>,
     pub meta: WhaleTradeHistoryMeta,
@@ -3499,7 +3553,7 @@ pub struct ListWhaleTradesResponse {
     pub has_more: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
-    /// Total matching rows when the read model exposes a count; absent (or null) when it does not.
+    /// Total matching rows when the read model exposes a count; the key is absent when it does not.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub total: Option<i64>,
     pub meta: ResponseMeta,
@@ -3780,11 +3834,11 @@ pub struct MarketIntelMarket {
     pub id: String,
     pub condition_id: String,
     pub title: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub slug: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub category: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub platform: Option<String>,
 }
 
@@ -3795,7 +3849,7 @@ pub struct MarketIntelSharpMoney {
     pub net_flow_usd: f64,
     pub direction: Direction,
     /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for the net-flow direction outcome; null when unavailable (e.g. unsynced markets).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub token_id: Option<String>,
     pub whale_trade_count: i64,
     pub buy_volume_usd: f64,
@@ -3808,13 +3862,13 @@ pub struct MarketIntelSharpMoney {
 pub struct MarketIntelSharpMoneyTopPositionsItem {
     pub id: String,
     pub address: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub username: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub grade: Option<String>,
     pub side: Direction,
     /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for this outcome; null when unavailable (e.g. unsynced markets).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub token_id: Option<String>,
     pub size_usd: f64,
 }
@@ -3826,7 +3880,7 @@ pub struct MarketIntelSmartMoney {
     pub net_flow_usd: f64,
     pub direction: Direction,
     /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for the net-flow direction outcome; null when unavailable (e.g. unsynced markets).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub token_id: Option<String>,
     pub whale_trade_count: i64,
     pub buy_volume_usd: f64,
@@ -3839,13 +3893,13 @@ pub struct MarketIntelSmartMoney {
 pub struct MarketIntelSmartMoneyTopPositionsItem {
     pub id: String,
     pub address: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub username: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub grade: Option<String>,
     pub side: Direction,
     /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for this outcome; null when unavailable (e.g. unsynced markets).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub token_id: Option<String>,
     pub size_usd: f64,
 }
@@ -3856,11 +3910,11 @@ pub struct MarketSearchResult {
     pub id: String,
     pub condition_id: String,
     pub title: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub slug: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub category: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub platform: Option<String>,
     pub status: MarketSearchResultStatus,
 }
@@ -4016,14 +4070,14 @@ impl AsRef<str> for MarketSnapshotFreshnessStatus {
 #[non_exhaustive]
 pub struct MarketSnapshotLiquidity {
     pub source: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub volume_usd: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub liquidity_usd: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub volume_24h_usd: Option<f64>,
     /// Always null. Polymarket snapshot prices come from outcome top-of-book midpoints.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub last_price: Option<f64>,
 }
 
@@ -4033,33 +4087,33 @@ pub struct MarketSnapshotMarket {
     pub id: String,
     pub condition_id: String,
     pub provider: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub title: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub slug: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub page_slug: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub event_slug: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub category: Option<String>,
     pub status: MarketSearchResultStatus,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub description: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub image: Option<String>,
     /// Polymarket series slug from the canonical identity row, null when unavailable. A sports series identifies a league and must not be used as a per-matchup grouping key.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub series_slug: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub market_type: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub market_result: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub created_at: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub end_date: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub resolved_at: Option<String>,
 }
 
@@ -4534,10 +4588,10 @@ impl AsRef<str> for PaidDataAccess {
 #[non_exhaustive]
 pub struct PickHolder {
     pub address: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub name: Option<String>,
     /// All-time trader grade (S, A, B, C, D, F).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub grade: Option<String>,
     /// 0xinsider profile path segment this wallet links to: `@<username>` when that username resolves to this wallet alone, otherwise the lowercase wallet. Percent-encode the part after `@` and append to `https://0xinsider.com/profile/`. Stamped at serve time; absent on a body cached before the field shipped.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -4590,7 +4644,8 @@ pub struct PickOfTheDay {
     /// Always 'full' for an authenticated Pro key.
     pub state: String,
     /// The pick's local publication date (YYYY-MM-DD).
-    pub pick_date: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pick_date: Option<String>,
     /// Stable 1-based slot within the product day's ranked picks.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pick_rank: Option<i64>,
@@ -4604,37 +4659,47 @@ pub struct PickOfTheDay {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scheduled_picks: Option<Vec<ScheduledPickSlot>>,
     /// Human-readable matchup (e.g. "Portugal vs. Uzbekistan").
-    pub matchup: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub matchup: Option<String>,
     /// Frozen canonical calibration/report bucket (e.g. "Basketball", "MMA", or "Soccer"). Existing semantics are unchanged; presentation consumers should prefer display_category when present.
-    pub category: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
     /// Frozen public presentation category. For supported Polymarket sports this is the exact verified provider event identity: an official league (e.g. "WNBA" or "UFC"), the esports title (e.g. "CS2", "LoL", "Dota 2" or "Valorant"), or a soccer competition whose official mark we vendor (e.g. "LaLiga", "Premier League", "Serie A" or "UEFA Champions League"). Only identities with a vendored official mark are split out; every other competition keeps its canonical bucket, so "Soccer" remains a live value; otherwise it equals category. An esports pick keeps the pooled "Esports" bucket in category, so a per-title label never implies a per-title measured cohort. Additive and optional for mixed-version client compatibility.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub display_category: Option<String>,
     /// Provider platform (e.g. "polymarket").
-    pub platform: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub platform: Option<String>,
     /// The pick's stored release instant. Normally the current provider kickoff minus one hour; an operator may override it. The actual publish instant can trail it because of worker or claim delay.
-    pub release_at: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub release_at: Option<String>,
     /// True only before the pick's stored release instant (a pre-release embargo flag); effectively always false on a served, already-published pick. To detect that the backed game has kicked off, use `game_started`.
-    pub is_locked: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_locked: Option<bool>,
     /// True once the backed game's kickoff has passed (kickoff <= now). When true the snapshotted pre-game price is no longer actionable. Absent for a legacy pick with no stored kickoff (treat as not-started).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub game_started: Option<bool>,
     /// Settlement outcome of the backed side; 'pending' until the market resolves.
-    pub outcome: Outcome,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub outcome: Option<Outcome>,
     /// Pre-formatted SETTLEMENT STATUS for display: "Win" / "Loss" / "Void" / "Pending" -- the outcome enum above as a label. Convenience only; outcome is the source value. NOTE: this is the win/loss STATUS, not the backed side. The backed side is pick_outcome_label ("Belgium (-2.5)") -- a different field answering a different question.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub outcome_display: Option<String>,
     /// The backed side phrased as a bet: a team for a moneyline (e.g. "Portugal"), the handicap line for a spread (e.g. "Belgium (-2.5)"), or "{team} to advance" for a knockout advancement market (e.g. "Spain to advance").
-    pub pick_outcome_label: String,
-    /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for the backed outcome; null when unavailable (e.g. unsynced markets).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pick_outcome_label: Option<String>,
+    /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for the backed outcome; omitted when unavailable (e.g. unsynced markets).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_id: Option<String>,
     /// The backed side phrased as a bet (e.g. "Portugal to win").
-    pub position: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position: Option<String>,
     /// One-line summary of which side sharp money is backing. Required on every item in `picks`: a current-day published pick whose required holder proof is not safely readable is listed in `proof_pending_picks` instead of being served with a partial success shape or a synthetic zero, and the route returns 503 read_model_warming only when no published pick has readable proof.
-    pub side_summary: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub side_summary: Option<String>,
     /// Public V1 compatibility count of S/A smart-money wallets on the backed side. The first-party/internal current policy counts S/A/B; historical rows retain their frozen policy's count. Required on every item in `picks`: a current-day published pick whose required holder proof is not safely readable is listed in `proof_pending_picks` instead of being served with a partial success shape or a synthetic zero, and the route returns 503 read_model_warming only when no published pick has readable proof.
-    pub smart_wallet_count: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub smart_wallet_count: Option<i64>,
     /// Best public V1-compatible S/A smart-money grade on the backed side. The first-party/internal current policy can select B, but a current B-only grade is omitted by the stable V1 adapter. Historical rows retain their frozen policy's grade. A current-day published pick with pending legacy proof, unknown-future proof, or structurally invalid current-policy proof returns 503 before this success schema is served. Resolved legacy proof remains readable on both current-day and archive/history responses.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub top_grade: Option<String>,
@@ -4672,7 +4737,8 @@ pub struct PickOfTheDay {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub profit_display: Option<String>,
     /// Backend-owned CLV capture disposition. "pending" means no capture decision exists yet; terminal provider or quality statuses remain distinguishable. The raw close price and timestamp are never serialized.
-    pub clv_status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clv_status: Option<String>,
     /// Backend-owned CLV evidence basis. `frozen_displayed_entry` uses the persisted displayed entry. `historical_provider_entry` uses a known-CLOB point at or before publication. `historical_provider_price_match` requires the latest point in the prior hour to match. `historical_provider_nearby_price_match` requires a matching point within five minutes before publication. Source-null bases preserve unknown original provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub clv_basis: Option<String>,
@@ -4697,7 +4763,7 @@ pub struct PickOfTheDay {
     /// Market-implied probability of the backed side as a fraction 0..1 (equals backed_price), re-exposed alongside sharp_pct for the WHY breakdown.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub market_pct: Option<f64>,
-    /// First-party/internal consensus edge = sharp_pct - market_pct, the conviction-vs-price gap (how much more of the current-policy sharp money sits on this side than the price implies). Omitted on current public V1 rows when the B-inclusive value has no reconstructible S/A equivalent. This is NOT an expected-value or guaranteed edge. Null when either input is null.
+    /// First-party/internal consensus edge = sharp_pct - market_pct, the conviction-vs-price gap (how much more of the current-policy sharp money sits on this side than the price implies). Omitted on current public V1 rows when the B-inclusive value has no reconstructible S/A equivalent. This is NOT an expected-value or guaranteed edge. Omitted when either input is unavailable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub consensus_edge_pct: Option<f64>,
     /// First-party/internal team-directional commitment read at selection time: the fraction (0..1) of the backed side's current-policy graded sharp-money DOLLARS held by wallets read one-way rather than hedged: no opposite leg on this market worth at least 10% of the backed leg (Polymarket's own currentValue pair), and no opposing team across the game's markets where the wallet's synced legs are fresh. Current public V1 rows omit this B-inclusive read because its historical S/A equivalent is not reconstructed. A high value means the graded pile is really committed to this side; a low one means much of it is hedged or unreadable. Omitted when the read was not computed (a pick selected before the field existed, an ungroupable game, an empty graded pile, or a pile where no holder carried usable evidence) -- which is NOT the same as 0.0, a computed reading that classified holders and found none one-way.
@@ -4739,21 +4805,23 @@ pub struct PickOfTheDay {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub editorial_note: Option<String>,
     /// Required truthful thesis. With at least one profitable-wallet holder: Profitable wallets hold {pick_outcome_label}[, led by a grade-{top_grade} trader]. Without holder backing: 0xInsider's Pick of the Day is {pick_outcome_label}. Wallet counts are not appended.
-    pub thesis: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub thesis: Option<String>,
     /// Canonical web market URL.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub market_url: Option<String>,
-    /// The canonical /event game-page slug (one neutral page per game), null when the game has no neutral event page.
+    /// The canonical /event game-page slug (one neutral page per game); omitted when the game has no neutral event page.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub event_slug: Option<String>,
-    /// Backend-resolved /event destination slug for this pick's source market; null is an authoritative no-link decision.
+    /// Backend-resolved /event destination slug for this pick's source market; its absence is an authoritative no-link decision.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub event_link_slug: Option<String>,
     /// Provider-first sports context for the pick's market (team logos, league branding, live score). Full-state only; omitted when the pick is not a team-sports market.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sports_context: Option<PickSportsContext>,
     /// Risk disclaimer shown with every pick.
-    pub disclaimer: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub disclaimer: Option<String>,
     /// Published same-day picks whose holder proof is not readable yet, ordered by pick_rank. Additive and optional: present only while at least one such pick exists. While present, `picks` carries only the proof-readable picks and `pick_count` counts them. Schedule the next read from the earliest retry_at instead of polling. The route returns 503 read_model_warming only when no published pick has readable proof.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub proof_pending_picks: Option<Vec<ProofPendingPickSlot>>,
@@ -4822,7 +4890,7 @@ pub struct PickOfTheDayArchiveEntry {
     /// The backed side's outcome label. Omitted for a still-pending pick when the request is not from an authenticated Pro key.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pick_outcome_label: Option<String>,
-    /// Best public V1-compatible S/A smart-money grade on the backed side; a current B-only grade is omitted by the stable V1 adapter, while historical rows retain their frozen policy's grade. null when no smart-money wallet backs the pick, when a pending legacy proof has not yet upgraded, or when the stored holder policy is unknown-future or structurally invalid. Resolved legacy history remains supported.
+    /// Best public V1-compatible S/A smart-money grade on the backed side; a current B-only grade is omitted by the stable V1 adapter, while historical rows retain their frozen policy's grade. Omitted when no smart-money wallet backs the pick, when a pending legacy proof has not yet upgraded, or when the stored holder policy is unknown-future or structurally invalid. Resolved legacy history remains supported.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub top_grade: Option<String>,
     /// Settlement outcome of the backed side; 'pending' until the market resolves.
@@ -4864,7 +4932,8 @@ pub struct PickOfTheDayArchiveEntry {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub clv_explanation: Option<String>,
     /// Exact backend CLV capture disposition for this visible row. Pending and terminal provider or quality statuses are distinguishable; capture timestamps are never serialized, while a measured row's entry and close prices are published as clv_entry_price and clv_close_price.
-    pub clv_status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clv_status: Option<String>,
     /// Backend-owned CLV evidence basis. Source-null price-match bases preserve unknown original provenance. `historical_provider_nearby_price_match` requires a matching Polymarket point within five minutes before publication.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub clv_basis: Option<String>,
@@ -5194,18 +5263,18 @@ pub struct PickOfTheDayQualifyingExpert {
     /// Wallet address of the qualifying expert.
     pub address: String,
     /// Provider display name, or null for an unnamed wallet.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub name: Option<String>,
     /// 0xinsider grade letter. The first-party/internal current Pick of the Day policy counts S, A, and B; public V1 exposes only the compatible S/A expert.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub grade: Option<String>,
     /// The canonical sport bucket the win rate was measured over (for example Basketball). Can be BROADER than the pick's display_category, which names an exact league such as NBA — label the rate with this field, never with display_category.
     pub canonical_category: String,
     /// Share of this wallet's resolved markets in canonical_category whose realized P&L came out positive, as a 0..1 fraction. Above 0.60 by construction for a source=v1 expert; null for an expert who qualified on the category-skill v2 definition only. Deliberately NOT phrased as "closed profitable": the metric counts realized P&L above zero, so a resolved winner the wallet never redeemed sits at zero and counts against it.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub win_rate: Option<f64>,
     /// Resolved markets in canonical_category behind win_rate. At least 10 by construction for a source=v1 expert; null with win_rate.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub n_resolved: Option<i64>,
     /// Current expert policy 10 does not require a category-skill v2 specialist in any sport; in every sport a specialist raises the candidate's rank tier rather than gating it. Standard specialists need a positive edge_lower_95 over enough independent events and enough net backing on the backed side; the floors are not published. Fresh healthy records below the shared model's live sample floor can qualify; stale, unknown and degraded records cannot. Historical records preserve which definition qualified the wallet: v1, the profitability rate (win_rate over n_resolved), or v2, the forward-only category-skill calibration edge (edge_lower_95 over independent_event_count). Absent on picks frozen before the v2 definition existed; read absence as v1. A Tennis pick frozen under gate policy v4 or later carries v2 only: a v1 rate stopped qualifying a tennis expert at v4. A Tennis pick frozen under an earlier policy can still carry v1 with a win rate.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -5265,21 +5334,21 @@ pub struct PickOfTheDayUncommittedPayload {
 #[non_exhaustive]
 pub struct PickSportsContext {
     /// League or competition display name (e.g. "Premier League").
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub league_name: Option<String>,
     /// Provider-owned event taxonomy from Gamma eventMetadata, joined in league · serie · tournament order with blanks and case-insensitive duplicates removed. Separate from league_name; omitted when the provider does not supply the metadata.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub competition_label: Option<String>,
     /// League logo URL (provider-owned).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub league_logo: Option<String>,
     /// The team mapped to the market's YES outcome, or the parent-event home/first team when event_matchup is true.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub yes_team: Option<PickSportsTeam>,
     /// The team mapped to the market's NO outcome, or the parent-event away/second team when event_matchup is true.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub no_team: Option<PickSportsTeam>,
-    /// Provider game identifier (Polymarket Gamma gameId); omitted when null.
+    /// Provider game identifier (Polymarket Gamma gameId); omitted when the provider supplies none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub game_id: Option<i64>,
     /// Always present. True when the two teams are the parent-event match identity for a teamless binary leg (e.g. a draw, totals, or prop market), not the market's own outcomes.
@@ -5297,28 +5366,28 @@ pub struct PickSportsContext {
 #[non_exhaustive]
 pub struct PickSportsTeam {
     /// Team display label as it appears on the market outcome (e.g. "Portugal").
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub label: Option<String>,
     /// Abbreviated team label (e.g. "POR").
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub short_label: Option<String>,
     /// Full team or competitor name (e.g. "Portugal national football team").
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub full_name: Option<String>,
     /// Provider team identifier (Polymarket /teams id).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub provider_id: Option<i64>,
     /// Team crest or flag URL. Provider-owned for most teams (Polymarket /teams crest for clubs, country flag for national teams and tennis players). A club with a vendored crest carries it instead, served same-origin as a relative path (`/api/sports/team-logos/{league}/{abbr}.svg?v=<content hash>` or `.png`, resolve it against this server): every NFL and WNBA team, whose provider asset is a text tile, and the soccer clubs whose provider asset is an empty object.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub logo: Option<String>,
     /// Team brand color as a hex string (provider-owned).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub color: Option<String>,
     /// Win-loss record as a display string (e.g. "12-4").
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub record: Option<String>,
     /// Live or final score as a display string when the game is in play or settled.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub score: Option<String>,
     /// Tennis player headshot URL, served same-origin. Present only for a tennis competitor the headshot resolver matched; absent for team sports and for unmatched players, where `logo` stays the fallback.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -5481,7 +5550,7 @@ pub struct Position {
     /// Binary outcome side. Non-binary positions are not surfaced on V1.
     pub side: Direction,
     /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for this outcome; null when unavailable (e.g. unsynced markets).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub token_id: Option<String>,
     /// Live share count from the wallet_positions mirror.
     pub shares: f64,
@@ -5539,7 +5608,7 @@ pub struct PositionTimelineEvent {
     pub action: Action,
     pub outcome_side: Side,
     /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for this outcome; null when unavailable (e.g. unsynced markets).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub token_id: Option<String>,
     /// Signed share delta (+ on buy, − on sell).
     pub amount_delta: f64,
@@ -5705,16 +5774,16 @@ pub struct RadarFlagMarket {
 #[non_exhaustive]
 pub struct RadarFlagScores {
     /// Null because the live scorer does not record this component.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub timing: Option<f64>,
     /// Null because the live scorer does not record this component.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub edge: Option<f64>,
     /// Numeric evidence.size when recorded; otherwise null.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub size: Option<f64>,
     /// Numeric evidence.fresh when recorded; otherwise null.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub fresh_wallet: Option<f64>,
 }
 
@@ -5723,7 +5792,7 @@ pub struct RadarFlagScores {
 pub struct RadarFlagTrader {
     pub id: String,
     pub address: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub username: Option<String>,
 }
 
@@ -5794,19 +5863,19 @@ pub struct RegisterAgentResponse {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct ReportPayload {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub total_whale_trades: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub total_whale_volume: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub biggest_trade_size: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub active_traders: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub top_whale_trades: Option<Vec<ReportPayloadTopWhaleTradesItem>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub categories: Option<Vec<serde_json::Map<String, serde_json::Value>>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub grade_distribution: Option<Vec<serde_json::Map<String, serde_json::Value>>>,
 }
 
@@ -5814,43 +5883,43 @@ pub struct ReportPayload {
 #[non_exhaustive]
 pub struct ReportPayloadTopWhaleTradesItem {
     /// Provider outcome label for the traded side.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub outcome: Option<String>,
     /// Trade direction (BUY or SELL), not the outcome side.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub side: Option<String>,
     /// Market title.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub title: Option<String>,
     /// Trade size in USD.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub size: Option<f64>,
     /// Trade price in provider [0, 1] units.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub price: Option<f64>,
     /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for the traded outcome; null when unavailable (e.g. unsynced markets).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub token_id: Option<String>,
     /// Whale trade id.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub id: Option<i64>,
     /// Trade timestamp (UTC).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub trade_time: Option<String>,
     /// Provider market category.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub market_category: Option<String>,
     /// Venue: polymarket.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub platform: Option<String>,
     /// Trader display name, when known.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub name: Option<String>,
     /// Trader pseudonym, when no display name is known.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub pseudonym: Option<String>,
     /// Trader grade (S-F) at snapshot time.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub trader_grade: Option<String>,
 }
 
@@ -6172,7 +6241,7 @@ pub struct SearchMarketsResponse {
     pub has_more: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
-    /// Total matching rows when the read model exposes a count; absent (or null) when it does not.
+    /// Total matching rows when the read model exposes a count; the key is absent when it does not.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub total: Option<i64>,
     pub meta: ResponseMeta,
@@ -6360,7 +6429,7 @@ pub struct SmartMoneyFlowMarketSharpMoney {
     pub net_flow_usd: f64,
     pub direction: Direction,
     /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for the net-flow direction outcome; null when unavailable (e.g. unsynced markets).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub token_id: Option<String>,
     pub whale_trade_count: i64,
     pub buy_volume_usd: f64,
@@ -6374,7 +6443,7 @@ pub struct SmartMoneyFlowMarketSmartMoney {
     pub net_flow_usd: f64,
     pub direction: Direction,
     /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for the net-flow direction outcome; null when unavailable (e.g. unsynced markets).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub token_id: Option<String>,
     pub whale_trade_count: i64,
     pub buy_volume_usd: f64,
@@ -6455,7 +6524,7 @@ pub struct SnapshotState {
     pub status: SnapshotStateStatus,
     pub generated_at: String,
     /// For a rolling body, the UTC date on which a final body can first be built (the date of final_after); null once final.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub mutable_until: Option<String>,
     /// Whether the source range has ended on the UTC calendar. Closing is not finality: a closed range is rolling until final_after.
     pub period_closed: bool,
@@ -6888,28 +6957,28 @@ pub struct SportsEdgeSignal {
     /// UTC time at which the immutable signal snapshot was computed. Every row from one snapshot shares this value; it is not provider market creation time and is not rewritten at request time.
     pub signal_created_at: String,
     /// Polymarket CLOB token id (ERC1155 asset id, decimal string) for the PILED outcome; null when unavailable.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub token_id: Option<String>,
     /// Canonical sport bucket (e.g. Basketball, Tennis); null when the raw category has no canonical mapping.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub category: Option<String>,
     /// Raw provider category as stored (e.g. NBA, EPL).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub raw_category: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub title: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub event_slug: Option<String>,
     /// Kickoff (UTC). In the future at SNAPSHOT time and within the requested horizon; because the response is served from a shared snapshot cached up to the ~180s TTL, a served kickoff can be up to ~180s in the past relative to the response time. Not a live guarantee that the game has not yet started.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub game_start_time: Option<String>,
     /// Nullable provider-backed piled-outcome display label. When provider group context is unavailable, it may remain a bare Yes/No/Over/Under; do not use it alone as participant identity.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub piled_side: Option<String>,
     /// Provider binary-column selector: 0 selects outcome_yes/token_id_yes; 1 selects outcome_no/token_id_no. It does not identify home/away or a participant. Use piled_side together with title/event context for display.
     pub piled_outcome_index: i64,
     /// Piled-side dollar concentration backed_usd / (yes_usd + no_usd), in (0.5, 1] for a real pile; null when there is no sharp USD.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub sharp_pct: Option<f64>,
     /// Raw piled-side sharp-money USD.
     pub backed_sharp_usd: f64,
@@ -6922,30 +6991,30 @@ pub struct SportsEdgeSignal {
     /// Piled-side graded holder count (s_count + a_count + b_count).
     pub graded_holders: i64,
     /// Best grade present on the piled side; null when none.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub top_grade: Option<MarketHolderGrade>,
     /// Canonical sharp-money score (yes_usd - no_usd)/(yes_usd + no_usd) in [-1, 1] (piled-yes positive, piled-no negative); a lower-order ranking tiebreak (after directional_rank_score and conviction_score).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub smart_score: Option<f64>,
     /// Market volume (USD).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub volume: Option<f64>,
     /// Aggregate recent flow direction on the market; null when unavailable.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub net_side: Option<NetSide>,
     /// Grade-weighted pile score (5*s + 4*a + 3*b) * sharp_pct; the raw conviction input to the ranking (see directional_rank_score).
     pub conviction_score: f64,
     /// Piled-side graded holders read one-way: their fresh open legs across the signal game's markets (cross-market within the one game; moneyline+spread family only) all back the same team, or, when the market's holder scan was complete, Polymarket's currentValue shows no opposite leg on this market worth 10% of the backed leg and no fresh leg opposes it. Null when the directional read was not computed (no groupable game, no holder-level data on this ranking path, or the enrichment read failed) or classified nobody.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub one_way_holder_count: Option<i64>,
     /// Piled-side graded holders classified HEDGED across the game by fresh legs (they back two or more distinct teams). A wallet long both outcomes of this market is not one-way and not counted here. Null when the directional read was not computed or classified nobody.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub hedged_holder_count: Option<i64>,
     /// Piled-side graded USD held by one-way wallets (share-weighted allocation of backed_sharp_usd). Null when the directional read was not computed or classified nobody.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub one_way_graded_usd: Option<f64>,
     /// One-way fraction of the piled graded dollars, in [0, 1] -- the metric orthogonal to sharp_pct. Stale, unknown, hedged, and two-sided dollars dilute it toward zero (conservative). Null when the directional read was not computed or classified nobody.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub directional_confidence: Option<f64>,
     /// The ranking key, descending: conviction_score * (1 + 0.25 * directional_confidence). Equals conviction_score when the directional read is null/zero, so signals without the read rank exactly as before.
     pub directional_rank_score: f64,
@@ -7502,7 +7571,7 @@ pub struct Trader {
     pub username: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub grade: Option<Grade>,
-    /// Hot-streak tier (trailing-7d cross-sectional percentile); a separate axis from the all-time grade. Null when no recent activity.
+    /// Hot-streak tier (trailing-7d cross-sectional percentile); a separate axis from the all-time grade. Omitted when there is no recent activity.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub streak_tier: Option<StreakTier>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -7513,7 +7582,7 @@ pub struct Trader {
     pub stats: TraderStats,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub strategy: Option<TraderStrategy>,
-    /// Per-category performance breakdown (expand=categories or expand[]=categories). Omitted unless expanded. Object keyed by category name; each value is the precomputed trader_rankings.category_ranks payload (rank, total_in_category, total_pnl, scaled_total_pnl, n_markets, wins, losses, win_rate; scaled_total_pnl is a legacy alias that currently equals total_pnl). BASIS: the calibration sample, which admits a position only above a 20 USD notional floor and with a chosen-side entry price strictly inside (0,1), because the ranks and the calibration edge derived from it depend on both rules. That is a different sample from GET /api/v1/trader/{address}/categories, which counts every settled market at any size; on one Soccer wallet the two read 1,457 of 2,733 here against 1,554 of 3,291 there (measured 2026-09-20). Use this for rank context and that route for the wallet's plain record. Pass-through DB JSON: keys and value shape are DB-owned, so the inner shape is intentionally unconstrained and may carry additional compatibility fields.
+    /// Per-category performance breakdown (expand=categories or expand[]=categories). Omitted unless expanded. Object keyed by category name; each value is the precomputed trader_rankings.category_ranks payload (rank, total_in_category, total_pnl, scaled_total_pnl, n_markets, wins, losses, win_rate; scaled_total_pnl is a legacy alias that currently equals total_pnl). BASIS: the calibration sample, which admits a position only above a 20 USD notional floor and with a chosen-side entry price strictly inside (0,1), because the ranks and the calibration edge derived from it depend on both rules. That is a different sample from GET /api/v1/trader/{address}/categories, which counts every settled market at any size, and the two differ in both directions. Measured on production 2026-09-22 over the 122,497 wallet-category pairs with at least 20 decided markets on both bases: the floored rate was higher in 56.5% of pairs, lower in 34.5% and equal in 9.0%, median +0.6 points, p10 -4.6, p90 +9.8, and 14.0% of pairs differ by 10 points or more. The difference is not only small positions: on a 1-in-250 wallet sample the same day, admitted markets won 56.6% while markets dropped by the notional floor alone won 45.2% and markets dropped by the entry-price rule alone won 48.7%. n_markets counts every admitted market including the ones that resolved at exactly zero P&L, so it is not the denominator of win_rate: it differed from wins + losses in 15.8% of pairs with at least 5 decided markets. The two tables also run on different clocks, this one updated incrementally and that route rebuilt daily, so a same-day read can differ on timing alone. Use this for rank context and that route for the wallet's plain record. Pass-through DB JSON: keys and value shape are DB-owned, so the inner shape is intentionally unconstrained and may carry additional compatibility fields.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_strengths: Option<serde_json::Map<String, serde_json::Value>>,
     /// Curated advanced risk/performance metrics (expand=quant_metrics or expand[]=quant_metrics). Omitted unless expanded and backed by a computed row strictly under six hours old; a missing row, NULL computed_at, or age of exactly six hours or more is stale and omitted. Provider-input changes may intentionally lag inside the bounded six-hour window. When present, all listed fields are present (each is a number or null); null means insufficient trade history and must not be treated as 0. The fixed field shape is unchanged.
@@ -7562,7 +7631,7 @@ pub struct TraderCategoryRecords {
     pub id: String,
     /// Resolved wallet address, lowercased.
     pub address: String,
-    /// Which sample the counts come from: every settled market in the category, at any position size. category_strengths on the trader endpoint reads the floored calibration sample instead, so the two can differ.
+    /// Which sample the counts come from: every settled market in the category, at any position size. category_strengths on the trader endpoint reads the floored calibration sample instead, so the two differ in both directions: measured on production 2026-09-22 over the 122,497 wallet-category pairs with at least 20 decided markets on both bases, the floored rate was higher in 56.5% of pairs and lower in 34.5%, median +0.6 points, p10 -4.6, p90 +9.8, with 14.0% of pairs 10 points apart or more. Neither corrects the other.
     pub basis: String,
     /// Decided markets a category needs before win_rate is served. Published so a caller can apply its own sample rule to the raw counts.
     pub min_decided_for_win_rate: i64,
@@ -7614,10 +7683,10 @@ pub struct TraderContextPositionSummary {
     #[serde(default)]
     pub resolved_win_rate: Option<f64>,
     /// Resolved markets that settled at positive realized P&L: the win-rate numerator. Additive; null only on a summary cached before the field existed.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub resolved_wins: Option<i64>,
     /// Resolved markets that settled at a non-zero realized P&L: the win-rate denominator. At most markets_resolved; the difference is markets settled at exactly zero or with an unknown P&L. Additive; null only on a summary cached before the field existed.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub resolved_decided: Option<i64>,
     /// RFC3339 freshness of the served OPEN-position data: the trader's latest /positions snapshot, else the last completed sync. The snapshot advances ONLY open positions, so read this as the open-position freshness clock -- the resolved/closed aggregates on this same summary (markets_resolved, resolved_win_rate) advance only on a full sync. The value is the /positions snapshot instant when one exists, so it is typically at or just before the trader-level last sync on a normal sync, and can be AFTER it while the active-view loop refreshes open positions between full syncs. This clock does not establish native accounting freshness. Always present on the wire (serialized as JSON null when the trader has neither a snapshot nor a sync); never omitted.
     #[serde(default)]
@@ -7704,13 +7773,13 @@ pub struct TraderExportJobData {
     pub job_id: i64,
     pub status: TraderExportJobDataStatus,
     pub format: Format,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub total_trades: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub processed_trades: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub file_size: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub error: Option<String>,
 }
 
@@ -7789,8 +7858,8 @@ pub struct TraderExportSnapshot {
 pub struct TraderPnl {
     /// Prefixed trader ID (`trd_...`).
     pub id: String,
-    /// RFC3339 served-freshness clock for this trader's PnL history = traders.daily_pnl_recomputed_at, when the daily_pnl read model this response is served from was last rebuilt; null when it has never been recomputed for the trader. Additive optional (not in `required`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// RFC3339 served-freshness clock for this trader's PnL history = traders.daily_pnl_recomputed_at, when the daily_pnl read model this response is served from was last rebuilt; null when it has never been recomputed for the trader. Always present, so read it as a value that can be null rather than a key that can be missing.
+    #[serde(default)]
     pub freshness_at: Option<String>,
     /// Daily cumulative-P&L series (oldest-first).
     pub entries: Vec<TraderPnlEntriesItem>,
@@ -7926,10 +7995,10 @@ pub struct TraderPnlSummary {
     pub realized: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unrealized: Option<f64>,
-    /// DEPRECATED, always null. The local pnl_7d rollup over-counted P&L (#5416 class) and is no longer emitted. Read the provider-native weekly window from GET /api/trader/{address}/profile-summary instead.
+    /// DEPRECATED, never sent. The local pnl_7d rollup over-counted P&L (#5416 class) and is no longer emitted. Read the provider-native weekly window from GET /api/trader/{address}/profile-summary instead.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_7d: Option<f64>,
-    /// DEPRECATED, always null. The local pnl_30d rollup over-counted P&L (#5416 class) and is no longer emitted. Read the provider-native monthly window from GET /api/trader/{address}/profile-summary instead.
+    /// DEPRECATED, never sent. The local pnl_30d rollup over-counted P&L (#5416 class) and is no longer emitted. Read the provider-native monthly window from GET /api/trader/{address}/profile-summary instead.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_30d: Option<f64>,
 }
@@ -8053,7 +8122,7 @@ pub struct TrendingWallet {
     /// All-time trader grade; a separate axis from streak_tier. Led by realized profit (the money actually banked, about 95 percent of the grade), with forecasting calibration, risk-adjusted returns, and consistency as the tie-breaker and proven-trader guardrails: any grade above C requires verified net-positive realized profit, and the top grades also require a real resolved-market track record plus a survivable drawdown. Relative, so it drifts as the cohort moves. Omitted when the trader is Unranked (fewer than 5 markets, or too little verified record to cohort-rank).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub grade: Option<Grade>,
-    /// Hot-streak tier (trailing-7d cross-sectional percentile). Null when no recent activity.
+    /// Hot-streak tier (trailing-7d cross-sectional percentile). Omitted when there is no recent activity.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub streak_tier: Option<StreakTier>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -8530,7 +8599,7 @@ pub struct WebhookEndpoint {
     pub url: String,
     pub event_types: Vec<WebhookEventType>,
     pub status: WebhookStatus,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub verified_at: Option<String>,
     pub verification_token_expires_at: String,
     pub failure_count: i64,
@@ -8823,15 +8892,15 @@ pub struct WhaleTrade {
     pub size_usd: f64,
     pub side: NetSide,
     /// Traded outcome label (e.g. "Yes"/"No"/team name), resolved provider-first from the trade's outcome_index against market_canonical (index 0 -> yes, 1 -> no). Distinct axis from side (BUY/SELL): side is the trade direction, outcome is which leg was traded. null for multi-outcome (outcome_index >= 2) or unsynced markets, and for a Polymarket trade recorded before 2026-04-02T00:00:00Z, whose stored outcome_index is not trusted (a defaulted 0 for about a third of those rows; the side is unknown, not defaulted).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub outcome: Option<String>,
     /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for the traded outcome; null when unavailable (e.g. unsynced markets) and for a Polymarket trade recorded before 2026-04-02T00:00:00Z, where the traded side is unknown.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub token_id: Option<String>,
     pub price: f64,
-    /// Current 0.0–1.0 normalized signal score. This value can change as scoring context changes.
+    /// Current 0.0–1.0 normalized signal score, computed at request time from the trader's win rate today and the trade's age now. On a historical row it is today's view of the trade, not what a reader saw then; use recorded_signal_score for that.
     pub signal_score: f64,
-    /// 0.0–1.0 signal score written once when the trade row is inserted. Available for new rows after this field launched; legacy rows return null. If a trade is added later, its time-sensitive recorded score reflects that delay.
+    /// 0.0–1.0 signal score written once when the trade row is inserted, from the trader's statistics at that moment. Populated from 2026-08-03T11:59Z; older rows return null and are never backfilled, because a backfill could only read today's statistics. If a trade is added later, its time-sensitive recorded score reflects that delay.
     #[serde(default)]
     pub recorded_signal_score: Option<f64>,
     /// Persisted live suspicion score from the scorer. Null when the row has no persisted score.
@@ -8861,7 +8930,7 @@ pub struct WhaleTradeHistoryMeta {
     /// Unique request ID (req_ prefix). The same value as the X-Request-Id response header, the request's usage accounting row and its log lines.
     pub request_id: String,
     pub cached: bool,
-    /// Cache age in seconds, null if not cached.
+    /// Cache age in seconds; the key is absent when the response was not cached.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cache_age_s: Option<i64>,
     pub source: WhaleTradeHistoryMetaSource,
@@ -8904,8 +8973,14 @@ pub struct WhaleTradeTrader {
     pub address: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
+    /// The trader's grade today, on every row however old. For what the grade was when the trade happened, read grade_at_trade.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub grade: Option<String>,
+    /// The grade the trader held when the trade happened, from recorded grade history (recorded from 2026-09-19T23:00Z). Null unless grade_at_trade_status is graded. Never today's grade projected backward.
+    #[serde(default)]
+    pub grade_at_trade: Option<Grade>,
+    /// graded: grade_at_trade holds the recorded grade. ungraded: the trader was recorded without a grade at that moment. unknown: no record covers the moment, which is every trade before 2026-09-19T23:00Z and a trade that fell between a grade change and its confirmation. unknown never means ungraded.
+    pub grade_at_trade_status: GradeAtTradeStatus,
 }
 
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.

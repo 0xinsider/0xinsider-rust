@@ -95,7 +95,6 @@
                   "meta": {
                     "request_id": "req_550e8400-e29b-41d4-a716-446655440000",
                     "cached": false,
-                    "cache_age_s": null,
                     "cost": 1
                   }
                 }
@@ -1929,13 +1928,11 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
                       "type": "integer",
-                      "nullable": true,
-                      "description": "Total matching rows when the read model exposes a count; absent (or null) when it does not."
+                      "description": "Total matching rows when the read model exposes a count; the key is absent when it does not."
                     },
                     "meta": {
                       "$ref": "#/components/schemas/ResponseMeta"
@@ -1949,7 +1946,6 @@
                       "object": "list",
                       "data": [],
                       "has_more": false,
-                      "next_cursor": null,
                       "total": 0,
                       "meta": {
                         "request_id": "req_example",
@@ -2225,7 +2221,7 @@
       "get": {
         "operationId": "getTraderCategoryRecords",
         "summary": "Get trader category win records",
-        "description": "Returns one wallet's win record in every canonical category it has a settled market in: wins, decided (wins plus losses) and the rate, per category, busiest category first. These are the same counts the Pick of the Day holder chips carry. The Esports record also carries games: the wallet's record in each esports title it has a settled market in (LoL, CS2, Dota 2, Valorant, ...), the same per-game record the holder chips and GET /api/v1/market/{condition_id}/holders name in category_win_rate_game, with the same counts, floor and status rule; the Esports row itself stays the whole bucket, which is what a chip falls back to when a game record is thin. The basis is every settled market at any position size, which is NOT the basis of category_strengths on GET /api/v1/trader/{address}?expand=categories: that breakdown keeps the 20 USD notional floor and the entry-price rule its ranks depend on, so the two legitimately differ (1,554 of 3,291 here against 1,457 of 2,733 there on one Soccer wallet, measured 2026-09-20). A category or game with fewer than min_decided_for_win_rate decided markets keeps its counts and returns win_rate null with status not_enough_data, so a caller can apply its own sample rule. A category the wallet has no settled market in is omitted entirely, and so is a game: an absent entry means no record, never a 0% record. A resolved trader with no settled market returns an empty records array (HTTP 200); an unknown address returns 404.",
+        "description": "Returns one wallet's win record in every canonical category it has a settled market in: wins, decided (wins plus losses) and the rate, per category, busiest category first. These are the same counts the Pick of the Day holder chips carry. The Esports record also carries games: the wallet's record in each esports title it has a settled market in (LoL, CS2, Dota 2, Valorant, ...), the same per-game record the holder chips and GET /api/v1/market/{condition_id}/holders name in category_win_rate_game, with the same counts, floor and status rule; the Esports row itself stays the whole bucket, which is what a chip falls back to when a game record is thin. The basis is every settled market at any position size, which is NOT the basis of category_strengths on GET /api/v1/trader/{address}?expand=categories: that breakdown keeps the 20 USD notional floor and the entry-price rule its ranks depend on, so the two legitimately differ, in both directions. Measured on production 2026-09-22 over the 122,497 wallet-category pairs with at least 20 decided markets on both bases: the floored rate was higher in 56.5% of pairs, lower in 34.5% and equal in 9.0%, median +0.6 points, p10 -4.6, p90 +9.8, and 14.0% of pairs differ by 10 points or more. Neither rate corrects the other. The difference is not only small positions: on a 1-in-250 wallet sample the same day, admitted markets won 56.6% while markets dropped by the notional floor alone won 45.2% and markets dropped by the entry-price rule alone won 48.7%. The two tables also run on different clocks, this one rebuilt daily and that breakdown updated incrementally, so a same-day read can differ on timing alone. A category or game with fewer than min_decided_for_win_rate decided markets keeps its counts and returns win_rate null with status not_enough_data, so a caller can apply its own sample rule. A category the wallet has no settled market in is omitted entirely, and so is a game: an absent entry means no record, never a 0% record. A resolved trader with no settled market returns an empty records array (HTTP 200); an unknown address returns 404.",
         "tags": [
           "Traders"
         ],
@@ -2626,6 +2622,7 @@
                   "object": "trader_pnl",
                   "data": {
                     "id": "trd_0xabc123",
+                    "freshness_at": "2026-05-12T18:04:11Z",
                     "entries": [
                       {
                         "date": "2026-05-12",
@@ -2991,13 +2988,11 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
                       "type": "integer",
-                      "nullable": true,
-                      "description": "Total matching rows when the read model exposes a count; absent (or null) when it does not."
+                      "description": "Total matching rows when the read model exposes a count; the key is absent when it does not."
                     },
                     "meta": {
                       "$ref": "#/components/schemas/ResponseMeta"
@@ -3011,7 +3006,6 @@
                       "object": "list",
                       "data": [],
                       "has_more": false,
-                      "next_cursor": null,
                       "total": 0,
                       "meta": {
                         "request_id": "req_example",
@@ -3416,13 +3410,11 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
                       "type": "integer",
-                      "nullable": true,
-                      "description": "Total matching rows when the read model exposes a count; absent (or null) when it does not."
+                      "description": "Total matching rows when the read model exposes a count; the key is absent when it does not."
                     },
                     "meta": {
                       "$ref": "#/components/schemas/ResponseMeta"
@@ -3436,7 +3428,6 @@
                       "object": "list",
                       "data": [],
                       "has_more": false,
-                      "next_cursor": null,
                       "total": 0,
                       "meta": {
                         "request_id": "req_example",
@@ -3561,6 +3552,16 @@
           },
           "403": {
             "description": "Account access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A wallet value that resolves to no trader: a username or trd_-prefixed trader ID with no match. error.param is wallet. An address 0xinsider does not track is not an error; it returns the rows stored for it, or an empty list.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3817,12 +3818,10 @@
                     },
                     "next_cursor": {
                       "type": "string",
-                      "nullable": true,
                       "description": "Opaque cursor for the next page; absent on the last page."
                     },
                     "total": {
                       "type": "integer",
-                      "nullable": true,
                       "description": "Total ranked rows when the read model exposes a count; may be absent."
                     },
                     "meta": {
@@ -3837,7 +3836,6 @@
                       "object": "list",
                       "data": [],
                       "has_more": false,
-                      "next_cursor": null,
                       "meta": {
                         "request_id": "req_example",
                         "cached": false,
@@ -4086,7 +4084,7 @@
           {
             "name": "min_grade",
             "in": "query",
-            "description": "Minimum trader grade.",
+            "description": "Minimum trader grade as of today (trader.grade). A means S or A, B means S, A or B.",
             "schema": {
               "type": "string",
               "enum": ["S", "A", "B", "C", "D", "F"]
@@ -4134,13 +4132,11 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
                       "type": "integer",
-                      "nullable": true,
-                      "description": "Total matching rows when the read model exposes a count; absent (or null) when it does not."
+                      "description": "Total matching rows when the read model exposes a count; the key is absent when it does not."
                     },
                     "meta": {
                       "$ref": "#/components/schemas/ResponseMeta"
@@ -4154,7 +4150,6 @@
                       "object": "list",
                       "data": [],
                       "has_more": false,
-                      "next_cursor": null,
                       "total": 0,
                       "meta": {
                         "request_id": "req_example",
@@ -4410,7 +4405,7 @@
       "get": {
         "operationId": "listWhaleTradeHistory",
         "summary": "Replay historical whale trades",
-        "description": "Returns historical whale trades from local whale_alerts rows, not request-time provider fetches. Filter by condition_id, trader, category, minimum grade, persisted suspicion, platform, and RFC3339 from/to windows. All filters are pushed into SQL before LIMIT, every request uses SQL-backed limit + 1 pagination, and results are ordered newest first by traded_at desc, id desc. Metadata exposes local_replay source and best_effort completeness.",
+        "description": "Returns historical whale trades from local whale_alerts rows, not request-time provider fetches. Filter by condition_id, trader, category, minimum grade, persisted suspicion, platform, and RFC3339 from/to windows. All filters are pushed into SQL before LIMIT, every request uses SQL-backed limit + 1 pagination, and results are ordered newest first by traded_at desc, id desc. Metadata exposes local_replay source and best_effort completeness. POINT IN TIME: signal_score, trader.grade and the min_grade filter carry today's values on every row however old, so a backtest that selects by them selects wallets on what they did after the trade. The point-in-time fields are recorded_signal_score (from 2026-08-03T11:59Z; null before, and never backfilled, because the trader statistics it reads at insert were not kept for older rows) and trader.grade_at_trade with trader.grade_at_trade_status (from 2026-09-19T23:00Z; unknown before). CAPTURE RULES changed over the archive's life: rows before 2026-02-02 are sparse (at most a few hundred a month); from 2026-02-02 the floor was 3,000 USD (1.4% of rows through 2026-07-05 are smaller) and trades at any price were kept; from 2026-07-06 a trade is kept at 10,000 USD or more (1,000 USD in earnings markets) and only when priced below 0.97 (0.99 in earnings markets). Pass min_size=10000 for one size rule across the whole range; monthly row counts still follow the sports calendar. Until 2026-07-17 one match could be stored twice, once per wallet: from 2026-05-01 to 2026-07-17, 27.7% of rows at 10,000 USD or more share a transaction and market with another stored wallet, almost always a Yes buyer and a No buyer filled against each other. From 2026-07-18 a row is the taker's side only. Before 2026-05 the transaction hash is mostly absent, so the share cannot be measured there.",
         "tags": ["Whale Trades"],
         "parameters": [
           {"name": "X-Query-Validation", "in": "header", "required": false, "description": "Opt into strict query-name validation. The default is compatible: unknown names are ignored and reported in X-Query-Ignored. With strict, an unknown name returns 400 bad_request with error.reason unknown_query_parameter before the handler runs.", "schema": {"type": "string", "enum": ["strict"]}},
@@ -4436,7 +4431,7 @@
           {
             "name": "min_size",
             "in": "query",
-            "description": "Minimum trade size in USD.",
+            "description": "Minimum trade size in USD. The capture floor was 3,000 USD before 2026-07-06 and 10,000 USD from then (1,000 USD in earnings markets), so 10000 gives one size rule across the whole archive.",
             "schema": {
               "type": "number",
               "default": 5000
@@ -4453,7 +4448,7 @@
           {
             "name": "trader",
             "in": "query",
-            "description": "Trader wallet address, timestamp-suffixed wallet alias, or username resolved against the traders table. Unknown traders return an empty list.",
+            "description": "Trader wallet address, timestamp-suffixed wallet alias, username, or trd_-prefixed trader ID, resolved against the traders table. Unknown traders return an empty list.",
             "schema": {
               "type": "string"
             }
@@ -4469,7 +4464,7 @@
           {
             "name": "min_grade",
             "in": "query",
-            "description": "Minimum trader grade.",
+            "description": "Minimum trader grade as of today (trader.grade), not at trade time. On a historical window it selects wallets by a grade they may have earned after the trade; for a point-in-time rule filter on trader.grade_at_trade instead. A means S or A, B means S, A or B.",
             "schema": {
               "type": "string",
               "enum": ["S", "A", "B", "C", "D", "F"]
@@ -4544,13 +4539,11 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
                       "type": "integer",
-                      "nullable": true,
-                      "description": "Total matching rows when the read model exposes a count; absent (or null) when it does not."
+                      "description": "Total matching rows when the read model exposes a count; the key is absent when it does not."
                     },
                     "meta": {
                       "$ref": "#/components/schemas/WhaleTradeHistoryMeta"
@@ -4580,7 +4573,9 @@
                             "id": "trd_0xabc1230000000000000000000000000000000abc",
                             "address": "0xabc1230000000000000000000000000000000abc",
                             "username": "example_trader",
-                            "grade": "F"
+                            "grade": "F",
+                            "grade_at_trade": "F",
+                            "grade_at_trade_status": "graded"
                           },
                           "market": {
                             "id": "mkt_0xdef4560000000000000000000000000000000def613f54180a6d82f81c586f87",
@@ -4605,7 +4600,9 @@
                           "suspicion_track": null,
                           "trader": {
                             "id": "trd_0xdef4560000000000000000000000000000000def",
-                            "address": "0xdef4560000000000000000000000000000000def"
+                            "address": "0xdef4560000000000000000000000000000000def",
+                            "grade_at_trade": null,
+                            "grade_at_trade_status": "unknown"
                           },
                           "market": {
                             "id": "mkt_0xdef4560000000000000000000000000000000def4c2638b15eda50ca1b7ce303",
@@ -4946,7 +4943,9 @@
                           "id": "trd_0xabc1230000000000000000000000000000000abc",
                           "address": "0xabc1230000000000000000000000000000000abc",
                           "username": "example_trader",
-                          "grade": "F"
+                          "grade": "F",
+                          "grade_at_trade": "F",
+                          "grade_at_trade_status": "graded"
                         },
                         "market": {
                           "id": "mkt_0xdef4560000000000000000000000000000000def613f54180a6d82f81c586f87",
@@ -5915,13 +5914,11 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
                       "type": "integer",
-                      "nullable": true,
-                      "description": "Total matching rows when the read model exposes a count; absent (or null) when it does not."
+                      "description": "Total matching rows when the read model exposes a count; the key is absent when it does not."
                     },
                     "meta": {
                       "$ref": "#/components/schemas/ResponseMeta"
@@ -5935,7 +5932,6 @@
                       "object": "list",
                       "data": [],
                       "has_more": false,
-                      "next_cursor": null,
                       "total": 0,
                       "meta": {
                         "request_id": "req_example",
@@ -6285,12 +6281,10 @@
                             "name": "marketmaker",
                             "grade": "B",
                             "shares": 9800,
-                            "category_win_rate": null,
                             "category_win_rate_status": "not_enough_data"
                           }
                         ],
                         "holder_count": 1,
-                        "editorial_note": null,
                         "thesis": "Profitable wallets hold Portugal, led by a grade-A trader.",
                         "market_url": "https://0xinsider.com/event/portugal-vs-uzbekistan",
                         "event_slug": "portugal-vs-uzbekistan",
@@ -6401,12 +6395,10 @@
                             "name": "marketmaker",
                             "grade": "B",
                             "shares": 9800,
-                            "category_win_rate": null,
                             "category_win_rate_status": "not_enough_data"
                           }
                         ],
                         "holder_count": 1,
-                        "editorial_note": null,
                         "thesis": "Profitable wallets hold Portugal, led by a grade-A trader.",
                         "market_url": "https://0xinsider.com/event/portugal-vs-uzbekistan",
                         "event_slug": "portugal-vs-uzbekistan",
@@ -7324,48 +7316,8 @@
             },
             "x-empty-body": true
           },
-          "401": {
-            "description": "Missing or invalid API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "402": {
-            "description": "Active Pro subscription required. The key is valid but the account has no active Pro subscription; error.reason is subscription_inactive and error.message names the reactivation URL (https://0xinsider.com/billing). Permanent until a person reactivates: no Retry-After, never retry on a schedule.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Account access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
           "408": {
             "description": "The handler did not answer inside the server's 30-second timeout. error.code is request_timeout. On GET and HEAD the response carries Retry-After and error.retry_at; on a mutation it carries neither, because the request may have completed on the server: check its state before repeating it, and reuse its Idempotency-Key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "423": {
-            "description": "Account is locked",
             "content": {
               "application/json": {
                 "schema": {
@@ -7559,12 +7511,10 @@
                     },
                     "next_cursor": {
                       "type": "string",
-                      "nullable": true,
                       "description": "Opaque cursor for the next page; absent on the last page."
                     },
                     "total": {
                       "type": "integer",
-                      "nullable": true,
                       "description": "Total ranked rows when the read model exposes a count; may be absent."
                     },
                     "meta": {
@@ -7579,7 +7529,6 @@
                       "object": "list",
                       "data": [],
                       "has_more": false,
-                      "next_cursor": null,
                       "meta": {
                         "request_id": "req_example",
                         "cached": false,
@@ -7861,13 +7810,11 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
                       "type": "integer",
-                      "nullable": true,
-                      "description": "Total matching rows when the read model exposes a count; absent (or null) when it does not."
+                      "description": "Total matching rows when the read model exposes a count; the key is absent when it does not."
                     },
                     "meta": {
                       "$ref": "#/components/schemas/ResponseMeta"
@@ -7881,7 +7828,6 @@
                       "object": "list",
                       "data": [],
                       "has_more": false,
-                      "next_cursor": null,
                       "total": 0,
                       "meta": {
                         "request_id": "req_example",
@@ -8144,12 +8090,10 @@
                     },
                     "next_cursor": {
                       "type": "string",
-                      "nullable": true,
                       "description": "Omitted because content search is a bounded one-page result."
                     },
                     "total": {
                       "type": "integer",
-                      "nullable": true,
                       "description": "Absent because content search is a bounded relevance result and does not run a count query."
                     },
                     "meta": {
@@ -8525,12 +8469,10 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
                       "type": "integer",
-                      "nullable": true,
                       "description": "Total matching visible entries after grouping. Present on the first page and omitted on cursor pages."
                     },
                     "facets": {
@@ -9131,12 +9073,10 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
-                      "type": "integer",
-                      "nullable": true
+                      "type": "integer"
                     },
                     "meta": {
                       "$ref": "#/components/schemas/ResponseMeta"
@@ -9161,6 +9101,7 @@
                           "sharp_money": {
                             "net_flow_usd": 12345.67,
                             "direction": "YES",
+                            "token_id": "26603239767113701790776634803790654539492519362779665632490658212718064984767",
                             "whale_trade_count": 7,
                             "buy_volume_usd": 20000,
                             "sell_volume_usd": 7654.33
@@ -9168,6 +9109,7 @@
                           "smart_money": {
                             "net_flow_usd": 12345.67,
                             "direction": "YES",
+                            "token_id": "26603239767113701790776634803790654539492519362779665632490658212718064984767",
                             "whale_trade_count": 7,
                             "buy_volume_usd": 20000,
                             "sell_volume_usd": 7654.33
@@ -9176,7 +9118,6 @@
                         }
                       ],
                       "has_more": false,
-                      "next_cursor": null,
                       "meta": {
                         "request_id": "req_example",
                         "cached": false,
@@ -9534,12 +9475,10 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
-                      "type": "integer",
-                      "nullable": true
+                      "type": "integer"
                     },
                     "meta": {
                       "$ref": "#/components/schemas/ResponseMeta"
@@ -9564,6 +9503,7 @@
                           "sharp_money": {
                             "net_flow_usd": 12345.67,
                             "direction": "YES",
+                            "token_id": "26603239767113701790776634803790654539492519362779665632490658212718064984767",
                             "whale_trade_count": 7,
                             "buy_volume_usd": 20000,
                             "sell_volume_usd": 7654.33
@@ -9571,6 +9511,7 @@
                           "smart_money": {
                             "net_flow_usd": 12345.67,
                             "direction": "YES",
+                            "token_id": "26603239767113701790776634803790654539492519362779665632490658212718064984767",
                             "whale_trade_count": 7,
                             "buy_volume_usd": 20000,
                             "sell_volume_usd": 7654.33
@@ -9579,7 +9520,6 @@
                         }
                       ],
                       "has_more": false,
-                      "next_cursor": null,
                       "meta": {
                         "request_id": "req_example",
                         "cached": false,
@@ -9918,12 +9858,10 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
-                      "type": "integer",
-                      "nullable": true
+                      "type": "integer"
                     },
                     "meta": {
                       "$ref": "#/components/schemas/ResponseMeta"
@@ -10244,7 +10182,6 @@
                     "object",
                     "data",
                     "has_more",
-                    "next_cursor",
                     "snapshot_as_of",
                     "degraded",
                     "funnel",
@@ -10265,8 +10202,7 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "snapshot_as_of": {
                       "type": "string",
@@ -10690,7 +10626,7 @@
       "get": {
         "operationId": "getMarketHolders",
         "summary": "List a market's graded holders",
-        "description": "The graded holder roster of one market, the list a Pick of the Day shows for its market, for any Polymarket market: every S/A/B wallet with open shares on either outcome, from a complete provider holder scan, each with its shares, Polymarket's own currentValue for the leg, its grade, its win record in the market's category, and its badges. Both outcomes are listed; a wallet holding both is listed once on its net side. Ordered by current_value_usd DESC, then shares DESC, then address. The roster is computed at most once a minute per market and shared by every caller; a page is cut from that roster, so paging is cheap and `total` is exact. The route never widens past the graded cohort: `scan.wallet_count` reports every wallet the walk saw, graded or not. An incomplete, unstable or failed scan is a 503 with Retry-After, never a shorter list.",
+        "description": "The graded holder roster of one market, the list a Pick of the Day shows for its market, for any Polymarket market: every S/A/B wallet with open shares on either outcome, from a complete provider holder scan, each with its shares, Polymarket's own currentValue for the leg, its grade, its win record in the market's category, and its badges. Both outcomes are listed; a wallet holding both is listed once on its net side. Ordered by current_value_usd DESC, then shares DESC, then address. The roster is computed at most once a minute per market and shared by every caller; a page is cut from that roster, so paging is cheap and `total` is exact. The route never widens past the graded cohort: `scan.wallet_count` reports every wallet the walk saw, graded or not. An incomplete, unstable or failed scan is a 503 with Retry-After, never a shorter list. The cohort is S, A and B by the wallet's current grade (`traders.latest_grade`); a C, D, F or ungraded wallet is never listed here and appears only inside `scan.wallet_count`. A count here will not match GET /api/v1/positions for the same market, and the cohort is only one of three reasons: /positions reads the `wallet_positions` mirror rather than this live provider scan, and without a `wallet` its `min_size` defaults to 100 USD, so it drops the smaller legs this route keeps. Read a difference as all three, never as a grade count. This is current state and takes no as-of parameter: the roster is at most 60 s old over a provider walk at most 180 s old, and `scan.fetched_at` is the only timestamp on it. For a point-in-time roster, snapshot this route yourself on your own schedule; the one frozen roster the API serves is `display_holders` on GET /api/v1/pick-of-the-day, for that pick's market and backed side at publication.",
         "tags": ["Markets"],
         "parameters": [
           {"name": "X-Query-Validation", "in": "header", "required": false, "description": "Opt into strict query-name validation. The default is compatible: unknown names are ignored and reported in X-Query-Ignored. With strict, an unknown name returns 400 bad_request with error.reason unknown_query_parameter before the handler runs.", "schema": {"type": "string", "enum": ["strict"]}},
@@ -10716,7 +10652,7 @@
           {
             "name": "min_grade",
             "in": "query",
-            "description": "Narrow within the graded cohort: `S` keeps S, `A` keeps S and A, `B` (default) keeps S, A and B. `C`, `D` and `F` are rejected with 400: the route lists the S/A/B cohort only.",
+            "description": "Narrow within the graded cohort: `S` keeps S, `A` keeps S and A, `B` (default) keeps S, A and B. `C`, `D` and `F` are rejected with 400: the route lists the S/A/B cohort only. The cohort is the wallet's current grade (`traders.latest_grade`), so no value here reaches a C, D, F or ungraded holder; those are counted only in `scan.wallet_count`. `min_grade=D` on GET /api/v1/positions does return C and D, which is one of the three reasons the two routes' counts differ for the same market.",
             "schema": {
               "type": "string",
               "enum": ["S", "A", "B"],
@@ -10737,7 +10673,7 @@
           {
             "name": "cursor",
             "in": "query",
-            "description": "Pagination cursor from the previous response's next_cursor (prefix mh_). Pages are cut from one shared roster, so a cursor stays valid across the roster's refresh.",
+            "description": "Opaque pagination cursor from the previous response's next_cursor. It encodes a page of one shared roster, so it stays valid across the roster's refresh, but a page read after a refresh can repeat or skip a holder.",
             "schema": {
               "type": "string"
             }
@@ -10863,7 +10799,6 @@
                     "object",
                     "data",
                     "has_more",
-                    "total",
                     "market",
                     "scan",
                     "totals",
@@ -12664,13 +12599,11 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
                       "type": "integer",
-                      "nullable": true,
-                      "description": "Total matching rows when the read model exposes a count; absent (or null) when it does not."
+                      "description": "Total matching rows when the read model exposes a count; the key is absent when it does not."
                     },
                     "meta": {
                       "$ref": "#/components/schemas/ResponseMeta"
@@ -12684,7 +12617,6 @@
                       "object": "list",
                       "data": [],
                       "has_more": false,
-                      "next_cursor": null,
                       "meta": {
                         "request_id": "req_example",
                         "cached": false,
@@ -13900,12 +13832,10 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
-                      "type": "integer",
-                      "nullable": true
+                      "type": "integer"
                     },
                     "meta": {
                       "$ref": "#/components/schemas/ResponseMeta"
@@ -14591,12 +14521,10 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
-                      "type": "integer",
-                      "nullable": true
+                      "type": "integer"
                     },
                     "meta": {
                       "$ref": "#/components/schemas/ResponseMeta"
@@ -14617,7 +14545,6 @@
                         }
                       ],
                       "has_more": false,
-                      "next_cursor": null,
                       "meta": {
                         "request_id": "req_example",
                         "cached": false,
@@ -14848,12 +14775,12 @@
             "name": "limit",
             "in": "query",
             "required": false,
-            "description": "Maximum delivery rows to return per page.",
+            "description": "Maximum delivery rows to return per page. Out-of-range values are clamped to 1..100.",
             "schema": {
               "type": "integer",
               "minimum": 1,
               "maximum": 100,
-              "default": 50
+              "default": 20
             }
           }
         ],
@@ -14880,12 +14807,10 @@
                       "type": "boolean"
                     },
                     "next_cursor": {
-                      "type": "string",
-                      "nullable": true
+                      "type": "string"
                     },
                     "total": {
-                      "type": "integer",
-                      "nullable": true
+                      "type": "integer"
                     },
                     "meta": {
                       "$ref": "#/components/schemas/ResponseMeta"
@@ -14913,7 +14838,6 @@
                         }
                       ],
                       "has_more": false,
-                      "next_cursor": null,
                       "meta": {
                         "request_id": "req_example",
                         "cached": false,
@@ -18243,7 +18167,7 @@
       "post": {
         "operationId": "createMcpJsonRpcResponse",
         "summary": "Remote MCP endpoint (JSON-RPC)",
-        "description": "Model Context Protocol (MCP) Streamable HTTP transport. Accepts one JSON-RPC 2.0 request or notification. ID-bearing initialize, ping, tools/list, and tools/call requests receive one same-ID JSON-RPC response. ID-less ping, notifications/initialized, and notifications/cancelled receive HTTP 202 with no body; other ID-less methods and unsolicited response messages receive HTTP 400 with no body. Unknown cancellation IDs are ignored; cancellation does not stop running tool work. Remote MCP exposes 35 read-only tools for public V1 read operations: get_leaderboard, get_trader, batch_get_traders, get_whale_trades, get_whale_trade, get_whale_trades_history, get_sports_edge_signals, get_sports_edge_observations, get_market_intel, batch_get_market_intel, get_smart_money_flows, get_sharp_money_flows, get_market_snapshot, get_insider_radar, get_insider_radar_flag, get_positions, get_position_timeline, get_position_timeline_by_id, search_markets, search_content, explore_markets, get_event_replay_since, list_webhooks, get_webhook, get_daily_report_snapshot, get_weekly_report_snapshot, get_monthly_report_snapshot, get_report, get_trader_export_snapshot, get_platforms, get_large_positions, get_trending_wallets, get_trader_pnl, get_pick_of_the_day, get_pick_of_the_day_archive. Webhook create/update/delete/verify/rotate operations are intentionally not exposed as remote MCP tools. The remote endpoint advertises tools only; it does not implement resources/list, resources/read, prompts/list, or prompts/get. Each tool dispatches to the matching /api/v1/* handler in-process so auth, rate limits, and payload shape match. initialize, notifications/initialized, ping and tools/list answer without a credential; tools/call (and any GET) need Authorization: Bearer <token> with an OAuth 2.1 access token (see the oauth2 security scheme; a tool outside the token's scopes returns isError) or an API key, and without one answer HTTP 401 with a WWW-Authenticate challenge whose resource_metadata names the RFC 9728 document at /.well-known/oauth-protected-resource/api/v1/mcp. A key in a ?token= query parameter is rejected on every route with 401 invalid_api_key and error.reason api_key_in_query, because URLs land in shell history, browser history, and logs; a client that can only take a URL can run the @0xinsider/mcp stdio package. Mcp-Session-Id is minted on initialize and echoed on every response. Origin header, when present, is validated against the 0xinsider + localhost allowlist. tools/call arguments are validated against the tool's advertised inputSchema before anything runs: a non-object, an unknown key, a wrong type, an out-of-range number, a value outside an enum or an argument combination outside a oneOf answers a tool result with isError true whose text names the field, never a query built from the arguments that fit. Every tools/call result carries the REST envelope's meta verbatim (request_id, cached, cache_age_s, cost, and the route's provenance such as source and completeness on get_whale_trades_history or ranking_source, directional_source and the category_skill_* fields on get_sports_edge_signals) as structuredContent.meta beside the payload's own keys, and a tool failure carries structuredContent.error with the REST error fields verbatim (code, reason, param, doc_url, retry_at) plus retry_after_seconds, request_id and status, beside its text. The MCP-Protocol-Version request header is checked on every POST and GET: a value outside 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05 answers HTTP 400 with JSON-RPC error -32600 before the body is read; an absent header is served as 2025-03-26, the transport specification's compatibility default. Browser preflight allows the header.",
+        "description": "Model Context Protocol (MCP) Streamable HTTP transport. Accepts one JSON-RPC 2.0 request or notification. ID-bearing initialize, ping, tools/list, and tools/call requests receive one same-ID JSON-RPC response. ID-less ping, notifications/initialized, and notifications/cancelled receive HTTP 202 with no body; other ID-less methods and unsolicited response messages receive HTTP 400 with no body. Unknown cancellation IDs are ignored; cancellation does not stop running tool work. Remote MCP exposes 35 read-only tools for public V1 read operations: get_leaderboard, get_trader, batch_get_traders, get_whale_trades, get_whale_trade, get_whale_trades_history, get_sports_edge_signals, get_sports_edge_observations, get_market_intel, batch_get_market_intel, get_smart_money_flows, get_sharp_money_flows, get_market_snapshot, get_insider_radar, get_insider_radar_flag, get_positions, get_position_timeline, get_position_timeline_by_id, search_markets, search_content, explore_markets, get_event_replay_since, list_webhooks, get_webhook, get_daily_report_snapshot, get_weekly_report_snapshot, get_monthly_report_snapshot, get_report, get_trader_export_snapshot, get_platforms, get_large_positions, get_trending_wallets, get_trader_pnl, get_pick_of_the_day, get_pick_of_the_day_archive. Webhook create/update/delete/verify/rotate operations are intentionally not exposed as remote MCP tools. The remote endpoint advertises tools only; it does not implement resources/list, resources/read, prompts/list, or prompts/get. Each tool dispatches to the matching /api/v1/* handler in-process so auth, rate limits, and payload shape match. initialize, notifications/initialized, ping and tools/list answer without a credential; tools/call (and any GET) need Authorization: Bearer <token> with an OAuth 2.1 access token (see the oauth2 security scheme; a tool outside the token's scopes returns isError) or an API key, and without one answer HTTP 401 with a WWW-Authenticate challenge whose resource_metadata names the RFC 9728 document at /.well-known/oauth-protected-resource/api/v1/mcp. A key in a ?token= query parameter is rejected on every authenticated route (the public routes ignore it) with 401 invalid_api_key and error.reason api_key_in_query, because URLs land in shell history, browser history, and logs; a client that can only take a URL can run the @0xinsider/mcp stdio package. Mcp-Session-Id is minted on initialize and echoed on every response. Origin header, when present, is validated against the 0xinsider + localhost allowlist. tools/call arguments are validated against the tool's advertised inputSchema before anything runs: a non-object, an unknown key, a wrong type, an out-of-range number, a value outside an enum or an argument combination outside a oneOf answers a tool result with isError true whose text names the field, never a query built from the arguments that fit. Every tools/call result carries the REST envelope's meta verbatim (request_id, cached, cache_age_s, cost, and the route's provenance such as source and completeness on get_whale_trades_history or ranking_source, directional_source and the category_skill_* fields on get_sports_edge_signals) as structuredContent.meta beside the payload's own keys, and a tool failure carries structuredContent.error with the REST error fields verbatim (code, reason, param, doc_url, retry_at) plus retry_after_seconds, request_id and status, beside its text. The MCP-Protocol-Version request header is checked on every POST and GET: a value outside 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05 answers HTTP 400 with JSON-RPC error -32600 before the body is read; an absent header is served as 2025-03-26, the transport specification's compatibility default. Browser preflight allows the header.",
         "tags": ["MCP"],
         "parameters": [
           {"name": "X-Query-Validation", "in": "header", "required": false, "description": "Opt into strict query-name validation. The default is compatible: unknown names are ignored and reported in X-Query-Ignored. With strict, an unknown name returns 400 bad_request with error.reason unknown_query_parameter before the handler runs.", "schema": {"type": "string", "enum": ["strict"]}},
@@ -20481,7 +20405,7 @@
       "post": {
         "operationId": "submitTraderExport",
         "summary": "Submit a trader dataset export job",
-        "description": "Queues an async export of the trader's full dataset in the requested format (json default, ndjson, or csv) and returns the job. Poll the status route, then follow the download route once status is 'ready'. Quotas are the per-user daily and per-address hourly export caps, keyed on the API key owner so an API key never widens its owner's quota.",
+        "description": "Queues an async export of the trader's full dataset in the requested format (json default, ndjson, or csv) and returns the job. Poll the status route, then follow the download route once status is 'ready'. Quotas are the per-user daily and per-address hourly export caps, keyed on the API key owner so an API key never widens its owner's quota. New full exports select one database read generation before delivery. JSON and NDJSON add export_metadata.generation (id, selected_at, consistency=repeatable_read, source_watermarks for positions, native P&L, categories and all matching trades), position_generation, provider_observations (provider values and observation/revision metadata), category_data_as_of, pnl_date_from/to, pnl_rows, pnl_row_limit (3650), markets_rows, markets_row_limit (50000), summary_basis and trades_basis. Summary counts cover all stored markets; the markets section retains its existing latest-activity 50000-row limit and P&L its earliest-3650-days limit. These are database consistency and section coverage facts, not a claim that providers observed every section simultaneously. CSV appends export_generation, export_selected_at and export_consistency columns. Downloaded objects also expose x-amz-meta-export-generation, x-amz-meta-export-selected-at, x-amz-meta-export-consistency, x-amz-meta-export-trades and x-amz-meta-export-provenance headers, including empty CSV files. Historical artifacts remain unchanged. Select CSV columns by name; JSON/NDJSON readers may ignore the additive fields. A read exceeding 600 seconds or an uncompressed artifact exceeding 2 GiB fails without publishing a partial file.",
         "tags": ["Traders"],
         "parameters": [
           {"name": "X-Query-Validation", "in": "header", "required": false, "description": "Opt into strict query-name validation. The default is compatible: unknown names are ignored and reported in X-Query-Ignored. With strict, an unknown name returns 400 bad_request with error.reason unknown_query_parameter before the handler runs.", "schema": {"type": "string", "enum": ["strict"]}},
@@ -22253,6 +22177,7 @@
           "url",
           "event_types",
           "status",
+          "verified_at",
           "verification_token_expires_at",
           "failure_count",
           "created_at",
@@ -22463,7 +22388,6 @@
           },
           "cache_age_s": {
             "type": "integer",
-            "nullable": true,
             "description": "Cache age in seconds. Omitted when the response was not cached, and also when it was cached but its age cannot be established (an entry stored before its cache carried a computed instant). Never a placeholder: an unknown age is reported as no value rather than as the cache TTL."
           },
           "cost": {
@@ -22472,13 +22396,11 @@
           },
           "ranking_generation": {
             "type": "integer",
-            "nullable": true,
             "description": "Committed PostgreSQL-owned leaderboard generation for the returned rows and cursor. Present on GET /api/v1/leaderboard; omitted on endpoints that do not read this ranking."
           },
           "ranking_as_of": {
             "type": "string",
             "format": "date-time",
-            "nullable": true,
             "description": "Authoritative RFC3339 timestamp from cache_generations.updated_at for ranking_generation. It is read in the same repeatable-read snapshot as the leaderboard rows and is not request time, cache write time, or row insertion order."
           },
           "directional_source": {
@@ -22623,8 +22545,7 @@
           },
           "cache_age_s": {
             "type": "integer",
-            "nullable": true,
-            "description": "Cache age in seconds, null if not cached."
+            "description": "Cache age in seconds; the key is absent when the response was not cached."
           },
           "source": {
             "type": "object",
@@ -22742,7 +22663,7 @@
                 "type": "null"
               }
             ],
-            "description": "Present only with expand=trade: the public trade read for this row, the same object GET /api/v1/whale-trades/{id} returns, read at request time from one query per page. traded_at, side, size_usd, price, outcome and token_id are the row's event-time facts; trader.grade, trader.username, signal_score, recorded_signal_score, suspicion_score, suspicion_track and market title/slug/category are enrichment that can move after the event. null when that route would answer 404 for the row (its trader or market is not synced yet)."
+            "description": "Present only with expand=trade: the public trade read for this row, the same object GET /api/v1/whale-trades/{id} returns, read at request time from one query per page. traded_at, side, size_usd, price, outcome, token_id, recorded_signal_score and trader.grade_at_trade with its status are the row's event-time facts; trader.grade, trader.username, signal_score, suspicion_score, suspicion_track and market title/slug/category are enrichment that can move after the event. null when that route would answer 404 for the row (its trader or market is not synced yet)."
           },
           "source": {
             "$ref": "#/components/schemas/EventReplaySource"
@@ -22800,8 +22721,7 @@
             "type": "boolean"
           },
           "cache_age_s": {
-            "type": "integer",
-            "nullable": true
+            "type": "integer"
           },
           "cost": {
             "type": "integer",
@@ -22926,7 +22846,6 @@
           },
           "field": {
             "type": "string",
-            "nullable": true,
             "description": "Provider field, DB column, or computed field name when applicable."
           }
         }
@@ -22942,12 +22861,10 @@
           },
           "as_of": {
             "type": "string",
-            "format": "date-time",
-            "nullable": true
+            "format": "date-time"
           },
           "max_age_s": {
             "type": "integer",
-            "nullable": true,
             "minimum": 0
           }
         }
@@ -22969,8 +22886,7 @@
             ]
           },
           "detail": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         }
       },
@@ -22984,8 +22900,7 @@
             "enum": ["complete", "partial", "not_computed", "not_applicable", "unavailable"]
           },
           "detail": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         }
       },
@@ -23168,6 +23083,7 @@
           "event_timestamp",
           "action",
           "outcome_side",
+          "token_id",
           "amount_delta",
           "price",
           "usdc_notional",
@@ -23237,53 +23153,43 @@
             "type": "string"
           },
           "username": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "grade": {
             "type": "string",
-            "enum": ["S", "A", "B", "C", "D", "F"],
-            "nullable": true
+            "enum": ["S", "A", "B", "C", "D", "F"]
           },
           "streak_tier": {
             "type": "string",
             "enum": ["hot", "rising", "neutral", "cooling", "cold"],
-            "nullable": true,
-            "description": "Hot-streak tier (trailing-7d cross-sectional percentile); a separate axis from the all-time grade. Null when no recent activity."
+            "description": "Hot-streak tier (trailing-7d cross-sectional percentile); a separate axis from the all-time grade. Omitted when there is no recent activity."
           },
           "score": {
-            "type": "number",
-            "nullable": true
+            "type": "number"
           },
           "rank": {
-            "type": "integer",
-            "nullable": true
+            "type": "integer"
           },
           "pnl": {
             "type": "object",
             "properties": {
               "total": {
-                "type": "number",
-                "nullable": true
+                "type": "number"
               },
               "realized": {
                 "type": "number",
-                "nullable": true,
                 "description": "For pnl.realized, expand=trust marks a matching native accounting snapshot as computed: native Polymarket realized P&L plus credited maker and taker rebates, with fees already included. The exact numeric value is truncated toward zero to cents before conversion to a JSON number. Without a matching native accounting snapshot, pnl.realized is omitted and its trust metadata is unavailable. Raw total P&L is never substituted for realized P&L."
               },
               "unrealized": {
-                "type": "number",
-                "nullable": true
+                "type": "number"
               },
               "last_7d": {
                 "type": "number",
-                "nullable": true,
-                "description": "DEPRECATED, always null. The local pnl_7d rollup over-counted P&L (#5416 class) and is no longer emitted. Read the provider-native weekly window from GET /api/trader/{address}/profile-summary instead."
+                "description": "DEPRECATED, never sent. The local pnl_7d rollup over-counted P&L (#5416 class) and is no longer emitted. Read the provider-native weekly window from GET /api/trader/{address}/profile-summary instead."
               },
               "last_30d": {
                 "type": "number",
-                "nullable": true,
-                "description": "DEPRECATED, always null. The local pnl_30d rollup over-counted P&L (#5416 class) and is no longer emitted. Read the provider-native monthly window from GET /api/trader/{address}/profile-summary instead."
+                "description": "DEPRECATED, never sent. The local pnl_30d rollup over-counted P&L (#5416 class) and is no longer emitted. Read the provider-native monthly window from GET /api/trader/{address}/profile-summary instead."
               }
             }
           },
@@ -23291,50 +23197,41 @@
             "type": "object",
             "properties": {
               "markets_traded": {
-                "type": "integer",
-                "nullable": true
+                "type": "integer"
               },
               "win_rate": {
-                "type": "number",
-                "nullable": true
+                "type": "number"
               },
               "daily_win_rate": {
-                "type": "number",
-                "nullable": true
+                "type": "number"
               },
               "total_volume": {
                 "type": "number",
-                "nullable": true,
                 "description": "Full-history both-sides USD cash volume from Polymarket user-volume. Omitted without a verified observation; never leaderboard shares. Volume freshness is unknown in this DTO and does not use synced_at."
               }
             }
           },
           "strategy": {
             "type": "object",
-            "nullable": true,
             "properties": {
               "strategy_type": {
                 "type": "string"
               },
               "description": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               },
               "confidence": {
-                "type": "number",
-                "nullable": true
+                "type": "number"
               }
             }
           },
           "category_strengths": {
             "type": "object",
-            "nullable": true,
             "additionalProperties": true,
-            "description": "Per-category performance breakdown (expand=categories or expand[]=categories). Omitted unless expanded. Object keyed by category name; each value is the precomputed trader_rankings.category_ranks payload (rank, total_in_category, total_pnl, scaled_total_pnl, n_markets, wins, losses, win_rate; scaled_total_pnl is a legacy alias that currently equals total_pnl). BASIS: the calibration sample, which admits a position only above a 20 USD notional floor and with a chosen-side entry price strictly inside (0,1), because the ranks and the calibration edge derived from it depend on both rules. That is a different sample from GET /api/v1/trader/{address}/categories, which counts every settled market at any size; on one Soccer wallet the two read 1,457 of 2,733 here against 1,554 of 3,291 there (measured 2026-09-20). Use this for rank context and that route for the wallet's plain record. Pass-through DB JSON: keys and value shape are DB-owned, so the inner shape is intentionally unconstrained and may carry additional compatibility fields."
+            "description": "Per-category performance breakdown (expand=categories or expand[]=categories). Omitted unless expanded. Object keyed by category name; each value is the precomputed trader_rankings.category_ranks payload (rank, total_in_category, total_pnl, scaled_total_pnl, n_markets, wins, losses, win_rate; scaled_total_pnl is a legacy alias that currently equals total_pnl). BASIS: the calibration sample, which admits a position only above a 20 USD notional floor and with a chosen-side entry price strictly inside (0,1), because the ranks and the calibration edge derived from it depend on both rules. That is a different sample from GET /api/v1/trader/{address}/categories, which counts every settled market at any size, and the two differ in both directions. Measured on production 2026-09-22 over the 122,497 wallet-category pairs with at least 20 decided markets on both bases: the floored rate was higher in 56.5% of pairs, lower in 34.5% and equal in 9.0%, median +0.6 points, p10 -4.6, p90 +9.8, and 14.0% of pairs differ by 10 points or more. The difference is not only small positions: on a 1-in-250 wallet sample the same day, admitted markets won 56.6% while markets dropped by the notional floor alone won 45.2% and markets dropped by the entry-price rule alone won 48.7%. n_markets counts every admitted market including the ones that resolved at exactly zero P&L, so it is not the denominator of win_rate: it differed from wins + losses in 15.8% of pairs with at least 5 decided markets. The two tables also run on different clocks, this one updated incrementally and that route rebuilt daily, so a same-day read can differ on timing alone. Use this for rank context and that route for the wallet's plain record. Pass-through DB JSON: keys and value shape are DB-owned, so the inner shape is intentionally unconstrained and may carry additional compatibility fields."
           },
           "quant_metrics": {
             "type": "object",
-            "nullable": true,
             "additionalProperties": false,
             "required": [
               "smart_score",
@@ -23398,17 +23295,14 @@
           },
           "last_active": {
             "type": "string",
-            "format": "date-time",
-            "nullable": true
+            "format": "date-time"
           },
           "synced_at": {
             "type": "string",
-            "format": "date-time",
-            "nullable": true
+            "format": "date-time"
           },
           "sync_status": {
             "type": "string",
-            "nullable": true,
             "description": "synced, unknown, or pending."
           },
           "trust": {
@@ -23448,6 +23342,8 @@
               "unrealized_mtm",
               "cost_basis_locked",
               "resolved_win_rate",
+              "resolved_wins",
+              "resolved_decided",
               "as_of"
             ],
             "properties": {
@@ -23530,6 +23426,7 @@
           "platform",
           "wallet",
           "side",
+          "token_id",
           "shares",
           "current_value_usd",
           "freshness",
@@ -23566,7 +23463,6 @@
           },
           "avg_price": {
             "type": "number",
-            "nullable": true,
             "description": "Volume-weighted entry price for this leg."
           },
           "current_value_usd": {
@@ -23574,23 +23470,19 @@
             "description": "Current mark-to-market value in USD (always non-null on V1 — pre-reconcile rows are excluded)."
           },
           "initial_value_usd": {
-            "type": "number",
-            "nullable": true
+            "type": "number"
           },
           "cash_pnl": {
             "type": "number",
-            "nullable": true,
             "description": "Unrealized P&L for the open position (Polymarket `cashPnl`)."
           },
           "realized_pnl": {
             "type": "number",
-            "nullable": true,
             "description": "Closed-leg P&L rolled up (Polymarket `realizedPnl`)."
           },
           "last_reconciled_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true,
             "description": "Max updated_at across mirror legs for this pair."
           },
           "freshness": {
@@ -23610,30 +23502,24 @@
                 "type": "string"
               },
               "username": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               },
               "grade": {
                 "type": "string",
-                "enum": ["S", "A", "B", "C", "D", "F"],
-                "nullable": true
+                "enum": ["S", "A", "B", "C", "D", "F"]
               },
               "win_rate": {
                 "type": "number",
-                "nullable": true,
                 "description": "Percentage 0-100."
               },
               "pnl": {
-                "type": "number",
-                "nullable": true
+                "type": "number"
               },
               "markets": {
-                "type": "integer",
-                "nullable": true
+                "type": "integer"
               },
               "wallet_age_days": {
-                "type": "number",
-                "nullable": true
+                "type": "number"
               },
               "is_new_wallet": {
                 "type": "boolean",
@@ -23656,27 +23542,22 @@
                 "type": "string"
               },
               "slug": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               },
               "event_slug": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               },
               "category": {
                 "type": "string",
-                "nullable": true,
                 "description": "Provider-backed market_canonical category."
               },
               "outcome_label": {
                 "type": "string",
-                "nullable": true,
                 "description": "Provider-reported outcome label (e.g. team name for sports). Separate from `side` because provider labels can diverge from the binary Yes/No axis."
               },
               "end_date": {
                 "type": "string",
-                "format": "date-time",
-                "nullable": true
+                "format": "date-time"
               }
             }
           }
@@ -23689,6 +23570,8 @@
           "traded_at",
           "size_usd",
           "side",
+          "outcome",
+          "token_id",
           "price",
           "signal_score",
           "recorded_signal_score",
@@ -23728,12 +23611,12 @@
           },
           "signal_score": {
             "type": "number",
-            "description": "Current 0.0–1.0 normalized signal score. This value can change as scoring context changes."
+            "description": "Current 0.0–1.0 normalized signal score, computed at request time from the trader's win rate today and the trade's age now. On a historical row it is today's view of the trade, not what a reader saw then; use recorded_signal_score for that."
           },
           "recorded_signal_score": {
             "type": "number",
             "nullable": true,
-            "description": "0.0–1.0 signal score written once when the trade row is inserted. Available for new rows after this field launched; legacy rows return null. If a trade is added later, its time-sensitive recorded score reflects that delay."
+            "description": "0.0–1.0 signal score written once when the trade row is inserted, from the trader's statistics at that moment. Populated from 2026-08-03T11:59Z; older rows return null and are never backfilled, because a backfill could only read today's statistics. If a trade is added later, its time-sensitive recorded score reflects that delay."
           },
           "suspicion_score": {
             "type": "integer",
@@ -23755,7 +23638,7 @@
           },
           "trader": {
             "type": "object",
-            "required": ["id", "address"],
+            "required": ["id", "address", "grade_at_trade", "grade_at_trade_status"],
             "properties": {
               "id": {
                 "type": "string"
@@ -23764,12 +23647,22 @@
                 "type": "string"
               },
               "username": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               },
               "grade": {
                 "type": "string",
-                "nullable": true
+                "description": "The trader's grade today, on every row however old. For what the grade was when the trade happened, read grade_at_trade."
+              },
+              "grade_at_trade": {
+                "type": "string",
+                "enum": ["S", "A", "B", "C", "D", "F"],
+                "nullable": true,
+                "description": "The grade the trader held when the trade happened, from recorded grade history (recorded from 2026-09-19T23:00Z). Null unless grade_at_trade_status is graded. Never today's grade projected backward."
+              },
+              "grade_at_trade_status": {
+                "type": "string",
+                "enum": ["graded", "ungraded", "unknown"],
+                "description": "graded: grade_at_trade holds the recorded grade. ungraded: the trader was recorded without a grade at that moment. unknown: no record covers the moment, which is every trade before 2026-09-19T23:00Z and a trade that fell between a grade change and its confirmation. unknown never means ungraded."
               }
             }
           },
@@ -23787,12 +23680,10 @@
                 "type": "string"
               },
               "slug": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               },
               "category": {
                 "type": "string",
-                "nullable": true,
                 "description": "Provider-backed market_canonical category."
               }
             }
@@ -23841,28 +23732,22 @@
             "enum": ["resolved", "infrastructure", "unavailable"]
           },
           "resolved_user_id": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "wallet_family": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "resolution_block": {
-            "type": "integer",
-            "nullable": true
+            "type": "integer"
           },
           "resolution_source": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "display_name": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "grade": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "last_traded_at": {
             "type": "string",
@@ -23871,7 +23756,6 @@
           },
           "profile_segment": {
             "type": "string",
-            "nullable": true,
             "description": "0xinsider profile path segment for this participant, present only when the execution wallet has a tracked trader: `@<username>` when that username resolves to the trader alone, otherwise the trader's lowercase wallet. Percent-encode the part after `@` and append to `https://0xinsider.com/profile/`."
           },
           "maker_fill_count": {
@@ -23932,7 +23816,6 @@
           },
           "makers_next_cursor": {
             "type": "string",
-            "nullable": true,
             "description": "Stable cursor after the last maker included in the bounded inline page."
           }
         }
@@ -23952,17 +23835,14 @@
             "enum": ["available", "partial", "unavailable"]
           },
           "unavailable_reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "snapshot_id": {
             "type": "string",
-            "nullable": true,
             "description": "Deterministic immutable membership snapshot for this detail response."
           },
           "analysis_id": {
             "type": "string",
-            "nullable": true,
             "description": "Stable digest binding page cursors to one snapshot and execution set."
           },
           "execution_count": {
@@ -23982,7 +23862,6 @@
           },
           "executions_next_cursor": {
             "type": "string",
-            "nullable": true,
             "description": "Stable cursor after the last execution included in the bounded inline page."
           }
         }
@@ -24008,7 +23887,6 @@
           },
           "next_cursor": {
             "type": "string",
-            "nullable": true,
             "description": "Cursor bound to the analysis, execution, last full-denominator share total, and wallet."
           }
         }
@@ -24031,7 +23909,7 @@
       },
       "PickHolder": {
         "type": "object",
-        "required": ["address", "shares"],
+        "required": ["address", "name", "grade", "shares"],
         "properties": {
           "address": {
             "type": "string"
@@ -24047,7 +23925,6 @@
           },
           "profile_segment": {
             "type": "string",
-            "nullable": true,
             "description": "0xinsider profile path segment this wallet links to: `@<username>` when that username resolves to this wallet alone, otherwise the lowercase wallet. Percent-encode the part after `@` and append to `https://0xinsider.com/profile/`. Stamped at serve time; absent on a body cached before the field shipped."
           },
           "shares": {
@@ -24055,7 +23932,6 @@
           },
           "category_win_rate": {
             "type": "number",
-            "nullable": true,
             "minimum": 0,
             "maximum": 1,
             "description": "This wallet's win rate in the pick's canonical category bucket (the pick's `category` field, e.g. Basketball -- label the rate with it, never with the narrower `display_category` league, except when `category_win_rate_game` is present, in which case the rate is that game's and is labelled with it): the share of the wallet's resolved markets in that category whose realized P&L closed positive, as a 0..1 fraction. Present only with `category_win_rate_status` = `measured`, on `display_holders` entries, and only when the wallet clears the resolved-market floor; recomputed at serve time from the current category read model, not frozen with the pick. Absent on `holders` entries, legacy rows, and payloads predating the field."
@@ -24140,21 +24016,7 @@
       "PickOfTheDay": {
         "type": "object",
         "required": [
-          "state",
-          "pick_date",
-          "matchup",
-          "category",
-          "platform",
-          "release_at",
-          "is_locked",
-          "outcome",
-          "pick_outcome_label",
-          "position",
-          "side_summary",
-          "smart_wallet_count",
-          "thesis",
-          "disclaimer",
-          "clv_status"
+          "state"
         ],
         "properties": {
           "state": {
@@ -24237,8 +24099,7 @@
           },
           "token_id": {
             "type": "string",
-            "nullable": true,
-            "description": "The Polymarket CLOB token id (ERC1155 asset id, decimal string) for the backed outcome; null when unavailable (e.g. unsynced markets)."
+            "description": "The Polymarket CLOB token id (ERC1155 asset id, decimal string) for the backed outcome; omitted when unavailable (e.g. unsynced markets)."
           },
           "position": {
             "type": "string",
@@ -24254,27 +24115,22 @@
           },
           "top_grade": {
             "type": "string",
-            "nullable": true,
             "description": "Best public V1-compatible S/A smart-money grade on the backed side. The first-party/internal current policy can select B, but a current B-only grade is omitted by the stable V1 adapter. Historical rows retain their frozen policy's grade. A current-day published pick with pending legacy proof, unknown-future proof, or structurally invalid current-policy proof returns 503 before this success schema is served. Resolved legacy proof remains readable on both current-day and archive/history responses."
           },
           "category_edge_pct": {
             "type": "number",
-            "nullable": true,
             "description": "Deprecated (#7170): no longer populated for picks selected on/after the calibration-edge change; omitted (absent) for new picks (the field uses skip_serializing_if, so a null value is dropped from the JSON rather than serialized as null). Permanently frozen-legacy -- retained for historical picks, with no removal or replacement planned, so no v2 is implied. Historical picks may still carry a value. Legacy meaning: category win-rate edge as a fraction (the backed-side cohort's win rate in this category minus the non-market-maker category baseline, e.g. 0.09 = +9 points), paired with category_edge_sample."
           },
           "category_edge_sample": {
             "type": "integer",
-            "nullable": true,
             "description": "Deprecated (#7170): no longer populated for picks selected on/after the calibration-edge change; omitted (absent) for new picks (the field uses skip_serializing_if, so a null value is dropped from the JSON rather than serialized as null). Permanently frozen-legacy -- retained for historical picks, with no removal or replacement planned, so no v2 is implied. Historical picks may still carry a value. Legacy meaning: pooled count of resolved markets behind category_edge_pct (the headline's n)."
           },
           "smart_usd": {
             "type": "number",
-            "nullable": true,
             "description": "Recency-weighted graded-flow magnitude in USD; omitted when <= 0."
           },
           "backed_price": {
             "type": "number",
-            "nullable": true,
             "description": "Frozen pre-game probability (0..1) for the backed side, written once at publication. It is the Polymarket CLOB order book midpoint at release, not an executed fill: a buyer lifts the ask, so a subscriber's own entry is usually a little worse than this price."
           },
           "entry_price_note": {
@@ -24283,32 +24139,26 @@
           },
           "odds_display": {
             "type": "string",
-            "nullable": true,
             "description": "Pre-formatted backed_price as cents-on-the-dollar odds, to ONE decimal: \"62.0c\" / \"99.9c\". Never rounded to a whole cent -- a 99.9c favorite is not a 100c certainty. Convenience only; backed_price is the source value. Omitted when backed_price is."
           },
           "stake_usd": {
             "type": "number",
-            "nullable": true,
             "description": "The flat stake the published record puts on every pick, in USD: 1000 since 2026-09-22 (it was 100 before). Present exactly when return_usd is, so a reader never has to know the stake from anywhere else."
           },
           "return_usd": {
             "type": "number",
-            "nullable": true,
             "description": "Gross return of stake_usd at the frozen midpoint price (stake_usd / backed_price). A real fill pays the ask, so an executed stake usually returns a little less. Omitted with backed_price."
           },
           "return_per_100": {
             "type": "number",
-            "nullable": true,
             "description": "The same return on a literal $100 (100 / backed_price), kept for compatibility: the field predates stake_usd and its name promises the $100 basis, so a client that scales it to its own stake stays right. Present exactly when return_usd is."
           },
           "payout_display": {
             "type": "string",
-            "nullable": true,
             "description": "Pre-formatted return_usd as USD with cents and thousands separators: \"$1,612.90\" / \"$12,500.00\". The GROSS return (the stake included), so it carries no sign. Convenience only; return_usd is the source value. Omitted when return_usd is."
           },
           "profit_display": {
             "type": "string",
-            "nullable": true,
             "description": "Pre-formatted PROFIT on the stake -- return_usd minus stake_usd, i.e. the payout net of what you put in -- as a signed USD string: \"+$612.90\". Distinct from payout_display, which is gross. Omitted when return_usd is."
           },
           "clv_status": {
@@ -24341,47 +24191,38 @@
           },
           "sharp_pct": {
             "type": "number",
-            "nullable": true,
             "description": "First-party/internal backed-side sharp-money dollar consensus as a fraction 0..1: the share of current-policy sharp dollars on the backed side. Omitted on current public V1 rows when the B-inclusive value has no reconstructible S/A equivalent. A conviction signal, NOT a probability or expected-value claim. Frozen at generation."
           },
           "market_pct": {
             "type": "number",
-            "nullable": true,
             "description": "Market-implied probability of the backed side as a fraction 0..1 (equals backed_price), re-exposed alongside sharp_pct for the WHY breakdown."
           },
           "consensus_edge_pct": {
             "type": "number",
-            "nullable": true,
-            "description": "First-party/internal consensus edge = sharp_pct - market_pct, the conviction-vs-price gap (how much more of the current-policy sharp money sits on this side than the price implies). Omitted on current public V1 rows when the B-inclusive value has no reconstructible S/A equivalent. This is NOT an expected-value or guaranteed edge. Null when either input is null."
+            "description": "First-party/internal consensus edge = sharp_pct - market_pct, the conviction-vs-price gap (how much more of the current-policy sharp money sits on this side than the price implies). Omitted on current public V1 rows when the B-inclusive value has no reconstructible S/A equivalent. This is NOT an expected-value or guaranteed edge. Omitted when either input is unavailable."
           },
           "directional_confidence": {
             "type": "number",
-            "nullable": true,
             "description": "First-party/internal team-directional commitment read at selection time: the fraction (0..1) of the backed side's current-policy graded sharp-money DOLLARS held by wallets read one-way rather than hedged: no opposite leg on this market worth at least 10% of the backed leg (Polymarket's own currentValue pair), and no opposing team across the game's markets where the wallet's synced legs are fresh. Current public V1 rows omit this B-inclusive read because its historical S/A equivalent is not reconstructed. A high value means the graded pile is really committed to this side; a low one means much of it is hedged or unreadable. Omitted when the read was not computed (a pick selected before the field existed, an ungroupable game, an empty graded pile, or a pile where no holder carried usable evidence) -- which is NOT the same as 0.0, a computed reading that classified holders and found none one-way."
           },
           "one_way_holder_count": {
             "type": "integer",
-            "nullable": true,
             "description": "Graded backed-side holders read as one-way-committed on this game."
           },
           "hedged_holder_count": {
             "type": "integer",
-            "nullable": true,
             "description": "Graded backed-side holders read as HEDGED across the game's markets."
           },
           "one_way_graded_usd": {
             "type": "number",
-            "nullable": true,
             "description": "The one-way holders' share of the backed-side graded dollars (the confidence's numerator)."
           },
           "total_graded_usd": {
             "type": "number",
-            "nullable": true,
             "description": "Backed-side graded dollars the confidence is measured against (its denominator)."
           },
           "qualifying_expert": {
             "type": "object",
-            "nullable": true,
             "description": "The qualifying category expert whose sport-specific record and real position earned this pick its top selection tier. The first-party/internal current policy admits S/A/B; public V1 exposes a compatible S/A expert and omits a current-policy B-grade expert: a candidate backed by one outranks every candidate without one. Present only on the full payload. Omitted when no wallet qualified on the backed side, on picks generated before the field existed, and on the first-party web teaser, which withholds all backed-side evidence. Frozen at SELECTION time — the wallet's position can move before the pick renders.",
             "properties": {
               "address": {
@@ -24419,17 +24260,14 @@
               },
               "edge_lower_95": {
                 "type": "number",
-                "nullable": true,
                 "description": "95% lower bound of the wallet's mean calibration edge over the market price in canonical_category, in probability units (0.08 is 8 points). Positive by construction for a v2 expert; present on a v1 expert only when the wallet also holds a live v2 row."
               },
               "edge_mean": {
                 "type": "number",
-                "nullable": true,
                 "description": "Point estimate behind edge_lower_95."
               },
               "independent_event_count": {
                 "type": "integer",
-                "nullable": true,
                 "description": "Independent canonical events behind the edge. At least 10 by construction for a v2 expert."
               },
               "position_usd": {
@@ -24438,7 +24276,6 @@
               },
               "opposite_position_usd": {
                 "type": "number",
-                "nullable": true,
                 "description": "The same wallet's currentValue on the OTHER outcome of this market, in USD, as of selection. Present from gate policy v5, when the floor moved to net exposure; a wallet long both sides does not qualify. Absent on picks frozen before v5, which never read the leg. 0 is a measured one-way position, not an absence."
               },
               "stats_computed_at": {
@@ -24463,24 +24300,30 @@
                 "description": "Canonical provider probability pair branch; absent on standard experts."
               }
             },
-            "required": ["address", "canonical_category", "position_usd", "stats_computed_at"]
+            "required": [
+              "address",
+              "name",
+              "grade",
+              "canonical_category",
+              "win_rate",
+              "n_resolved",
+              "position_usd",
+              "stats_computed_at"
+            ]
           },
           "trust": {
             "$ref": "#/components/schemas/PickTrust"
           },
           "traders": {
             "type": "integer",
-            "nullable": true,
             "description": "Public V1 S/A compatibility count on the backed side (equals the adapted smart_wallet_count). The first-party/internal current policy counts S/A/B. Historical rows retain their frozen policy's count."
           },
           "backed_sharp_usd": {
             "type": "number",
-            "nullable": true,
             "description": "Raw backed-side sharp-money USD frozen at generation. This is the Sharp USD value, not the recency-weighted smart_usd which decays. Omitted on current public V1 rows when the B-inclusive value has no reconstructible S/A equivalent."
           },
           "holders": {
             "type": "array",
-            "nullable": true,
             "description": "Bounded S/A compatibility projection of the frozen sharp-money holders on the backed side. Current full payloads expose the complete S/A/B roster in display_holders; historical rows can retain their earlier frozen shape.",
             "items": {
               "$ref": "#/components/schemas/PickHolder"
@@ -24488,7 +24331,6 @@
           },
           "display_holders": {
             "type": "array",
-            "nullable": true,
             "description": "Full-only complete provider-confirmed S/A/B holder roster for the current Pick of the Day backing policy. Omitted for teaser, no-pick, and historical rows whose frozen holder proof predates this policy. Each entry may additionally carry `category_win_rate` / `category_win_rate_status`: the wallet's win rate in the pick's canonical `category`, stamped at serve time from the current category read model (the same annotation the sports sharp-money chips carry). The bounded `holders` compatibility projection never carries these fields.",
             "items": {
               "$ref": "#/components/schemas/PickHolder"
@@ -24496,12 +24338,10 @@
           },
           "holder_count": {
             "type": "integer",
-            "nullable": true,
             "description": "Exact S/A smart-money proof count on the backed side. The current display_holders roster can be longer because it also carries B-grade smart-money holders."
           },
           "editorial_note": {
             "type": "string",
-            "nullable": true,
             "description": "Optional editorial note attached to the pick."
           },
           "thesis": {
@@ -24510,18 +24350,15 @@
           },
           "market_url": {
             "type": "string",
-            "nullable": true,
             "description": "Canonical web market URL."
           },
           "event_slug": {
             "type": "string",
-            "nullable": true,
-            "description": "The canonical /event game-page slug (one neutral page per game), null when the game has no neutral event page."
+            "description": "The canonical /event game-page slug (one neutral page per game); omitted when the game has no neutral event page."
           },
           "event_link_slug": {
             "type": "string",
-            "nullable": true,
-            "description": "Backend-resolved /event destination slug for this pick's source market; null is an authoritative no-link decision."
+            "description": "Backend-resolved /event destination slug for this pick's source market; its absence is an authoritative no-link decision."
           },
           "sports_context": {
             "allOf": [
@@ -24529,7 +24366,6 @@
                 "$ref": "#/components/schemas/PickSportsContext"
               }
             ],
-            "nullable": true,
             "description": "Provider-first sports context for the pick's market (team logos, league branding, live score). Full-state only; omitted when the pick is not a team-sports market."
           },
           "disclaimer": {
@@ -24556,7 +24392,7 @@
       },
       "PickSportsContext": {
         "type": "object",
-        "required": ["event_matchup"],
+        "required": ["league_name", "league_logo", "yes_team", "no_team", "event_matchup"],
         "description": "Provider-first sports context for a Pick of the Day market: team crests, league branding, and live score. Team logos and league logo are provider-owned (Polymarket /teams crests for clubs, country flags for national teams and tennis players); no local derivation.",
         "properties": {
           "league_name": {
@@ -24566,7 +24402,6 @@
           },
           "competition_label": {
             "type": "string",
-            "nullable": true,
             "description": "Provider-owned event taxonomy from Gamma eventMetadata, joined in league · serie · tournament order with blanks and case-insensitive duplicates removed. Separate from league_name; omitted when the provider does not supply the metadata."
           },
           "league_logo": {
@@ -24594,8 +24429,7 @@
           },
           "game_id": {
             "type": "integer",
-            "nullable": true,
-            "description": "Provider game identifier (Polymarket Gamma gameId); omitted when null."
+            "description": "Provider game identifier (Polymarket Gamma gameId); omitted when the provider supplies none."
           },
           "event_matchup": {
             "type": "boolean",
@@ -24607,12 +24441,10 @@
                 "$ref": "#/components/schemas/PickSportsTeam"
               }
             ],
-            "nullable": true,
             "description": "Present only alongside event_matchup: the event team the binary leg is about (provider group_item_title matched to a matchup team, e.g. Belgium for \"Will Belgium win?\"), i.e. the winner on a Yes resolution. Omitted for teamless legs (draw, totals, prop)."
           },
           "matchup_title": {
             "type": "string",
-            "nullable": true,
             "description": "The two teams as a single whole-game label, joined \"<home> – <away>\" (en-dash) in provider display order (e.g. \"Portugal – Uzbekistan\"). Composed server-side from the provider team names (no title/slug parsing). Present when both teams resolve a name; omitted for single-subject, teamless, or non-two-team contexts."
           }
         }
@@ -24620,6 +24452,16 @@
       "PickSportsTeam": {
         "type": "object",
         "description": "A single sports team or competitor in a Pick of the Day market's sports context. Identity and score fields are provider-owned and nullable. The structured score fields (`sets`, `format`, `sets_won`) and the tennis fields (`headshot`, `tour`) are backend-owned and are OMITTED rather than null when they do not apply, so a consumer must treat an absent key and a null the same way.",
+        "required": [
+  "label",
+  "short_label",
+  "full_name",
+  "provider_id",
+  "logo",
+  "color",
+  "record",
+  "score"
+],
         "properties": {
           "label": {
             "type": "string",
@@ -24663,13 +24505,11 @@
           },
           "headshot": {
             "type": "string",
-            "nullable": true,
             "description": "Tennis player headshot URL, served same-origin. Present only for a tennis competitor the headshot resolver matched; absent for team sports and for unmatched players, where `logo` stays the fallback."
           },
           "tour": {
             "type": "string",
             "enum": ["atp", "wta", "itf"],
-            "nullable": true,
             "description": "Tennis tour this competitor belongs to. Present for every tennis entry whether or not `headshot` resolved, so a consumer can tell a tennis player with no photo from a non-tennis team. Absent for every other sport. Only `atp` and `wta` name a gender; the ITF World Tennis Tour runs men's and women's events and the provider does not say which, so `itf` means tennis with gender unknown."
           },
           "sets": {
@@ -24684,7 +24524,6 @@
           },
           "sets_won": {
             "type": "integer",
-            "nullable": true,
             "description": "Completed sets won by this side. Present only when both sides expose the same set columns, so a partially parsed scoreline reports no tally rather than a misleading one."
           }
         }
@@ -24784,7 +24623,7 @@
       },
       "PickOfTheDayArchiveEntry": {
         "type": "object",
-        "required": ["pick_date", "matchup", "category", "outcome", "clv_status"],
+        "required": ["pick_date", "matchup", "category", "outcome"],
         "properties": {
           "pick_date": {
             "type": "string",
@@ -24815,13 +24654,11 @@
           },
           "pick_outcome_label": {
             "type": "string",
-            "nullable": true,
             "description": "The backed side's outcome label. Omitted for a still-pending pick when the request is not from an authenticated Pro key."
           },
           "top_grade": {
             "type": "string",
-            "nullable": true,
-            "description": "Best public V1-compatible S/A smart-money grade on the backed side; a current B-only grade is omitted by the stable V1 adapter, while historical rows retain their frozen policy's grade. null when no smart-money wallet backs the pick, when a pending legacy proof has not yet upgraded, or when the stored holder policy is unknown-future or structurally invalid. Resolved legacy history remains supported."
+            "description": "Best public V1-compatible S/A smart-money grade on the backed side; a current B-only grade is omitted by the stable V1 adapter, while historical rows retain their frozen policy's grade. Omitted when no smart-money wallet backs the pick, when a pending legacy proof has not yet upgraded, or when the stored holder policy is unknown-future or structurally invalid. Resolved legacy history remains supported."
           },
           "outcome": {
             "type": "string",
@@ -25448,58 +25285,47 @@
             "type": "string"
           },
           "username": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "grade": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "streak_tier": {
             "type": "string",
             "enum": ["hot", "rising", "neutral", "cooling", "cold"],
-            "nullable": true,
-            "description": "Hot-streak tier (trailing-7d cross-sectional percentile); a separate axis from the all-time grade. Null when no recent activity."
+            "description": "Hot-streak tier (trailing-7d cross-sectional percentile); a separate axis from the all-time grade. Omitted when there is no recent activity."
           },
           "score": {
-            "type": "number",
-            "nullable": true
+            "type": "number"
           },
           "pnl": {
             "type": "number",
-            "nullable": true,
             "description": "All-time P&L in USD (total_pnl), including unrealized open positions. Kept for back-compat; prefer realized_pnl for the banked figure."
           },
           "realized_pnl": {
             "type": "number",
-            "nullable": true,
             "description": "Native realized P&L plus credited maker and taker rebates in USD, with fees already included. The exact numeric value is truncated toward zero to cents before JSON conversion. Wallets without a native snapshot retain their historical stored realized P&L. Omitted when the native snapshot has no net realized value."
           },
           "volume": {
             "type": "number",
-            "nullable": true,
             "description": "Full-history both-sides USD cash volume from a verified Polymarket user-volume observation. Omitted without coverage."
           },
           "markets_traded": {
-            "type": "integer",
-            "nullable": true
+            "type": "integer"
           },
           "win_rate": {
             "type": "number",
-            "nullable": true,
             "description": "The wallet's win rate across ALL categories, not the filtered one. ?category= decides WHICH wallets are listed (the wallet must be ranked in that category); it does not rescope this field, so a soccer-filtered list still reports each wallet's overall rate. For a per-category record use GET /api/v1/trader/{address}/categories."
           },
           "strategy_type": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "platform": {
             "type": "string"
           },
           "last_active": {
             "type": "string",
-            "format": "date-time",
-            "nullable": true
+            "format": "date-time"
           }
         }
       },
@@ -25536,7 +25362,7 @@
       },
       "MarketSearchResult": {
         "type": "object",
-        "required": ["id", "condition_id", "title", "status"],
+        "required": ["id", "condition_id", "title", "slug", "category", "platform", "status"],
         "properties": {
           "id": {
             "type": "string"
@@ -25567,7 +25393,47 @@
       },
       "ExploreMarket": {
         "type": "object",
-        "required": ["id", "condition_id", "title", "status"],
+        "required": [
+          "id",
+          "condition_id",
+          "title",
+          "slug",
+          "url_slug",
+          "image",
+          "icon",
+          "category",
+          "platform",
+          "status",
+          "volume",
+          "liquidity",
+          "whale_trade_count",
+          "whale_distinct_wallets",
+          "whale_total_usd",
+          "whale_last_trade_at",
+          "end_date",
+          "created_at",
+          "outcome_yes",
+          "token_id_yes",
+          "outcome_no",
+          "token_id_no",
+          "event_slug",
+          "smart_score",
+          "smart_count",
+          "smart_label",
+          "outcome_yes_label",
+          "outcome_no_label",
+          "outcome_yes_provider_id",
+          "outcome_no_provider_id",
+          "open_interest",
+          "oi_change_pct",
+          "price_points",
+          "no_price_points",
+          "last_price",
+          "no_last_price",
+          "change_pct_24h",
+          "no_change_pct_24h",
+          "discover_score"
+        ],
         "properties": {
           "id": {
             "type": "string"
@@ -25754,7 +25620,15 @@
           },
           "score_components": {
             "type": "object",
-            "required": ["missing_price_penalty"],
+            "required": [
+              "volume_signal",
+              "whale_signal",
+              "liquidity_signal",
+              "recency_signal",
+              "smart_money_signal",
+              "price_move_signal",
+              "missing_price_penalty"
+            ],
             "properties": {
               "volume_signal": {
                 "type": "number",
@@ -25803,7 +25677,17 @@
       },
       "ExploreGroup": {
         "type": "object",
-        "required": ["type", "event_slug", "parent_title", "markets"],
+        "required": [
+          "type",
+          "event_slug",
+          "parent_title",
+          "image",
+          "platform",
+          "category",
+          "markets",
+          "rep_volume",
+          "rep_whales"
+        ],
         "properties": {
           "type": {
             "type": "string",
@@ -26192,7 +26076,7 @@
         "properties": {
           "market": {
             "type": "object",
-            "required": ["id", "condition_id", "title"],
+            "required": ["id", "condition_id", "title", "slug", "category", "platform"],
             "properties": {
               "id": {
                 "type": "string"
@@ -26223,6 +26107,7 @@
             "required": [
               "net_flow_usd",
               "direction",
+              "token_id",
               "whale_trade_count",
               "buy_volume_usd",
               "sell_volume_usd",
@@ -26254,7 +26139,7 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": ["id", "address", "side", "size_usd"],
+                  "required": ["id", "address", "username", "grade", "side", "token_id", "size_usd"],
                   "properties": {
                     "id": {
                       "type": "string"
@@ -26293,6 +26178,7 @@
             "required": [
               "net_flow_usd",
               "direction",
+              "token_id",
               "whale_trade_count",
               "buy_volume_usd",
               "sell_volume_usd",
@@ -26324,7 +26210,7 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": ["id", "address", "side", "size_usd"],
+                  "required": ["id", "address", "username", "grade", "side", "token_id", "size_usd"],
                   "properties": {
                     "id": {
                       "type": "string"
@@ -26400,6 +26286,7 @@
             "required": [
               "net_flow_usd",
               "direction",
+              "token_id",
               "whale_trade_count",
               "buy_volume_usd",
               "sell_volume_usd"
@@ -26434,6 +26321,7 @@
             "required": [
               "net_flow_usd",
               "direction",
+              "token_id",
               "whale_trade_count",
               "buy_volume_usd",
               "sell_volume_usd"
@@ -26592,13 +26480,29 @@
         "required": [
           "condition_id",
           "signal_created_at",
+          "token_id",
+          "category",
+          "raw_category",
+          "title",
+          "event_slug",
+          "game_start_time",
+          "piled_side",
           "piled_outcome_index",
+          "sharp_pct",
           "backed_sharp_usd",
           "s_count",
           "a_count",
           "b_count",
           "graded_holders",
+          "top_grade",
+          "smart_score",
+          "volume",
+          "net_side",
           "conviction_score",
+          "one_way_holder_count",
+          "hedged_holder_count",
+          "one_way_graded_usd",
+          "directional_confidence",
           "directional_rank_score",
           "category_skill",
           "rank"
@@ -27138,17 +27042,14 @@
           },
           "as_of": {
             "type": "string",
-            "format": "date-time",
-            "nullable": true
+            "format": "date-time"
           },
           "stale_after_s": {
             "type": "integer",
-            "nullable": true,
             "description": "Age-relative freshness bound when known. Omitted for live_sports: its as_of records compute start, while its two-second freshness marker starts at publication."
           },
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         }
       },
@@ -27164,28 +27065,22 @@
             "type": "string"
           },
           "best_bid": {
-            "type": "number",
-            "nullable": true
+            "type": "number"
           },
           "best_ask": {
-            "type": "number",
-            "nullable": true
+            "type": "number"
           },
           "spread_bps": {
-            "type": "integer",
-            "nullable": true
+            "type": "integer"
           },
           "bid_depth_usdc": {
-            "type": "number",
-            "nullable": true
+            "type": "number"
           },
           "ask_depth_usdc": {
-            "type": "number",
-            "nullable": true
+            "type": "number"
           },
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         }
       },
@@ -27208,7 +27103,25 @@
         "properties": {
           "market": {
             "type": "object",
-            "required": ["id", "condition_id", "provider", "status"],
+            "required": [
+              "id",
+              "condition_id",
+              "provider",
+              "title",
+              "slug",
+              "page_slug",
+              "event_slug",
+              "category",
+              "status",
+              "description",
+              "image",
+              "series_slug",
+              "market_type",
+              "market_result",
+              "created_at",
+              "end_date",
+              "resolved_at"
+            ],
             "properties": {
               "id": {
                 "type": "string"
@@ -27295,12 +27208,10 @@
                   "type": "string"
                 },
                 "token_id": {
-                  "type": "string",
-                  "nullable": true
+                  "type": "string"
                 },
                 "current_price": {
-                  "type": "number",
-                  "nullable": true
+                  "type": "number"
                 },
                 "top_of_book": {
                   "$ref": "#/components/schemas/MarketSnapshotTopOfBook"
@@ -27310,7 +27221,7 @@
           },
           "liquidity": {
             "type": "object",
-            "required": ["source"],
+            "required": ["source", "volume_usd", "liquidity_usd", "volume_24h_usd", "last_price"],
             "properties": {
               "source": {
                 "type": "string"
@@ -27346,21 +27257,17 @@
                 "type": "string"
               },
               "live_match_key": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               },
               "live_league_key": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               },
               "live_score": {
                 "type": "object",
-                "nullable": true,
                 "description": "Live-score period and elapsed may be omitted when unavailable (older responses use null). A score entry may omit full_name when it equals team; fall back to team. Distinct aliases and score admission markers are preserved."
               },
               "reason": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               }
             }
           },
@@ -27416,7 +27323,7 @@
           },
           "trader": {
             "type": "object",
-            "required": ["id", "address"],
+            "required": ["id", "address", "username"],
             "properties": {
               "id": {
                 "type": "string"
@@ -27449,6 +27356,12 @@
           },
           "scores": {
             "type": "object",
+            "required": [
+  "timing",
+  "edge",
+  "size",
+  "fresh_wallet"
+],
             "properties": {
               "timing": {
                 "type": "number",
@@ -27507,17 +27420,14 @@
             "type": "string"
           },
           "doc_url": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "param": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "retry_at": {
             "type": "string",
             "format": "date-time",
-            "nullable": true,
             "description": "The recommended next retry instant (RFC3339). Present on every retryable error (reason=pick_not_released, code=rate_limited including reason=monthly_quota_exceeded, code=rate_limit_unavailable, reason=read_model_warming) and omitted otherwise. Always in the future. For pick_not_released: before the 11:00 UTC operating-window start, before a selected pick's stored release, or after a skipped day, it names the automatic system's next boundary. While no candidate exists in the live window it normally names the persisted next automatic selector attempt. Every value is advisory under supported operator actions: manual publication, release-time override, or admin generation can make a pick available first. When the automatic schedule is absent/due or a pick is overdue it degrades to ~60s. Schedule one request and do not poll. Prefer Retry-After for the duration because it is immune to client clock skew."
           },
           "reason": {
@@ -27548,7 +27458,6 @@
               "ip_rate_limited",
               "ip_throttled"
             ],
-            "nullable": true,
             "description": "ADDITIVE (#7209). The specific, actionable cause behind `code`, when there is one more specific than the code itself. `code` keeps its published values, so existing clients are unaffected; new clients branch on `reason`. Omitted when the code already says everything we know. pick_not_released: no Pick of the Day is published for the current product day; schedule one request against retry_at instead of polling. unknown_endpoint: the PATH is not a route on this API -- read GET /api/v1, do not retry. trader_not_tracked: the wallet is real and the URL is right, but the trader is outside the HOT/WARM sync tiers -- stop asking for this wallet. cursor_expired: pagination went stale mid-walk -- re-request the first page and continue. read_model_warming: the requested endpoint cannot serve its read model yet; exact causes are endpoint-specific and can include a cold or contended refresh or a dependency that prevented refresh. database_unavailable: the API's database or its connection pool is temporarily unreachable (a connection-class failure, not a query fault); code stays rate_limit_unavailable, nothing is rate-limited, retry after Retry-After / retry_at. idempotency_in_progress: retain the exact Idempotency-Key and request body, then retry shortly. webhook_delivery_in_progress: retry the URL or signing-secret configuration change after the destination's active request completes. request_accounting_unavailable: accounting capacity is unavailable before the handler executes; retry after Retry-After / retry_at. sandbox_api_key: the credential is a sandbox key (oxi_sk_test_) from POST /api/v1/agents/register, which only the sandbox server accepts -- call the sandbox base URL with it, or get a live key or OAuth access token; do not retry it here. api_key_in_query: the key was sent as a ?token= query parameter, which no route reads because URLs land in logs and history; the key itself was not checked -- resend it as Authorization: Bearer. subscription_inactive: the key is valid but the account's Pro subscription has lapsed (402 subscription_required); permanent until a person reactivates at https://0xinsider.com/billing, which the message names -- stop retrying on a schedule and surface the link. The key owner is emailed once per lapse. monthly_quota_exceeded: the account has used the requests Pro includes for the UTC calendar month (429 rate_limited); retry_at and Retry-After name the first of next month, the only retry that can succeed, and the message names https://0xinsider.com/developers, where pay as you go for requests over the quota is turned on. The X-Monthly-Quota-Limit, X-Monthly-Quota-Remaining and X-Monthly-Quota-Reset headers on every authenticated response say how close the account is. invalid_query, invalid_path, invalid_body (400 bad_request, #16146): a query parameter, a path segment or the JSON body did not parse or does not fit the route's schema, so no handler ran; param names the field when the parser named one (a query key, a path segment, a JSON path such as traders[0], or body); fix the request, never retry it as sent. unsupported_media_type (415 bad_request, param content-type): send the body with Content-Type: application/json. payload_too_large (413 bad_request, param body): the body is over 1048576 bytes. method_not_allowed (405 bad_request): the path is a route but not with this method; the Allow header names the methods it serves. ip_rate_limited (429 rate_limited, #16380): the per-address budget every caller behind one IP shares, counted before authentication, is spent; not the key's own window, and the RateLimit-* headers describe that bucket. ip_throttled (429 rate_limited): the address is in a cooldown after sustained over-limit traffic; Retry-After is minutes to days, and a request before it does not shorten the cooldown."
           }
         }
@@ -27689,17 +27598,14 @@
                 "type": "string"
               },
               "doc_url": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               },
               "param": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               },
               "retry_at": {
                 "type": "string",
                 "format": "date-time",
-                "nullable": true,
                 "description": "The recommended next request instant (RFC3339), always in the future. Present on every retryable error: `pick_not_released`, `rate_limited`, `rate_limit_unavailable`, and `read_model_warming`. Omitted otherwise. The absolute twin of `Retry-After`; prefer the header for the sleep duration. For `pick_not_released`, the earliest of the next scheduled release, the next automatic selector attempt, the operating-window start, or about 60 seconds. See that response."
               },
               "reason": {
@@ -27730,7 +27636,6 @@
                   "ip_rate_limited",
                   "ip_throttled"
                 ],
-                "nullable": true,
                 "description": "ADDITIVE (#7209). The specific, actionable cause behind `code`, when there is one more specific than the code itself. `code` keeps its published values, so existing clients are unaffected; new clients branch on `reason`. Omitted when the code already says everything we know. pick_not_released: no Pick of the Day is published for the current product day; schedule one request against retry_at instead of polling. unknown_endpoint: the PATH is not a route on this API -- read GET /api/v1, do not retry. trader_not_tracked: the wallet is real and the URL is right, but the trader is outside the HOT/WARM sync tiers -- stop asking for this wallet. cursor_expired: pagination went stale mid-walk -- re-request the first page and continue. read_model_warming: the requested endpoint cannot serve its read model yet; exact causes are endpoint-specific and can include a cold or contended refresh or a dependency that prevented refresh. database_unavailable: the API's database or its connection pool is temporarily unreachable (a connection-class failure, not a query fault); code stays rate_limit_unavailable, nothing is rate-limited, retry after Retry-After / retry_at. idempotency_in_progress: retain the exact Idempotency-Key and request body, then retry shortly. webhook_delivery_in_progress: retry the URL or signing-secret configuration change after the destination's active request completes. request_accounting_unavailable: accounting capacity is unavailable before the handler executes; retry after Retry-After / retry_at. sandbox_api_key: the credential is a sandbox key (oxi_sk_test_) from POST /api/v1/agents/register, which only the sandbox server accepts -- call the sandbox base URL with it, or get a live key or OAuth access token; do not retry it here. api_key_in_query: the key was sent as a ?token= query parameter, which no route reads because URLs land in logs and history; the key itself was not checked -- resend it as Authorization: Bearer. subscription_inactive: the key is valid but the account's Pro subscription has lapsed (402 subscription_required); permanent until a person reactivates at https://0xinsider.com/billing, which the message names -- stop retrying on a schedule and surface the link. The key owner is emailed once per lapse. monthly_quota_exceeded: the account has used the requests Pro includes for the UTC calendar month (429 rate_limited); retry_at and Retry-After name the first of next month, the only retry that can succeed, and the message names https://0xinsider.com/developers, where pay as you go for requests over the quota is turned on. The X-Monthly-Quota-Limit, X-Monthly-Quota-Remaining and X-Monthly-Quota-Reset headers on every authenticated response say how close the account is. invalid_query, invalid_path, invalid_body (400 bad_request, #16146): a query parameter, a path segment or the JSON body did not parse or does not fit the route's schema, so no handler ran; param names the field when the parser named one (a query key, a path segment, a JSON path such as traders[0], or body); fix the request, never retry it as sent. unsupported_media_type (415 bad_request, param content-type): send the body with Content-Type: application/json. payload_too_large (413 bad_request, param body): the body is over 1048576 bytes. method_not_allowed (405 bad_request): the path is a route but not with this method; the Allow header names the methods it serves. ip_rate_limited (429 rate_limited, #16380): the per-address budget every caller behind one IP shares, counted before authentication, is spent; not the key's own window, and the RateLimit-* headers describe that bucket. ip_throttled (429 rate_limited): the address is in a cooldown after sustained over-limit traffic; Retry-After is minutes to days, and a request before it does not shorten the cooldown."
               }
             }
@@ -27798,10 +27703,11 @@
       "SnapshotState": {
         "type": "object",
         "required": [
-          "status",
-          "generated_at",
           "version",
           "storage",
+          "status",
+          "generated_at",
+          "mutable_until",
           "period_closed",
           "final_after",
           "source_read_started_at"
@@ -27888,6 +27794,15 @@
       },
       "ReportPayload": {
         "type": "object",
+        "required": [
+  "total_whale_trades",
+  "total_whale_volume",
+  "biggest_trade_size",
+  "active_traders",
+  "top_whale_trades",
+  "categories",
+  "grade_distribution"
+],
         "properties": {
           "total_whale_trades": {
             "type": "integer",
@@ -27909,6 +27824,21 @@
             "type": "array",
             "items": {
               "type": "object",
+              "required": [
+  "outcome",
+  "side",
+  "title",
+  "size",
+  "price",
+  "token_id",
+  "id",
+  "trade_time",
+  "market_category",
+  "platform",
+  "name",
+  "pseudonym",
+  "trader_grade"
+],
               "properties": {
                 "outcome": {
                   "type": "string",
@@ -28035,6 +27965,12 @@
       },
       "ExportSourceRange": {
         "type": "object",
+        "required": [
+  "first_pnl_date",
+  "last_pnl_date",
+  "latest_trade_at",
+  "latest_market_activity_at"
+],
         "properties": {
           "first_pnl_date": {
             "type": "string",
@@ -28077,7 +28013,13 @@
       },
       "ExportVolumeReconciliation": {
         "type": "object",
-        "required": ["exported_activity_volume", "exported_market_cost_basis"],
+        "required": [
+          "provider_lifetime_volume",
+          "exported_activity_volume",
+          "exported_market_cost_basis",
+          "provider_activity_volume_gap",
+          "activity_volume_coverage"
+        ],
         "properties": {
           "provider_lifetime_volume": {
             "type": "number",
@@ -28128,7 +28070,7 @@
           },
           "data": {
             "type": "object",
-            "required": ["job_id", "status", "format"],
+            "required": ["job_id", "status", "format", "total_trades", "processed_trades", "file_size", "error"],
             "properties": {
               "job_id": {
                 "type": "integer",
@@ -28358,12 +28300,13 @@
         "required": [
           "id",
           "platform",
+          "is_two_sided",
+          "holdings",
           "share_count",
+          "token_id",
           "event_leg_count",
           "first_seen_at",
           "last_updated_at",
-          "is_two_sided",
-          "holdings",
           "trader",
           "market"
         ],
@@ -28379,22 +28322,18 @@
           },
           "total_size_usd": {
             "type": "number",
-            "nullable": true,
-            "description": "Provider currentValue in USD for the outcome named by outcome_label / token_id, and for that outcome only. Null means the provider supplied no value for this leg, not a zero position. combined_value_usd carries the wallet's whole-market total."
+            "description": "Provider currentValue in USD for the outcome named by outcome_label / token_id, and for that outcome only. An absent key means the provider supplied no value for this leg, not a zero position. combined_value_usd carries the wallet's whole-market total."
           },
           "position_unrealized_pnl": {
             "type": "number",
-            "nullable": true,
-            "description": "Provider unrealized mark-to-market P&L (Polymarket cashPnl) for that same one outcome. Null means unavailable, not break-even."
+            "description": "Provider unrealized mark-to-market P&L (Polymarket cashPnl) for that same one outcome. An absent key means unavailable, not break-even."
           },
           "combined_value_usd": {
             "type": "number",
-            "nullable": true,
             "description": "The wallet's currentValue across every outcome it holds in this market. Equals total_size_usd unless is_two_sided is true, and is the value the feed ranked this row by."
           },
           "combined_unrealized_pnl": {
             "type": "number",
-            "nullable": true,
             "description": "The wallet's unrealized P&L across every outcome it holds in this market. Equals position_unrealized_pnl unless is_two_sided is true."
           },
           "is_two_sided": {
@@ -28414,7 +28353,6 @@
                 },
                 "outcome_label": {
                   "type": "string",
-                  "nullable": true,
                   "description": "The market's label for this outcome."
                 },
                 "token_id": {
@@ -28428,23 +28366,19 @@
                 },
                 "avg_entry_price": {
                   "type": "number",
-                  "nullable": true,
                   "description": "Provider average entry price for this outcome."
                 },
                 "current_price": {
                   "type": "number",
-                  "nullable": true,
                   "description": "Provider mark price for this outcome."
                 },
                 "value_usd": {
                   "type": "number",
-                  "nullable": true,
-                  "description": "Provider currentValue for this outcome. Null means unavailable, not zero."
+                  "description": "Provider currentValue for this outcome. An absent key means unavailable, not zero."
                 },
                 "unrealized_pnl": {
                   "type": "number",
-                  "nullable": true,
-                  "description": "Provider unrealized P&L for this outcome. Null means unavailable, not break-even."
+                  "description": "Provider unrealized P&L for this outcome. An absent key means unavailable, not break-even."
                 }
               }
             }
@@ -28455,17 +28389,14 @@
           },
           "avg_entry_price": {
             "type": "number",
-            "nullable": true,
             "description": "Volume-weighted entry price."
           },
           "current_price": {
             "type": "number",
-            "nullable": true,
             "description": "Latest provider mark price for the position's token."
           },
           "outcome_label": {
             "type": "string",
-            "nullable": true,
             "description": "Backend-resolved outcome label (provider outcome, else Yes/No from the binary index)."
           },
           "token_id": {
@@ -28479,8 +28410,7 @@
           },
           "event_total_value_usd": {
             "type": "number",
-            "nullable": true,
-            "description": "Sum of the collapsed sibling legs' own holding values for this (wallet, event) group; equals total_size_usd when event_leg_count = 1, and null when any member's value is unknown."
+            "description": "Sum of the collapsed sibling legs' own holding values for this (wallet, event) group; equals total_size_usd when event_leg_count = 1, and omitted when any member's value is unknown."
           },
           "first_seen_at": {
             "type": "string",
@@ -28502,26 +28432,21 @@
                 "type": "string"
               },
               "username": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               },
               "grade": {
                 "type": "string",
-                "enum": ["S", "A", "B", "C", "D", "F"],
-                "nullable": true
+                "enum": ["S", "A", "B", "C", "D", "F"]
               },
               "win_rate": {
-                "type": "number",
-                "nullable": true
+                "type": "number"
               },
               "pnl": {
                 "type": "number",
-                "nullable": true,
                 "description": "Trader lifetime realized P&L across all markets."
               },
               "markets_traded": {
-                "type": "integer",
-                "nullable": true
+                "type": "integer"
               }
             }
           },
@@ -28537,20 +28462,16 @@
                 "type": "string"
               },
               "title": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               },
               "slug": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               },
               "event_slug": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               },
               "category": {
-                "type": "string",
-                "nullable": true
+                "type": "string"
               }
             }
           }
@@ -28581,12 +28502,10 @@
             "description": "1-based rank within the full ranked set (stable across pages)."
           },
           "username": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "profile_image_url": {
             "type": "string",
-            "nullable": true,
             "description": "Official Polymarket avatar URL (profileImage)."
           },
           "platform": {
@@ -28621,21 +28540,17 @@
           "streak_tier": {
             "type": "string",
             "enum": ["hot", "rising", "neutral", "cooling", "cold"],
-            "nullable": true,
-            "description": "Hot-streak tier (trailing-7d cross-sectional percentile). Null when no recent activity."
+            "description": "Hot-streak tier (trailing-7d cross-sectional percentile). Omitted when there is no recent activity."
           },
           "all_time_pnl_usd": {
-            "type": "number",
-            "nullable": true
+            "type": "number"
           },
           "all_time_score": {
-            "type": "number",
-            "nullable": true
+            "type": "number"
           },
           "last_synced": {
             "type": "string",
-            "format": "date-time",
-            "nullable": true
+            "format": "date-time"
           },
           "daily_pnl_series": {
             "type": "array",
@@ -28766,7 +28681,7 @@
             "enum": [
               "settled_markets_all_sizes"
             ],
-            "description": "Which sample the counts come from: every settled market in the category, at any position size. category_strengths on the trader endpoint reads the floored calibration sample instead, so the two can differ."
+            "description": "Which sample the counts come from: every settled market in the category, at any position size. category_strengths on the trader endpoint reads the floored calibration sample instead, so the two differ in both directions: measured on production 2026-09-22 over the 122,497 wallet-category pairs with at least 20 decided markets on both bases, the floored rate was higher in 56.5% of pairs and lower in 34.5%, median +0.6 points, p10 -4.6, p90 +9.8, with 14.0% of pairs 10 points apart or more. Neither corrects the other."
           },
           "min_decided_for_win_rate": {
             "type": "integer",
@@ -28789,7 +28704,7 @@
       },
       "TraderPnl": {
         "type": "object",
-        "required": ["id", "entries", "stats", "monthly", "year_totals", "drawdown"],
+        "required": ["id", "freshness_at", "entries", "stats", "monthly", "year_totals", "drawdown"],
         "properties": {
           "id": {
             "type": "string",
@@ -28799,7 +28714,7 @@
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "RFC3339 served-freshness clock for this trader's PnL history = traders.daily_pnl_recomputed_at, when the daily_pnl read model this response is served from was last rebuilt; null when it has never been recomputed for the trader. Additive optional (not in `required`)."
+            "description": "RFC3339 served-freshness clock for this trader's PnL history = traders.daily_pnl_recomputed_at, when the daily_pnl read model this response is served from was last rebuilt; null when it has never been recomputed for the trader. Always present, so read it as a value that can be null rather than a key that can be missing."
           },
           "entries": {
             "type": "array",
@@ -28813,20 +28728,16 @@
                   "format": "date"
                 },
                 "markets_traded": {
-                  "type": "integer",
-                  "nullable": true
+                  "type": "integer"
                 },
                 "total_volume": {
-                  "type": "number",
-                  "nullable": true
+                  "type": "number"
                 },
                 "cumulative_profit": {
-                  "type": "number",
-                  "nullable": true
+                  "type": "number"
                 },
                 "total_pnl": {
-                  "type": "number",
-                  "nullable": true
+                  "type": "number"
                 },
                 "daily_change": {
                   "type": "number"
@@ -28866,16 +28777,14 @@
                   },
                   "best_day_date": {
                     "type": "string",
-                    "format": "date",
-                    "nullable": true
+                    "format": "date"
                   },
                   "worst_day": {
                     "type": "number"
                   },
                   "worst_day_date": {
                     "type": "string",
-                    "format": "date",
-                    "nullable": true
+                    "format": "date"
                   },
                   "win_days": {
                     "type": "integer"
@@ -28919,16 +28828,14 @@
                   },
                   "best_day_date": {
                     "type": "string",
-                    "format": "date",
-                    "nullable": true
+                    "format": "date"
                   },
                   "worst_day": {
                     "type": "number"
                   },
                   "worst_day_date": {
                     "type": "string",
-                    "format": "date",
-                    "nullable": true
+                    "format": "date"
                   },
                   "win_days": {
                     "type": "integer"
@@ -28972,16 +28879,14 @@
                   },
                   "best_day_date": {
                     "type": "string",
-                    "format": "date",
-                    "nullable": true
+                    "format": "date"
                   },
                   "worst_day": {
                     "type": "number"
                   },
                   "worst_day_date": {
                     "type": "string",
-                    "format": "date",
-                    "nullable": true
+                    "format": "date"
                   },
                   "win_days": {
                     "type": "integer"
@@ -29025,16 +28930,14 @@
                   },
                   "best_day_date": {
                     "type": "string",
-                    "format": "date",
-                    "nullable": true
+                    "format": "date"
                   },
                   "worst_day": {
                     "type": "number"
                   },
                   "worst_day_date": {
                     "type": "string",
-                    "format": "date",
-                    "nullable": true
+                    "format": "date"
                   },
                   "win_days": {
                     "type": "integer"

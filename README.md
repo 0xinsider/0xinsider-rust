@@ -6,7 +6,7 @@ The official Rust client for the [0xinsider Developer API](https://0xinsider.com
 - Authentication (API keys and OAuth 2.1): https://0xinsider.com/auth.md
 - OpenAPI 3.1: https://0xinsider.com/api/v1/openapi.json
 - Documentation: https://docs.0xinsider.com
-- API reference for this crate: https://docs.rs/oxinsider
+- API reference for this crate: https://docs.rs/oxinsider (from the first crates.io release; `cargo doc --open` until then)
 - MCP server: https://api.0xinsider.com/api/v1/mcp
 
 ## Install
@@ -14,6 +14,12 @@ The official Rust client for the [0xinsider Developer API](https://0xinsider.com
 ```sh
 cargo add oxinsider
 cargo add tokio --features macros,rt-multi-thread
+```
+
+The first release to crates.io is pending. Until it lands, add the crate from this repository:
+
+```sh
+cargo add oxinsider --git https://github.com/0xinsider/0xinsider-rust
 ```
 
 The crate is `oxinsider`, because a crate name cannot start with a digit. It is async on Tokio, uses rustls by default (`default-features = false, features = ["native-tls"]` switches to the platform TLS), and needs Rust 1.87 or later.
@@ -188,7 +194,7 @@ OXINSIDER_API_KEY=oxi_sk_live_... cargo run --example stream
 
 - Python SDK: `pip install 0xinsider` ([0xinsider/0xinsider-python](https://github.com/0xinsider/0xinsider-python))
 - Go SDK: `go get github.com/0xinsider/0xinsider-go` ([0xinsider/0xinsider-go](https://github.com/0xinsider/0xinsider-go))
-- Node.js and TypeScript SDK: `npm install @0xinsider/sdk` ([0xinsider/0xinsider-node](https://github.com/0xinsider/0xinsider-node))
+- Node.js and TypeScript SDK: `@0xinsider/sdk` ([0xinsider/0xinsider-node](https://github.com/0xinsider/0xinsider-node); its first npm release is pending, and the README shows how to build it from source)
 - CLI and MCP server: `npm install --global @0xinsider/mcp` or `brew install 0xinsider/tap/oxinsider`
 - Remote MCP server: `https://api.0xinsider.com/api/v1/mcp`
 - Agent Plugin and skills: [0xinsider/agent-plugin](https://github.com/0xinsider/agent-plugin)

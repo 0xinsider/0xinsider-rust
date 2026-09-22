@@ -1,0 +1,55 @@
+[package]
+name = "oxinsider"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.87"
+description = "Official Rust client for the 0xinsider Developer API: Polymarket sports and esports analytics, wallet grades, large trades and sharp-money flow."
+license = "MIT"
+repository = "https://github.com/0xinsider/0xinsider-rust"
+homepage = "https://0xinsider.com/developers"
+documentation = "https://docs.rs/oxinsider"
+readme = "README.md"
+keywords = ["0xinsider", "polymarket", "prediction-markets", "sports", "api"]
+categories = ["api-bindings", "web-programming::http-client"]
+include = ["src/**/*.rs", "examples/**/*.rs", "Cargo.toml", "README.md", "LICENSE"]
+
+[features]
+default = ["rustls"]
+## TLS through rustls (the default).
+rustls = ["reqwest/rustls"]
+## TLS through the platform's native stack instead.
+native-tls = ["reqwest/native-tls"]
+
+[dependencies]
+bytes = "1"
+hmac = "0.12"
+httpdate = "1"
+reqwest = { version = "0.13", default-features = false, features = ["charset", "gzip", "http2", "system-proxy"] }
+serde = { version = "1.0.200", features = ["derive"] }
+serde_json = "1.0.120"
+serde_path_to_error = "0.1.16"
+sha2 = "0.10"
+thiserror = "2"
+tokio = { version = "1.40", features = ["fs", "io-util", "time"] }
+
+[dev-dependencies]
+serde_path_to_error = "0.1.16"
+sha2 = "0.10"
+tokio = { version = "1.40", features = ["io-util", "macros", "net", "rt-multi-thread"] }
+
+[[example]]
+name = "discovery"
+
+[[example]]
+name = "sandbox"
+
+[[example]]
+name = "stream"
+
+[lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[package.metadata.docs.rs]
+all-features = false
+features = ["rustls"]

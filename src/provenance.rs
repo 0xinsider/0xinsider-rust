@@ -7,7 +7,7 @@
 /// Where the document came from: the published URL, or the app repository path when generated from a file.
 pub const OPENAPI_SOURCE: &str = "https://0xinsider.com/api/v1/openapi.json";
 /// SHA-256 of the document bytes as fetched.
-pub const OPENAPI_SHA256: &str = "c69d83281d826457dd3c62bc28626e9c50e4e6e0ff3661a495b70a888ea4f527";
+pub const OPENAPI_SHA256: &str = "032fe17931bdf26a9166e783da3fa422efa711d98868586e919f854a5e860a66";
 /// The document's `info.version`.
 pub const OPENAPI_VERSION: &str = "1.0.0";
 /// Operations in the document, including the two read by hand (the stream) or refused (`GET /api/v1/mcp`).
@@ -17,4 +17,4 @@ pub const APP_REPOSITORY: &str = "0xinsider/0xinsider";
 /// The document's path in that repository.
 pub const APP_SPEC_PATH: &str = "web/public/api/v1/openapi.json";
 /// The app repository commit that last changed the document, or `None` when it could not be resolved.
-pub const APP_COMMIT: Option<&str> = Some("65cf545a67aad01c12f204220ec31e2591d0ea64");
+pub const APP_COMMIT: Option<&str> = Some("8c395164a96bc2edae61857aec8a0e5a11310862");

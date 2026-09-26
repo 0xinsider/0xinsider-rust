@@ -35,6 +35,7 @@ fn sample(name: &str) -> &'static str {
         "month" => "2026-09",
         "q" => "nba",
         "as_of" => "2026-09-21T12:00:00Z",
+        "event_slug" => "nfl-buf-nyj-2026-09-22",
         other => panic!("no sample value for the required parameter {other}"),
     }
 }

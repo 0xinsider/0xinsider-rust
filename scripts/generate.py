@@ -955,7 +955,11 @@ class Generator:
         return lines
 
     def render_enum(self, name: str, values: list[str], description: str | None) -> list[str]:
+        # `Other(String)` is every enum's arm for a value this release does not
+        # know. A documented value that is itself spelled "other" (GameMarketSide)
+        # takes `OtherValue`, so the catch-all keeps one name across the crate.
         idents = [variant_ident(v) for v in values]
+        idents = ["OtherValue" if ident == "Other" else ident for ident in idents]
         if len(set(idents)) != len(idents) or "Other" in idents:
             raise GenerateError(f"enum {name} has colliding variants {values}")
         lines = docs(description)
@@ -968,7 +972,10 @@ class Generator:
             f"pub enum {name} {{",
         ]
         for ident, value in zip(idents, values):
-            lines.append(f"    /// `{value}`")
+            if ident == "OtherValue":
+                lines.append(f"    /// `{value}`, the documented value; `Other` holds values this release does not know.")
+            else:
+                lines.append(f"    /// `{value}`")
             lines.append(f"    #[serde(rename = {rust_str(value)})]")
             lines.append(f"    {ident},")
         lines += [

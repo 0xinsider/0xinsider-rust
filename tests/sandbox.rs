@@ -34,6 +34,8 @@ fn sample(name: &str) -> &'static str {
         "granularity" => "daily",
         "month" => "2026-09",
         "q" => "nba",
+        "as_of" => "2026-09-21T12:00:00Z",
+        "event_slug" => "nfl-buf-nyj-2026-09-22",
         other => panic!("no sample value for the required parameter {other}"),
     }
 }
@@ -109,10 +111,16 @@ async fn typed_methods_work_end_to_end() {
     assert!(!trader.data.address.is_empty());
     let explore = client.explore_markets(&Default::default()).await.expect("explore");
     let _ = explore.data.len();
-    // The sandbox does not simulate Markdown, streams or downloads; it refuses
-    // them with its own typed 400, which is what a text method must surface.
-    let refused = client.get_trader_context_markdown("swisstony").await.unwrap_err();
-    assert_eq!(refused.as_api().map(|api| api.kind()), Some(ApiErrorKind::BadRequest));
+    // The sandbox renders `context.md` from the same body it serves for
+    // `/context` (0xinsider #16640), so the text method returns the document.
+    let markdown = client
+        .get_trader_context_markdown("swisstony")
+        .await
+        .expect("context.md");
+    assert!(
+        markdown.starts_with("# Trader context"),
+        "unexpected context.md body: {markdown}"
+    );
 }
 
 #[tokio::test]

@@ -56,6 +56,15 @@ impl Operation {
         retry: RetryClass::Read,
         requires_credential: true,
     };
+    /// `GET /api/v1/trader/{address}/grade-at`
+    pub const GET_TRADER_GRADE_AT: Operation = Operation {
+        id: "getTraderGradeAt",
+        method: "GET",
+        path: "/api/v1/trader/{address}/grade-at",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: true,
+    };
     /// `GET /api/v1/trader/{address}/context`
     pub const GET_TRADER_CONTEXT: Operation = Operation {
         id: "getTraderContext",
@@ -128,11 +137,29 @@ impl Operation {
         retry: RetryClass::Read,
         requires_credential: true,
     };
+    /// `GET /api/v1/large-trades`
+    pub const LIST_LARGE_TRADES: Operation = Operation {
+        id: "listLargeTrades",
+        method: "GET",
+        path: "/api/v1/large-trades",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: true,
+    };
     /// `GET /api/v1/whale-trades`
     pub const LIST_WHALE_TRADES: Operation = Operation {
         id: "listWhaleTrades",
         method: "GET",
         path: "/api/v1/whale-trades",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: true,
+    };
+    /// `GET /api/v1/large-trades/history`
+    pub const LIST_LARGE_TRADE_HISTORY: Operation = Operation {
+        id: "listLargeTradeHistory",
+        method: "GET",
+        path: "/api/v1/large-trades/history",
         accept: "application/json",
         retry: RetryClass::Read,
         requires_credential: true,
@@ -146,6 +173,15 @@ impl Operation {
         retry: RetryClass::Read,
         requires_credential: true,
     };
+    /// `GET /api/v1/large-trades/{id}`
+    pub const GET_LARGE_TRADE: Operation = Operation {
+        id: "getLargeTrade",
+        method: "GET",
+        path: "/api/v1/large-trades/{id}",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: true,
+    };
     /// `GET /api/v1/whale-trades/{id}`
     pub const GET_WHALE_TRADE: Operation = Operation {
         id: "getWhaleTrade",
@@ -155,11 +191,29 @@ impl Operation {
         retry: RetryClass::Read,
         requires_credential: true,
     };
+    /// `GET /api/v1/large-trades/{id}/counterparties/executions`
+    pub const LIST_LARGE_TRADE_COUNTERPARTY_EXECUTIONS: Operation = Operation {
+        id: "listLargeTradeCounterpartyExecutions",
+        method: "GET",
+        path: "/api/v1/large-trades/{id}/counterparties/executions",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: true,
+    };
     /// `GET /api/v1/whale-trades/{id}/counterparties/executions`
     pub const LIST_WHALE_TRADE_COUNTERPARTY_EXECUTIONS: Operation = Operation {
         id: "listWhaleTradeCounterpartyExecutions",
         method: "GET",
         path: "/api/v1/whale-trades/{id}/counterparties/executions",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: true,
+    };
+    /// `GET /api/v1/large-trades/{id}/counterparties/executions/{execution_id}/makers`
+    pub const LIST_LARGE_TRADE_COUNTERPARTY_MAKERS: Operation = Operation {
+        id: "listLargeTradeCounterpartyMakers",
+        method: "GET",
+        path: "/api/v1/large-trades/{id}/counterparties/executions/{execution_id}/makers",
         accept: "application/json",
         retry: RetryClass::Read,
         requires_credential: true,
@@ -263,6 +317,24 @@ impl Operation {
         retry: RetryClass::Read,
         requires_credential: true,
     };
+    /// `GET /api/v1/sports/pre-game-sides`
+    pub const LIST_PRE_GAME_SIDES: Operation = Operation {
+        id: "listPreGameSides",
+        method: "GET",
+        path: "/api/v1/sports/pre-game-sides",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: true,
+    };
+    /// `GET /api/v1/sports/pre-game-side-observations`
+    pub const LIST_PRE_GAME_SIDE_OBSERVATIONS: Operation = Operation {
+        id: "listPreGameSideObservations",
+        method: "GET",
+        path: "/api/v1/sports/pre-game-side-observations",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: true,
+    };
     /// `GET /api/v1/sports-edge-signals`
     pub const LIST_SPORTS_EDGE_SIGNALS: Operation = Operation {
         id: "listSportsEdgeSignals",
@@ -280,6 +352,15 @@ impl Operation {
         accept: "application/json",
         retry: RetryClass::Read,
         requires_credential: true,
+    };
+    /// `GET /api/v1/coverage`
+    pub const GET_COVERAGE: Operation = Operation {
+        id: "getCoverage",
+        method: "GET",
+        path: "/api/v1/coverage",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: false,
     };
     /// `GET /api/v1/platforms`
     pub const GET_PLATFORMS: Operation = Operation {
@@ -299,6 +380,15 @@ impl Operation {
         retry: RetryClass::Read,
         requires_credential: true,
     };
+    /// `GET /api/v1/market/{condition_id}/flow`
+    pub const GET_MARKET_FLOW: Operation = Operation {
+        id: "getMarketFlow",
+        method: "GET",
+        path: "/api/v1/market/{condition_id}/flow",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: true,
+    };
     /// `GET /api/v1/market/{condition_id}/intel`
     pub const GET_MARKET_INTEL: Operation = Operation {
         id: "getMarketIntel",
@@ -306,6 +396,15 @@ impl Operation {
         path: "/api/v1/market/{condition_id}/intel",
         accept: "application/json",
         retry: RetryClass::Read,
+        requires_credential: true,
+    };
+    /// `POST /api/v1/markets/flow/batch`
+    pub const BATCH_GET_MARKET_FLOW: Operation = Operation {
+        id: "batchGetMarketFlow",
+        method: "POST",
+        path: "/api/v1/markets/flow/batch",
+        accept: "application/json",
+        retry: RetryClass::Never,
         requires_credential: true,
     };
     /// `POST /api/v1/markets/intel/batch`
@@ -331,6 +430,42 @@ impl Operation {
         id: "getMarketCandles",
         method: "GET",
         path: "/api/v1/market/{condition_id}/candles",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: true,
+    };
+    /// `GET /api/v1/suspicious-trades`
+    pub const LIST_SUSPICIOUS_TRADES: Operation = Operation {
+        id: "listSuspiciousTrades",
+        method: "GET",
+        path: "/api/v1/suspicious-trades",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: true,
+    };
+    /// `GET /api/v1/suspicious-trades/{id}`
+    pub const GET_SUSPICIOUS_TRADE: Operation = Operation {
+        id: "getSuspiciousTrade",
+        method: "GET",
+        path: "/api/v1/suspicious-trades/{id}",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: true,
+    };
+    /// `GET /api/v1/games`
+    pub const LIST_GAMES: Operation = Operation {
+        id: "listGames",
+        method: "GET",
+        path: "/api/v1/games",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: true,
+    };
+    /// `GET /api/v1/games/{event_slug}`
+    pub const GET_GAME: Operation = Operation {
+        id: "getGame",
+        method: "GET",
+        path: "/api/v1/games/{event_slug}",
         accept: "application/json",
         retry: RetryClass::Read,
         requires_credential: true,
@@ -578,6 +713,15 @@ impl Operation {
         retry: RetryClass::Read,
         requires_credential: true,
     };
+    /// `POST /api/v1/trader/{address}/export/cancel`
+    pub const CANCEL_TRADER_EXPORT: Operation = Operation {
+        id: "cancelTraderExport",
+        method: "POST",
+        path: "/api/v1/trader/{address}/export/cancel",
+        accept: "application/json",
+        retry: RetryClass::Never,
+        requires_credential: true,
+    };
     /// `GET /api/v1/trader/{address}/export/download`
     pub const DOWNLOAD_TRADER_EXPORT: Operation = Operation {
         id: "downloadTraderExport",
@@ -623,6 +767,7 @@ pub const OPERATIONS: &[Operation] = &[
     Operation::REGISTER_AGENT,
     Operation::GET_TRADER,
     Operation::GET_TRADER_CONTEXT_MARKDOWN,
+    Operation::GET_TRADER_GRADE_AT,
     Operation::GET_TRADER_CONTEXT,
     Operation::BATCH_GET_TRADERS,
     Operation::GET_POSITION_TIMELINE,
@@ -631,10 +776,15 @@ pub const OPERATIONS: &[Operation] = &[
     Operation::GET_POSITION_TIMELINE_BY_ID,
     Operation::LIST_POSITIONS,
     Operation::LIST_LARGE_POSITIONS,
+    Operation::LIST_LARGE_TRADES,
     Operation::LIST_WHALE_TRADES,
+    Operation::LIST_LARGE_TRADE_HISTORY,
     Operation::LIST_WHALE_TRADE_HISTORY,
+    Operation::GET_LARGE_TRADE,
     Operation::GET_WHALE_TRADE,
+    Operation::LIST_LARGE_TRADE_COUNTERPARTY_EXECUTIONS,
     Operation::LIST_WHALE_TRADE_COUNTERPARTY_EXECUTIONS,
+    Operation::LIST_LARGE_TRADE_COUNTERPARTY_MAKERS,
     Operation::LIST_WHALE_TRADE_COUNTERPARTY_MAKERS,
     Operation::LIST_LEADERBOARD,
     Operation::GET_PICK_OF_THE_DAY,
@@ -646,14 +796,23 @@ pub const OPERATIONS: &[Operation] = &[
     Operation::EXPLORE_MARKETS,
     Operation::LIST_SMART_MONEY_FLOWS,
     Operation::LIST_SHARP_MONEY_FLOWS,
+    Operation::LIST_PRE_GAME_SIDES,
+    Operation::LIST_PRE_GAME_SIDE_OBSERVATIONS,
     Operation::LIST_SPORTS_EDGE_SIGNALS,
     Operation::LIST_SPORTS_EDGE_OBSERVATIONS,
+    Operation::GET_COVERAGE,
     Operation::GET_PLATFORMS,
     Operation::GET_MARKET_HOLDERS,
+    Operation::GET_MARKET_FLOW,
     Operation::GET_MARKET_INTEL,
+    Operation::BATCH_GET_MARKET_FLOW,
     Operation::BATCH_GET_MARKET_INTEL,
     Operation::GET_MARKET_SNAPSHOT,
     Operation::GET_MARKET_CANDLES,
+    Operation::LIST_SUSPICIOUS_TRADES,
+    Operation::GET_SUSPICIOUS_TRADE,
+    Operation::LIST_GAMES,
+    Operation::GET_GAME,
     Operation::LIST_INSIDER_RADAR,
     Operation::GET_INSIDER_RADAR_FLAG,
     Operation::GET_STREAM,
@@ -681,6 +840,7 @@ pub const OPERATIONS: &[Operation] = &[
     Operation::GET_TRADER_EXPORT_SNAPSHOT,
     Operation::SUBMIT_TRADER_EXPORT,
     Operation::GET_TRADER_EXPORT_STATUS,
+    Operation::CANCEL_TRADER_EXPORT,
     Operation::DOWNLOAD_TRADER_EXPORT,
     Operation::GET_USAGE,
     Operation::GET_MARKET_CONTEXT_MARKDOWN,
@@ -696,6 +856,8 @@ pub const OPERATIONS: &[Operation] = &[
 pub struct GetTraderParams {
     /// Include heavy fields and trust metadata. Repeatable: strategy, categories, quant_metrics, trust.
     pub expand: Vec<Expand>,
+    /// Opt into a whole-response freshness ceiling in seconds. The server returns 200 only when data_quality.status is fresh and data_quality.as_of is no older than this value; otherwise it returns 409 with error.reason=freshness_ceiling_unsatisfied. No refresh or alternate read is attempted.
+    pub max_age_s: Option<i64>,
     /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
     ///
     /// Sent as the `If-None-Match` header.
@@ -709,6 +871,34 @@ impl GetTraderParams {
         self.expand = values.into_iter().collect();
         self
     }
+    /// Sets `max_age_s`.
+    #[must_use]
+    pub fn max_age_s(mut self, value: i64) -> Self {
+        self.max_age_s = Some(value);
+        self
+    }
+    /// Sets `If-None-Match`.
+    #[must_use]
+    pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
+        self.if_none_match = Some(value.into());
+        self
+    }
+}
+
+/// Optional parameters for [`Client::get_trader_grade_at`] (`GET /api/v1/trader/{address}/grade-at`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct GetTraderGradeAtParams {
+    /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
+    ///
+    /// Sent as the `If-None-Match` header.
+    pub if_none_match: Option<String>,
+}
+
+impl GetTraderGradeAtParams {
     /// Sets `If-None-Match`.
     #[must_use]
     pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
@@ -746,7 +936,7 @@ impl GetTraderContextParams {
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct GetPositionTimelineParams {
-    /// Maximum number of timeline events to return.
+    /// Maximum number of timeline events to return. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Pagination cursor from previous response's next_cursor.
     pub cursor: Option<String>,
@@ -807,6 +997,42 @@ impl GetTraderCategoryRecordsParams {
     }
 }
 
+/// Optional parameters for [`Client::get_trader_pnl`] (`GET /api/v1/trader/{address}/pnl`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct GetTraderPnlParams {
+    /// Inclusive UTC calendar-date lower bound in YYYY-MM-DD form for the daily series (entries and drawdown). Omit for the whole stored history. A value that is not a calendar date, or a from later than to, returns 400 bad_request with error.param from. Does not change stats, monthly or year_totals, which stay defined over the full history.
+    pub from: Option<String>,
+    /// Inclusive UTC calendar-date upper bound in YYYY-MM-DD form for the daily series (entries and drawdown). Omit for the whole stored history. A value that is not a calendar date returns 400 bad_request with error.param to. Does not change stats, monthly or year_totals.
+    pub to: Option<String>,
+    /// Which sections of the object to return. Repeatable and comma-separated: entries, stats, monthly, year_totals, drawdown. Omit it, or send it empty, for all five. A section left out is absent from data. An unrecognized name returns 400 bad_request with error.param sections rather than being ignored, so a typo cannot look like a successful request that silently dropped the section you came for.
+    pub sections: Vec<Sections>,
+}
+
+impl GetTraderPnlParams {
+    /// Sets `from`.
+    #[must_use]
+    pub fn from(mut self, value: impl Into<String>) -> Self {
+        self.from = Some(value.into());
+        self
+    }
+    /// Sets `to`.
+    #[must_use]
+    pub fn to(mut self, value: impl Into<String>) -> Self {
+        self.to = Some(value.into());
+        self
+    }
+    /// Sets `sections`.
+    #[must_use]
+    pub fn sections<I: IntoIterator<Item = Sections>>(mut self, values: I) -> Self {
+        self.sections = values.into_iter().collect();
+        self
+    }
+}
+
 /// Optional parameters for [`Client::get_position_timeline_by_id`] (`GET /api/v1/traders/{trader}/position-timeline`).
 ///
 /// Start from `Default::default()` and set what you need, through the field or the
@@ -814,7 +1040,7 @@ impl GetTraderCategoryRecordsParams {
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct GetPositionTimelineByIdParams {
-    /// Maximum number of timeline events to return.
+    /// Maximum number of timeline events to return. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Pagination cursor from previous response's next_cursor.
     pub cursor: Option<String>,
@@ -852,10 +1078,12 @@ impl GetPositionTimelineByIdParams {
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct ListPositionsParams {
-    /// Maximum number of current positions to return.
+    /// Maximum number of current positions to return. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Pagination cursor from previous response's next_cursor.
     pub cursor: Option<String>,
+    /// live (default) reads the current value-ordered board. snapshot requires wallet and freezes up to 500 matching rows and 2 MB for up to five minutes. Keep consistency=snapshot and the same effective filters on every page; changing filters returns 400. A new first page from the same API key replaces its prior snapshot; replacement or expiry returns cursor_expired.
+    pub consistency: Option<Consistency>,
     /// Minimum current position value in USD. Defaults to 100 when omitted, or to 0 when wallet is present; send 0 to include every reconciled position.
     pub min_size: Option<f64>,
     /// Exact match against provider-backed market_canonical.category.
@@ -885,6 +1113,12 @@ impl ListPositionsParams {
     #[must_use]
     pub fn cursor(mut self, value: impl Into<String>) -> Self {
         self.cursor = Some(value.into());
+        self
+    }
+    /// Sets `consistency`.
+    #[must_use]
+    pub fn consistency(mut self, value: Consistency) -> Self {
+        self.consistency = Some(value);
         self
     }
     /// Sets `min_size`.
@@ -942,7 +1176,7 @@ impl ListPositionsParams {
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct ListLargePositionsParams {
-    /// Maximum number of large positions to return.
+    /// Maximum number of large positions to return. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Opaque pagination cursor from a previous response.
     pub cursor: Option<String>,
@@ -995,6 +1229,92 @@ impl ListLargePositionsParams {
     }
 }
 
+/// Optional parameters for [`Client::list_large_trades`] (`GET /api/v1/large-trades`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct ListLargeTradesParams {
+    /// Maximum number of recent large trades to return. Out-of-range values are clamped to 1..100.
+    pub limit: Option<i64>,
+    /// Pagination cursor from previous response's next_cursor.
+    pub cursor: Option<String>,
+    /// Minimum trade size in USD.
+    pub min_size: Option<f64>,
+    /// Filter by market category (case-insensitive). A canonical bucket name (e.g. Basketball) matches every provider member that folds into it (NBA, WNBA, NCAAB); a raw provider value also resolves to its bucket.
+    pub category: Option<String>,
+    /// Minimum trader grade.
+    pub min_grade: Option<Grade>,
+    /// When true, return only rows with persisted suspicion_score >= 60. The filter is applied before SQL-backed limit + 1 pagination.
+    pub suspicious_only: Option<bool>,
+    /// Keep only trades whose market_volume_share is known and at least this. A fraction, not a percent: 0.01 is one percent of the market's traded volume. A trade whose share is unavailable is never returned by a non-zero value, because an unavailable share cannot be said to clear a floor.
+    pub min_market_volume_share: Option<f64>,
+    /// Order of the returned page. recent is newest first and is the default. market_volume_share ranks by each trade's share of its market's traded volume, biggest first, with a trade whose share is unavailable last. That ranking reads the last 30 days, because the share is computed for each request and an unbounded ranking cannot be served inside the documented latency budget. A cursor is bound to the order it was minted in, so a continuation cannot cross from one order into the other.
+    pub sort: Option<Sort>,
+    /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
+    ///
+    /// Sent as the `If-None-Match` header.
+    pub if_none_match: Option<String>,
+}
+
+impl ListLargeTradesParams {
+    /// Sets `limit`.
+    #[must_use]
+    pub fn limit(mut self, value: i64) -> Self {
+        self.limit = Some(value);
+        self
+    }
+    /// Sets `cursor`.
+    #[must_use]
+    pub fn cursor(mut self, value: impl Into<String>) -> Self {
+        self.cursor = Some(value.into());
+        self
+    }
+    /// Sets `min_size`.
+    #[must_use]
+    pub fn min_size(mut self, value: f64) -> Self {
+        self.min_size = Some(value);
+        self
+    }
+    /// Sets `category`.
+    #[must_use]
+    pub fn category(mut self, value: impl Into<String>) -> Self {
+        self.category = Some(value.into());
+        self
+    }
+    /// Sets `min_grade`.
+    #[must_use]
+    pub fn min_grade(mut self, value: Grade) -> Self {
+        self.min_grade = Some(value);
+        self
+    }
+    /// Sets `suspicious_only`.
+    #[must_use]
+    pub fn suspicious_only(mut self, value: bool) -> Self {
+        self.suspicious_only = Some(value);
+        self
+    }
+    /// Sets `min_market_volume_share`.
+    #[must_use]
+    pub fn min_market_volume_share(mut self, value: f64) -> Self {
+        self.min_market_volume_share = Some(value);
+        self
+    }
+    /// Sets `sort`.
+    #[must_use]
+    pub fn sort(mut self, value: Sort) -> Self {
+        self.sort = Some(value);
+        self
+    }
+    /// Sets `If-None-Match`.
+    #[must_use]
+    pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
+        self.if_none_match = Some(value.into());
+        self
+    }
+}
+
 /// Optional parameters for [`Client::list_whale_trades`] (`GET /api/v1/whale-trades`).
 ///
 /// Start from `Default::default()` and set what you need, through the field or the
@@ -1002,7 +1322,7 @@ impl ListLargePositionsParams {
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct ListWhaleTradesParams {
-    /// Maximum number of recent large trades to return.
+    /// Maximum number of recent large trades to return. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Pagination cursor from previous response's next_cursor.
     pub cursor: Option<String>,
@@ -1014,6 +1334,10 @@ pub struct ListWhaleTradesParams {
     pub min_grade: Option<Grade>,
     /// When true, return only rows with persisted suspicion_score >= 60. The filter is applied before SQL-backed limit + 1 pagination.
     pub suspicious_only: Option<bool>,
+    /// Keep only trades whose market_volume_share is known and at least this. A fraction, not a percent: 0.01 is one percent of the market's traded volume. A trade whose share is unavailable is never returned by a non-zero value, because an unavailable share cannot be said to clear a floor.
+    pub min_market_volume_share: Option<f64>,
+    /// Order of the returned page. recent is newest first and is the default. market_volume_share ranks by each trade's share of its market's traded volume, biggest first, with a trade whose share is unavailable last. That ranking reads the last 30 days, because the share is computed for each request and an unbounded ranking cannot be served inside the documented latency budget. A cursor is bound to the order it was minted in, so a continuation cannot cross from one order into the other.
+    pub sort: Option<Sort>,
     /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
     ///
     /// Sent as the `If-None-Match` header.
@@ -1057,6 +1381,18 @@ impl ListWhaleTradesParams {
         self.suspicious_only = Some(value);
         self
     }
+    /// Sets `min_market_volume_share`.
+    #[must_use]
+    pub fn min_market_volume_share(mut self, value: f64) -> Self {
+        self.min_market_volume_share = Some(value);
+        self
+    }
+    /// Sets `sort`.
+    #[must_use]
+    pub fn sort(mut self, value: Sort) -> Self {
+        self.sort = Some(value);
+        self
+    }
     /// Sets `If-None-Match`.
     #[must_use]
     pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
@@ -1065,18 +1401,18 @@ impl ListWhaleTradesParams {
     }
 }
 
-/// Optional parameters for [`Client::list_whale_trade_history`] (`GET /api/v1/whale-trades/history`).
+/// Optional parameters for [`Client::list_large_trade_history`] (`GET /api/v1/large-trades/history`).
 ///
 /// Start from `Default::default()` and set what you need, through the field or the
 /// chainable setter of the same name.
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
-pub struct ListWhaleTradeHistoryParams {
-    /// Maximum number of historical large trades to return.
+pub struct ListLargeTradeHistoryParams {
+    /// Maximum number of historical large trades to return. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Pagination cursor from previous response's next_cursor. Prefix: wth_. URL-encode when replaying as a query parameter.
     pub cursor: Option<String>,
-    /// Minimum trade size in USD. The capture floor was 3,000 USD before 2026-07-06 and 10,000 USD from then (1,000 USD in earnings markets), so 10000 gives one size rule across the whole archive.
+    /// Minimum trade size in USD. The capture floor was 3,000 USD before 2026-07-06 and 10,000 USD from then (1,000 USD in earnings markets), so 10000 gives one size rule across the whole archive. From 2026-09-23 a fill must also be at least 0.1% of its market's recorded traded volume (Polymarket's own share count); rows written before that date were not re-filtered.
     pub min_size: Option<f64>,
     /// Exact raw provider condition_id. Unknown markets return an empty list.
     pub condition_id: Option<String>,
@@ -1094,6 +1430,136 @@ pub struct ListWhaleTradeHistoryParams {
     pub from: Option<String>,
     /// Exclusive RFC3339 upper bound on whale_alerts.traded_at. Must be after from when both are present.
     pub to: Option<String>,
+    /// Keep only trades whose market_volume_share is known and at least this. A fraction, not a percent: 0.01 is one percent of the market's traded volume. A trade whose share is unavailable is never returned by a non-zero value, because an unavailable share cannot be said to clear a floor.
+    pub min_market_volume_share: Option<f64>,
+    /// Order of the returned page. recent is newest first and is the default. market_volume_share ranks by each trade's share of its market's traded volume, biggest first, with a trade whose share is unavailable last. That ranking reads from, or the last 30 days when from is omitted, for the same reason. A cursor is bound to the order it was minted in, so a continuation cannot cross from one order into the other.
+    pub sort: Option<Sort>,
+    /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
+    ///
+    /// Sent as the `If-None-Match` header.
+    pub if_none_match: Option<String>,
+}
+
+impl ListLargeTradeHistoryParams {
+    /// Sets `limit`.
+    #[must_use]
+    pub fn limit(mut self, value: i64) -> Self {
+        self.limit = Some(value);
+        self
+    }
+    /// Sets `cursor`.
+    #[must_use]
+    pub fn cursor(mut self, value: impl Into<String>) -> Self {
+        self.cursor = Some(value.into());
+        self
+    }
+    /// Sets `min_size`.
+    #[must_use]
+    pub fn min_size(mut self, value: f64) -> Self {
+        self.min_size = Some(value);
+        self
+    }
+    /// Sets `condition_id`.
+    #[must_use]
+    pub fn condition_id(mut self, value: impl Into<String>) -> Self {
+        self.condition_id = Some(value.into());
+        self
+    }
+    /// Sets `trader`.
+    #[must_use]
+    pub fn trader(mut self, value: impl Into<String>) -> Self {
+        self.trader = Some(value.into());
+        self
+    }
+    /// Sets `category`.
+    #[must_use]
+    pub fn category(mut self, value: impl Into<String>) -> Self {
+        self.category = Some(value.into());
+        self
+    }
+    /// Sets `min_grade`.
+    #[must_use]
+    pub fn min_grade(mut self, value: Grade) -> Self {
+        self.min_grade = Some(value);
+        self
+    }
+    /// Sets `suspicious_only`.
+    #[must_use]
+    pub fn suspicious_only(mut self, value: bool) -> Self {
+        self.suspicious_only = Some(value);
+        self
+    }
+    /// Sets `platform`.
+    #[must_use]
+    pub fn platform(mut self, value: Platform) -> Self {
+        self.platform = Some(value);
+        self
+    }
+    /// Sets `from`.
+    #[must_use]
+    pub fn from(mut self, value: impl Into<String>) -> Self {
+        self.from = Some(value.into());
+        self
+    }
+    /// Sets `to`.
+    #[must_use]
+    pub fn to(mut self, value: impl Into<String>) -> Self {
+        self.to = Some(value.into());
+        self
+    }
+    /// Sets `min_market_volume_share`.
+    #[must_use]
+    pub fn min_market_volume_share(mut self, value: f64) -> Self {
+        self.min_market_volume_share = Some(value);
+        self
+    }
+    /// Sets `sort`.
+    #[must_use]
+    pub fn sort(mut self, value: Sort) -> Self {
+        self.sort = Some(value);
+        self
+    }
+    /// Sets `If-None-Match`.
+    #[must_use]
+    pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
+        self.if_none_match = Some(value.into());
+        self
+    }
+}
+
+/// Optional parameters for [`Client::list_whale_trade_history`] (`GET /api/v1/whale-trades/history`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct ListWhaleTradeHistoryParams {
+    /// Maximum number of historical large trades to return. Out-of-range values are clamped to 1..100.
+    pub limit: Option<i64>,
+    /// Pagination cursor from previous response's next_cursor. Prefix: wth_. URL-encode when replaying as a query parameter.
+    pub cursor: Option<String>,
+    /// Minimum trade size in USD.
+    pub min_size: Option<f64>,
+    /// Exact raw provider condition_id. Unknown markets return an empty list.
+    pub condition_id: Option<String>,
+    /// Trader wallet address, timestamp-suffixed wallet alias, or username resolved against the traders table. Unknown traders return an empty list.
+    pub trader: Option<String>,
+    /// Filter by market category (case-insensitive). A canonical bucket name (e.g. Basketball) matches every provider member that folds into it (NBA, WNBA, NCAAB); a raw provider value also resolves to its bucket.
+    pub category: Option<String>,
+    /// Minimum trader grade.
+    pub min_grade: Option<Grade>,
+    /// When true, return only rows with persisted suspicion_score >= 60. The filter is applied before SQL-backed limit + 1 pagination.
+    pub suspicious_only: Option<bool>,
+    /// Filter by whale_alerts.platform. all is equivalent to omitted.
+    pub platform: Option<Platform>,
+    /// Inclusive RFC3339 lower bound on whale_alerts.traded_at.
+    pub from: Option<String>,
+    /// Exclusive RFC3339 upper bound on whale_alerts.traded_at. Must be after from when both are present.
+    pub to: Option<String>,
+    /// Keep only trades whose market_volume_share is known and at least this. A fraction, not a percent: 0.01 is one percent of the market's traded volume. A trade whose share is unavailable is never returned by a non-zero value, because an unavailable share cannot be said to clear a floor.
+    pub min_market_volume_share: Option<f64>,
+    /// Order of the returned page. recent is newest first and is the default. market_volume_share ranks by each trade's share of its market's traded volume, biggest first, with a trade whose share is unavailable last. That ranking reads from, or the last 30 days when from is omitted, for the same reason. A cursor is bound to the order it was minted in, so a continuation cannot cross from one order into the other.
+    pub sort: Option<Sort>,
     /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
     ///
     /// Sent as the `If-None-Match` header.
@@ -1167,6 +1633,40 @@ impl ListWhaleTradeHistoryParams {
         self.to = Some(value.into());
         self
     }
+    /// Sets `min_market_volume_share`.
+    #[must_use]
+    pub fn min_market_volume_share(mut self, value: f64) -> Self {
+        self.min_market_volume_share = Some(value);
+        self
+    }
+    /// Sets `sort`.
+    #[must_use]
+    pub fn sort(mut self, value: Sort) -> Self {
+        self.sort = Some(value);
+        self
+    }
+    /// Sets `If-None-Match`.
+    #[must_use]
+    pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
+        self.if_none_match = Some(value.into());
+        self
+    }
+}
+
+/// Optional parameters for [`Client::get_large_trade`] (`GET /api/v1/large-trades/{id}`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct GetLargeTradeParams {
+    /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
+    ///
+    /// Sent as the `If-None-Match` header.
+    pub if_none_match: Option<String>,
+}
+
+impl GetLargeTradeParams {
     /// Sets `If-None-Match`.
     #[must_use]
     pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
@@ -1197,6 +1697,34 @@ impl GetWhaleTradeParams {
     }
 }
 
+/// Optional parameters for [`Client::list_large_trade_counterparty_executions`] (`GET /api/v1/large-trades/{id}/counterparties/executions`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct ListLargeTradeCounterpartyExecutionsParams {
+    /// Opaque cursor from the previous response's next_cursor.
+    pub cursor: Option<String>,
+    /// Maximum number of counterparty execution rows to return. Out-of-range values are clamped to 1..100.
+    pub limit: Option<i64>,
+}
+
+impl ListLargeTradeCounterpartyExecutionsParams {
+    /// Sets `cursor`.
+    #[must_use]
+    pub fn cursor(mut self, value: impl Into<String>) -> Self {
+        self.cursor = Some(value.into());
+        self
+    }
+    /// Sets `limit`.
+    #[must_use]
+    pub fn limit(mut self, value: i64) -> Self {
+        self.limit = Some(value);
+        self
+    }
+}
+
 /// Optional parameters for [`Client::list_whale_trade_counterparty_executions`] (`GET /api/v1/whale-trades/{id}/counterparties/executions`).
 ///
 /// Start from `Default::default()` and set what you need, through the field or the
@@ -1206,11 +1734,39 @@ impl GetWhaleTradeParams {
 pub struct ListWhaleTradeCounterpartyExecutionsParams {
     /// Opaque cursor from the previous response's next_cursor.
     pub cursor: Option<String>,
-    /// Maximum number of counterparty execution rows to return.
+    /// Maximum number of counterparty execution rows to return. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
 }
 
 impl ListWhaleTradeCounterpartyExecutionsParams {
+    /// Sets `cursor`.
+    #[must_use]
+    pub fn cursor(mut self, value: impl Into<String>) -> Self {
+        self.cursor = Some(value.into());
+        self
+    }
+    /// Sets `limit`.
+    #[must_use]
+    pub fn limit(mut self, value: i64) -> Self {
+        self.limit = Some(value);
+        self
+    }
+}
+
+/// Optional parameters for [`Client::list_large_trade_counterparty_makers`] (`GET /api/v1/large-trades/{id}/counterparties/executions/{execution_id}/makers`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct ListLargeTradeCounterpartyMakersParams {
+    /// Opaque cursor from the previous response's next_cursor.
+    pub cursor: Option<String>,
+    /// Maximum number of maker rows to return. Out-of-range values are clamped to 1..100.
+    pub limit: Option<i64>,
+}
+
+impl ListLargeTradeCounterpartyMakersParams {
     /// Sets `cursor`.
     #[must_use]
     pub fn cursor(mut self, value: impl Into<String>) -> Self {
@@ -1234,7 +1790,7 @@ impl ListWhaleTradeCounterpartyExecutionsParams {
 pub struct ListWhaleTradeCounterpartyMakersParams {
     /// Opaque cursor from the previous response's next_cursor.
     pub cursor: Option<String>,
-    /// Maximum number of maker rows to return.
+    /// Maximum number of maker rows to return. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
 }
 
@@ -1260,7 +1816,7 @@ impl ListWhaleTradeCounterpartyMakersParams {
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct ListLeaderboardParams {
-    /// Maximum number of ranked traders to return.
+    /// Maximum number of ranked traders to return. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Opaque lbv1_ pagination cursor from a prior response. It binds the finite score/address boundary to the committed leaderboard generation and the effective category/strategy filters; legacy, malformed, non-finite, and unsupported-version cursors are rejected.
     pub cursor: Option<String>,
@@ -1380,7 +1936,7 @@ impl GetPickOfTheDayLedgerParams {
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct ListTrendingWalletsParams {
-    /// Polymarket's weekly leaderboard caps the ranked set at 50 wallets; requests above 50 still return at most 50.
+    /// Polymarket's weekly leaderboard caps the ranked set at 50 wallets; requests above 50 still return at most 50. Out-of-range values are clamped to 1..50.
     pub limit: Option<i64>,
     /// Opaque pagination cursor from a previous response, bound to its effective limit, window and ranked-board generation. A changed board or request scope returns error.reason=cursor_expired; legacy page-only cursors must restart from page one.
     pub cursor: Option<String>,
@@ -1416,11 +1972,11 @@ impl ListTrendingWalletsParams {
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct SearchMarketsParams {
-    /// Maximum number of matching markets to return.
+    /// Maximum number of matching markets to return. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Pagination cursor from previous response's next_cursor.
     pub cursor: Option<String>,
-    /// Filter by market status.
+    /// Filter by market status. A market is closed once Polymarket has closed trading or it has resolved, and active otherwise; all returns both.
     pub status: Option<SearchMarketsStatus>,
     /// Filter by category.
     pub category: Option<String>,
@@ -1460,7 +2016,7 @@ impl SearchMarketsParams {
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct SearchContentParams {
-    /// Maximum content items to return.
+    /// Maximum content items to return. Out-of-range values are clamped to 1..50.
     pub limit: Option<i64>,
 }
 
@@ -1482,15 +2038,15 @@ impl SearchContentParams {
 pub struct ExploreMarketsParams {
     /// Filter by market category (case-insensitive). A canonical bucket name (e.g. Basketball) matches every provider member that folds into it (NBA, WNBA, NCAAB); a raw provider value also resolves to its bucket. Facet values are returned as the canonical bucket.
     pub category: Option<String>,
-    /// Filter by market status.
+    /// Filter by market status. A market is closed once Polymarket has closed trading or it has resolved, and active otherwise; all returns both.
     pub status: Option<SearchMarketsStatus>,
     /// Filter by source platform. Explore is Polymarket-only; polymarket is the only supported value and the parameter is accepted for backward-compatibility but does not change the result set.
     pub platform: Option<String>,
-    /// Sort order for the discovery feed.
-    pub sort: Option<Sort>,
+    /// Sort order for the discovery feed. `large_trades` ranks by large-trade activity; `whales` is its deprecated spelling and selects the same order.
+    pub sort: Option<ExploreMarketsSort>,
     /// Opaque pagination cursor from the previous response.
     pub cursor: Option<String>,
-    /// Page size.
+    /// Page size. Out-of-range values are clamped to 1..48.
     pub limit: Option<i64>,
     /// Keyword search against market titles. At most 64 characters before whitespace trimming.
     pub q: Option<String>,
@@ -1521,7 +2077,7 @@ impl ExploreMarketsParams {
     }
     /// Sets `sort`.
     #[must_use]
-    pub fn sort(mut self, value: Sort) -> Self {
+    pub fn sort(mut self, value: ExploreMarketsSort) -> Self {
         self.sort = Some(value);
         self
     }
@@ -1560,7 +2116,7 @@ impl ExploreMarketsParams {
 pub struct ListSmartMoneyFlowsParams {
     /// Lookback window for grade-filtered whale flow aggregation.
     pub timeframe: Option<Timeframe>,
-    /// Page size.
+    /// Page size. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Opaque cursor from previous response's next_cursor. Encodes the first-page as_of timestamp, normalized effective filters, ranking and aggregate collection revisions, plus the last row's absolute net flow and condition_id. A changed filter or collection returns cursor_expired; request the first page again.
     pub cursor: Option<String>,
@@ -1638,7 +2194,7 @@ impl ListSmartMoneyFlowsParams {
 pub struct ListSharpMoneyFlowsParams {
     /// Lookback window for grade-filtered whale flow aggregation.
     pub timeframe: Option<Timeframe>,
-    /// Page size.
+    /// Page size. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Opaque cursor from previous response's next_cursor. Encodes the first-page as_of timestamp, normalized effective filters, ranking and aggregate collection revisions, plus the last row's absolute net flow and condition_id. A changed filter or collection returns cursor_expired; request the first page again.
     pub cursor: Option<String>,
@@ -1707,6 +2263,114 @@ impl ListSharpMoneyFlowsParams {
     }
 }
 
+/// Optional parameters for [`Client::list_pre_game_sides`] (`GET /api/v1/sports/pre-game-sides`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct ListPreGameSidesParams {
+    /// Optional canonical sport bucket filter (e.g. Basketball, Tennis, Soccer). A raw provider value (NBA) resolves to its canonical bucket. A non-sport category returns an empty list.
+    pub category: Option<String>,
+    /// Page size. Out-of-range values are clamped to 1..100.
+    pub limit: Option<i64>,
+    /// Opaque cursor from a previous response's next_cursor. Encodes the snapshot anchor plus the last row's directional_rank_score, conviction_score, smart_score and condition_id. A cursor from an expired snapshot returns 400.
+    pub cursor: Option<String>,
+    /// Kickoff ceiling in hours from now; the floor is now (only games not yet started). Clamped to 1..48.
+    pub horizon_hours: Option<i64>,
+    /// Minimum trader grade required on the piled side. Only S, A, B are accepted (the piled-side grade distribution is S/A/B only; C, D, F return 400). Default B means at least one S/A/B holder is piled; S requires an S holder, A requires an S or A holder.
+    pub min_grade: Option<MarketHolderGrade>,
+    /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
+    ///
+    /// Sent as the `If-None-Match` header.
+    pub if_none_match: Option<String>,
+}
+
+impl ListPreGameSidesParams {
+    /// Sets `category`.
+    #[must_use]
+    pub fn category(mut self, value: impl Into<String>) -> Self {
+        self.category = Some(value.into());
+        self
+    }
+    /// Sets `limit`.
+    #[must_use]
+    pub fn limit(mut self, value: i64) -> Self {
+        self.limit = Some(value);
+        self
+    }
+    /// Sets `cursor`.
+    #[must_use]
+    pub fn cursor(mut self, value: impl Into<String>) -> Self {
+        self.cursor = Some(value.into());
+        self
+    }
+    /// Sets `horizon_hours`.
+    #[must_use]
+    pub fn horizon_hours(mut self, value: i64) -> Self {
+        self.horizon_hours = Some(value);
+        self
+    }
+    /// Sets `min_grade`.
+    #[must_use]
+    pub fn min_grade(mut self, value: MarketHolderGrade) -> Self {
+        self.min_grade = Some(value);
+        self
+    }
+    /// Sets `If-None-Match`.
+    #[must_use]
+    pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
+        self.if_none_match = Some(value.into());
+        self
+    }
+}
+
+/// Optional parameters for [`Client::list_pre_game_side_observations`] (`GET /api/v1/sports/pre-game-side-observations`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct ListPreGameSideObservationsParams {
+    /// Optional canonical sport bucket. Omitted or blank selects all registered sports. Raw provider categories resolve through the canonical taxonomy, including table-tennis or table tennis to Table Tennis and pickleball to Pickleball; a non-sport category returns an empty list.
+    pub category: Option<String>,
+    /// Page size. Out-of-range values are clamped to 1..100.
+    pub limit: Option<i64>,
+    /// Server-authenticated opaque seo_v2_ cursor from next_cursor. Pins snapshot_as_of, cohort, rank, and condition_id; pre-deploy unsigned seo_ cursors are rejected, so clients must request the first page after this contract ships; emerging_pile cursors also pin the first-page projection_now cutoff so kickoff filtering cannot renumber continuation pages. Client edits fail closed; it cannot cross cohorts; a refreshed snapshot invalidates it with 400.
+    pub cursor: Option<String>,
+    /// Conditional GET using a previous weak semantic ETag. Matching stable payloads return 304 Not Modified with an empty body; request-specific meta and the opaque emerging_pile projection cutoff inside next_cursor are excluded from validation.
+    ///
+    /// Sent as the `If-None-Match` header.
+    pub if_none_match: Option<String>,
+}
+
+impl ListPreGameSideObservationsParams {
+    /// Sets `category`.
+    #[must_use]
+    pub fn category(mut self, value: impl Into<String>) -> Self {
+        self.category = Some(value.into());
+        self
+    }
+    /// Sets `limit`.
+    #[must_use]
+    pub fn limit(mut self, value: i64) -> Self {
+        self.limit = Some(value);
+        self
+    }
+    /// Sets `cursor`.
+    #[must_use]
+    pub fn cursor(mut self, value: impl Into<String>) -> Self {
+        self.cursor = Some(value.into());
+        self
+    }
+    /// Sets `If-None-Match`.
+    #[must_use]
+    pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
+        self.if_none_match = Some(value.into());
+        self
+    }
+}
+
 /// Optional parameters for [`Client::list_sports_edge_signals`] (`GET /api/v1/sports-edge-signals`).
 ///
 /// Start from `Default::default()` and set what you need, through the field or the
@@ -1716,7 +2380,7 @@ impl ListSharpMoneyFlowsParams {
 pub struct ListSportsEdgeSignalsParams {
     /// Optional canonical sport bucket filter (e.g. Basketball, Tennis, Soccer). A raw provider value (NBA) resolves to its canonical bucket. A non-sport category returns an empty list.
     pub category: Option<String>,
-    /// Page size.
+    /// Page size. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Opaque cursor from a previous response's next_cursor. Encodes the snapshot anchor plus the last row's directional_rank_score, conviction_score, smart_score and condition_id. A cursor from an expired snapshot returns 400.
     pub cursor: Option<String>,
@@ -1778,7 +2442,7 @@ impl ListSportsEdgeSignalsParams {
 pub struct ListSportsEdgeObservationsParams {
     /// Optional canonical sport bucket. Omitted or blank selects all registered sports. Raw provider categories resolve through the canonical taxonomy, including table-tennis or table tennis to Table Tennis and pickleball to Pickleball; a non-sport category returns an empty list.
     pub category: Option<String>,
-    /// Page size.
+    /// Page size. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Server-authenticated opaque seo_v2_ cursor from next_cursor. Pins snapshot_as_of, cohort, rank, and condition_id; pre-deploy unsigned seo_ cursors are rejected, so clients must request the first page after this contract ships; emerging_pile cursors also pin the first-page projection_now cutoff so kickoff filtering cannot renumber continuation pages. Client edits fail closed; it cannot cross cohorts; a refreshed snapshot invalidates it with 400.
     pub cursor: Option<String>,
@@ -1826,7 +2490,7 @@ pub struct GetMarketHoldersParams {
     pub outcome: Option<GetMarketHoldersOutcome>,
     /// Narrow within the graded cohort: `S` keeps S, `A` keeps S and A, `B` (default) keeps S, A and B. `C`, `D` and `F` are rejected with 400: the route lists the S/A/B cohort only. The cohort is the wallet's current grade (`traders.latest_grade`), so no value here reaches a C, D, F or ungraded holder; those are counted only in `scan.wallet_count`. `min_grade=D` on GET /api/v1/positions does return C and D, which is one of the three reasons the two routes' counts differ for the same market.
     pub min_grade: Option<MarketHolderGrade>,
-    /// Maximum holders per page.
+    /// Maximum holders per page. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Opaque pagination cursor from the previous response's next_cursor. It encodes a page of one shared roster, so it stays valid across the roster's refresh, but a page read after a refresh can repeat or skip a holder.
     pub cursor: Option<String>,
@@ -1859,6 +2523,36 @@ impl GetMarketHoldersParams {
     #[must_use]
     pub fn cursor(mut self, value: impl Into<String>) -> Self {
         self.cursor = Some(value.into());
+        self
+    }
+    /// Sets `If-None-Match`.
+    #[must_use]
+    pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
+        self.if_none_match = Some(value.into());
+        self
+    }
+}
+
+/// Optional parameters for [`Client::get_market_flow`] (`GET /api/v1/market/{condition_id}/flow`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct GetMarketFlowParams {
+    /// Lookback window for whale flow aggregation.
+    pub timeframe: Option<Timeframe>,
+    /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
+    ///
+    /// Sent as the `If-None-Match` header.
+    pub if_none_match: Option<String>,
+}
+
+impl GetMarketFlowParams {
+    /// Sets `timeframe`.
+    #[must_use]
+    pub fn timeframe(mut self, value: Timeframe) -> Self {
+        self.timeframe = Some(value);
         self
     }
     /// Sets `If-None-Match`.
@@ -1979,6 +2673,190 @@ impl GetMarketCandlesParams {
     }
 }
 
+/// Optional parameters for [`Client::list_suspicious_trades`] (`GET /api/v1/suspicious-trades`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct ListSuspiciousTradesParams {
+    /// Maximum number of suspicious trades to return. Out-of-range values are clamped to 1..100.
+    pub limit: Option<i64>,
+    /// Pagination cursor from previous response.
+    pub cursor: Option<String>,
+    /// Minimum suspicion score (0-100). The live flag floor of 60 also applies.
+    pub min_suspicion: Option<f64>,
+    /// Compatible filter. flag selects live threshold crossings. watch returns no rows because no live watch policy exists.
+    pub severity: Option<Severity>,
+    /// Pagination mode. live (default) keeps the 120-second response cache; stable pins the walk to one published scoring generation and binds the cursor to the limit and filters.
+    pub mode: Option<Mode>,
+    /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
+    ///
+    /// Sent as the `If-None-Match` header.
+    pub if_none_match: Option<String>,
+}
+
+impl ListSuspiciousTradesParams {
+    /// Sets `limit`.
+    #[must_use]
+    pub fn limit(mut self, value: i64) -> Self {
+        self.limit = Some(value);
+        self
+    }
+    /// Sets `cursor`.
+    #[must_use]
+    pub fn cursor(mut self, value: impl Into<String>) -> Self {
+        self.cursor = Some(value.into());
+        self
+    }
+    /// Sets `min_suspicion`.
+    #[must_use]
+    pub fn min_suspicion(mut self, value: f64) -> Self {
+        self.min_suspicion = Some(value);
+        self
+    }
+    /// Sets `severity`.
+    #[must_use]
+    pub fn severity(mut self, value: Severity) -> Self {
+        self.severity = Some(value);
+        self
+    }
+    /// Sets `mode`.
+    #[must_use]
+    pub fn mode(mut self, value: Mode) -> Self {
+        self.mode = Some(value);
+        self
+    }
+    /// Sets `If-None-Match`.
+    #[must_use]
+    pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
+        self.if_none_match = Some(value.into());
+        self
+    }
+}
+
+/// Optional parameters for [`Client::get_suspicious_trade`] (`GET /api/v1/suspicious-trades/{id}`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct GetSuspiciousTradeParams {
+    /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
+    ///
+    /// Sent as the `If-None-Match` header.
+    pub if_none_match: Option<String>,
+}
+
+impl GetSuspiciousTradeParams {
+    /// Sets `If-None-Match`.
+    #[must_use]
+    pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
+        self.if_none_match = Some(value.into());
+        self
+    }
+}
+
+/// Optional parameters for [`Client::list_games`] (`GET /api/v1/games`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct ListGamesParams {
+    /// Canonical sport bucket, case-insensitive, with - and _ read as a space: table-tennis and Table Tennis are the same bucket. Omit for every covered sport. A bucket this deployment does not serve returns an empty page.
+    pub sport: Option<String>,
+    /// League tag, case-insensitive, as coverage.leagues spells it: nfl, epl, cs2. Omit for every league inside the selected sports.
+    pub league: Option<String>,
+    /// Keep only games in this state. A value outside the enum returns an empty page.
+    pub status: Option<State>,
+    /// RFC 3339 instant. Keep only games whose kickoff is at or after it. Games with no published kickoff are excluded whenever either bound is set.
+    pub starts_after: Option<String>,
+    /// RFC 3339 instant. Keep only games whose kickoff is at or before it. Must be at or after starts_after.
+    pub starts_before: Option<String>,
+    /// Page size. Out-of-range values are clamped to 1..100.
+    pub limit: Option<i64>,
+    /// Opaque gms_v1_ cursor from next_cursor. It pins the page position (kickoff and event_slug), not a snapshot: the catalog is live, so a game added or removed between pages moves with it. A cursor this endpoint did not issue returns 400 with error.param=cursor.
+    pub cursor: Option<String>,
+    /// Conditional GET using a weak semantic ETag from an earlier response. A matching payload returns 304 with an empty body; request_id, cost and as_of are excluded from the validator, so a rebuilt but unchanged catalog still revalidates.
+    ///
+    /// Sent as the `If-None-Match` header.
+    pub if_none_match: Option<String>,
+}
+
+impl ListGamesParams {
+    /// Sets `sport`.
+    #[must_use]
+    pub fn sport(mut self, value: impl Into<String>) -> Self {
+        self.sport = Some(value.into());
+        self
+    }
+    /// Sets `league`.
+    #[must_use]
+    pub fn league(mut self, value: impl Into<String>) -> Self {
+        self.league = Some(value.into());
+        self
+    }
+    /// Sets `status`.
+    #[must_use]
+    pub fn status(mut self, value: State) -> Self {
+        self.status = Some(value);
+        self
+    }
+    /// Sets `starts_after`.
+    #[must_use]
+    pub fn starts_after(mut self, value: impl Into<String>) -> Self {
+        self.starts_after = Some(value.into());
+        self
+    }
+    /// Sets `starts_before`.
+    #[must_use]
+    pub fn starts_before(mut self, value: impl Into<String>) -> Self {
+        self.starts_before = Some(value.into());
+        self
+    }
+    /// Sets `limit`.
+    #[must_use]
+    pub fn limit(mut self, value: i64) -> Self {
+        self.limit = Some(value);
+        self
+    }
+    /// Sets `cursor`.
+    #[must_use]
+    pub fn cursor(mut self, value: impl Into<String>) -> Self {
+        self.cursor = Some(value.into());
+        self
+    }
+    /// Sets `If-None-Match`.
+    #[must_use]
+    pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
+        self.if_none_match = Some(value.into());
+        self
+    }
+}
+
+/// Optional parameters for [`Client::get_game`] (`GET /api/v1/games/{event_slug}`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct GetGameParams {
+    /// Conditional GET using a weak semantic ETag from an earlier response. A matching payload returns 304 with an empty body; request_id, cost and as_of are excluded from the validator, so a rebuilt but unchanged catalog still revalidates.
+    ///
+    /// Sent as the `If-None-Match` header.
+    pub if_none_match: Option<String>,
+}
+
+impl GetGameParams {
+    /// Sets `If-None-Match`.
+    #[must_use]
+    pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
+        self.if_none_match = Some(value.into());
+        self
+    }
+}
+
 /// Optional parameters for [`Client::list_insider_radar`] (`GET /api/v1/insider-radar`).
 ///
 /// Start from `Default::default()` and set what you need, through the field or the
@@ -1986,7 +2864,7 @@ impl GetMarketCandlesParams {
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct ListInsiderRadarParams {
-    /// Maximum number of radar flags to return.
+    /// Maximum number of radar flags to return. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Pagination cursor from previous response.
     pub cursor: Option<String>,
@@ -2072,7 +2950,7 @@ impl GetInsiderRadarFlagParams {
 pub struct GetEventReplaySinceParams {
     /// Opaque event replay cursor returned as next_cursor by a prior response. The cursor maps to the global (whale_alerts.inserted_xid, whale_alerts.id) commit-order position, is valid across backend replicas, and is bound to the filter set the walk ran with (trader, condition_id, min_grade, min_size): presenting it under different filters answers 400 bad_request with error.reason cursor_expired, and the walk restarts without a cursor. Cursors issued before 2026-09-22 (id-only) stay accepted and are bound to no filters. Omit to fetch the latest durable public suffix.
     pub cursor: Option<String>,
-    /// Maximum durable public whale-trade events to return.
+    /// Maximum durable public whale-trade events to return. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
     /// Only this wallet's trades: a wallet address, trd_-prefixed trader id or username resolved against the traders table. Bound to the cursor: a cursor issued under other filters answers 400 with error.reason cursor_expired. An unknown trader matches nothing and the walk still advances.
     pub trader: Option<String>,
@@ -2400,11 +3278,11 @@ impl CreateMcpJsonRpcResponseParams {
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct GetWeeklyReportSnapshotParams {
-    /// UTC source-range start in YYYY-MM-DD format; required with to. Together with to, selects an exact ephemeral range of at most 31 inclusive UTC days.
+    /// UTC source-range start in YYYY-MM-DD format; required with to. Together with to, selects an exact ephemeral range of at most 31 inclusive UTC days. A start after tomorrow UTC returns 400 bad_request with error.param=from.
     pub from: Option<String>,
-    /// UTC source-range end in YYYY-MM-DD format; required with from. Together with from, selects an exact ephemeral range of at most 31 inclusive UTC days.
+    /// UTC source-range end in YYYY-MM-DD format; required with from. Together with from, selects an exact ephemeral range of at most 31 inclusive UTC days. An end before 2024-03-01, the first day report data covers, returns 400 bad_request with error.param=to.
     pub to: Option<String>,
-    /// ISO week selector in YYYY-WW format; alternative to from/to. Selects a durable canonical snapshot.
+    /// ISO week selector in YYYY-WW format; alternative to from/to. Selects a durable canonical snapshot. A week that ends before 2024-03-01, the first day report data covers, or starts after tomorrow UTC returns 400 bad_request with error.param=week.
     pub week: Option<String>,
 }
 
@@ -2438,6 +3316,8 @@ impl GetWeeklyReportSnapshotParams {
 pub struct SubmitTraderExportParams {
     /// Output serialization. json = full envelope document (default); ndjson = full envelope as line 1 then one trade object per line; csv = flat trades rows only.
     pub format: Option<Format>,
+    /// true: do not reuse a finished, running or reconciling job; only a queued job is reused, so the file is a snapshot read after this submit. Consumes quota when nothing is queued. Default false.
+    pub fresh: Option<bool>,
 }
 
 impl SubmitTraderExportParams {
@@ -2445,6 +3325,12 @@ impl SubmitTraderExportParams {
     #[must_use]
     pub fn format(mut self, value: Format) -> Self {
         self.format = Some(value);
+        self
+    }
+    /// Sets `fresh`.
+    #[must_use]
+    pub fn fresh(mut self, value: bool) -> Self {
+        self.fresh = Some(value);
         self
     }
 }
@@ -2487,16 +3373,19 @@ impl Client {
         self.send_json(call).await
     }
 
-    /// Get trader intelligence
+    /// Get trader
     ///
     /// `GET /api/v1/trader/{address}`
     ///
-    /// Returns a trader's grade (S through F; ranked about 95% by realized profit, with calibration, track record, and consistency as a tie-breaker and proven-trader guardrails), P&L, win rate, and optional strategy/category data. The path accepts either an Ethereum wallet address, a known trader username, or a trd_-prefixed trader ID emitted by this API. Unknown lookups return sync_status "unknown" instead of 404.
+    /// Returns a trader's grade (S through F; ranked about 95% by realized profit, with calibration, track record, and consistency as a tie-breaker and proven-trader guardrails), P&L, win rate, and optional strategy/category data. The path accepts either an Ethereum wallet address, a known trader username, or a trd_-prefixed trader ID emitted by this API. Unknown lookups return sync_status "unknown" instead of 404. The additive `pnl.exact.realized` and `stats.exact.total_volume` fields carry decimal strings from verified source atoms with unit, scale and basis metadata; parse them with decimal-safe arithmetic and keep the existing numeric twins for display.
     pub async fn get_trader(&self, address: &str, params: &GetTraderParams) -> Result<GetTraderResponse> {
         let path = format!("/api/v1/trader/{address}", address = encode_path_segment(address));
         let mut call = Call::new(&Operation::GET_TRADER, path);
         for value in &params.expand {
             call.query("expand", value.as_str().to_owned());
+        }
+        if let Some(value) = &params.max_age_s {
+            call.query("max_age_s", value.to_string());
         }
         call.header("If-None-Match", params.if_none_match.as_deref());
         self.send_json(call).await
@@ -2514,6 +3403,27 @@ impl Client {
         );
         let call = Call::new(&Operation::GET_TRADER_CONTEXT_MARKDOWN, path);
         self.send_text(call).await
+    }
+
+    /// Get a trader grade proven visible at a past instant
+    ///
+    /// `GET /api/v1/trader/{address}/grade-at`
+    ///
+    /// Reads one trader's recorded grade at as_of from prospective visibility evidence. Before the first recorded observation, after deletion, or during a grade-transition gap, status is unknown and grade is null; a recorded ungraded trader instead has status ungraded. available_from is the first proven observation for this trader, not a claim that earlier grades can be reconstructed. observed_at is when the grade writer began the transition and published_by is the later confirmation that the row was committed, not an exact commit time. Older observations have null model_version, model_build_sha and source_observed_by; do not substitute a current grade or a dated ranking row. The requested event time, publication bounds and model provenance are separate. Use a grade only when status is graded. This is additive; the current-grade trader and leaderboard operations do not change.
+    pub async fn get_trader_grade_at(
+        &self,
+        address: &str,
+        as_of: &str,
+        params: &GetTraderGradeAtParams,
+    ) -> Result<GetTraderGradeAtResponse> {
+        let path = format!(
+            "/api/v1/trader/{address}/grade-at",
+            address = encode_path_segment(address)
+        );
+        let mut call = Call::new(&Operation::GET_TRADER_GRADE_AT, path);
+        call.query("as_of", as_of.to_string());
+        call.header("If-None-Match", params.if_none_match.as_deref());
+        self.send_json(call).await
     }
 
     /// Get trader context (JSON)
@@ -2535,11 +3445,11 @@ impl Client {
         self.send_json(call).await
     }
 
-    /// Batch trader intelligence
+    /// Batch traders
     ///
     /// `POST /api/v1/traders/batch`
     ///
-    /// Returns trader intelligence for 1-25 wallet addresses or known usernames. Results preserve request order, duplicate inputs return duplicate rows, and each item is charged one batch item unit before execution. Unknown trader lookups return data with sync_status "unknown" matching the single trader endpoint.
+    /// Returns traders for 1-25 wallet addresses or known usernames. Results preserve request order, duplicate inputs return duplicate rows, and each item is charged one batch item unit before execution. Unknown trader lookups return data with sync_status "unknown" matching the single trader endpoint.
     pub async fn batch_get_traders(&self, body: &BatchGetTradersBody) -> Result<BatchGetTradersResponse> {
         let path = String::from("/api/v1/traders/batch");
         let mut call = Call::new(&Operation::BATCH_GET_TRADERS, path);
@@ -2600,10 +3510,19 @@ impl Client {
     ///
     /// `GET /api/v1/trader/{address}/pnl`
     ///
-    /// Returns a trader's daily P&L time series and pre-derived stats from the precomputed daily_pnl read model: entries (daily cumulative P&L), period stats (all/90d/30d/7d), monthly aggregation, per-year totals, and the drawdown series. Reads the refreshed read model, not a per-request equity replay. A resolved trader with no daily P&L returns an empty structured object (HTTP 200); an unknown address returns 404.
-    pub async fn get_trader_pnl(&self, address: &str) -> Result<GetTraderPnlResponse> {
+    /// Returns a trader's daily P&L time series and pre-derived stats from the precomputed daily_pnl read model: entries (daily cumulative P&L), period stats (all/90d/30d/7d), monthly aggregation, per-year totals, and the drawdown series. Reads the refreshed read model, not a per-request equity replay. A resolved trader with no daily P&L returns an empty structured object (HTTP 200); an unknown address returns 404. Optional from/to and sections bound what comes back: from/to clip the two daily series (entries, drawdown) to an inclusive UTC date window, and sections names which of the five sections the body carries. A request that sends none of the three receives the whole object exactly as before, down to the ETag. A body built with any of them carries data.view, which names the bounds, the sections applied, the size of the full series and the last daily point before the window; a section the request excluded is absent from data, not null or empty. stats, monthly and year_totals keep their full-period definitions whatever the window says, so an economic value never changes meaning because a chart asked for seven days.
+    pub async fn get_trader_pnl(&self, address: &str, params: &GetTraderPnlParams) -> Result<GetTraderPnlResponse> {
         let path = format!("/api/v1/trader/{address}/pnl", address = encode_path_segment(address));
-        let call = Call::new(&Operation::GET_TRADER_PNL, path);
+        let mut call = Call::new(&Operation::GET_TRADER_PNL, path);
+        if let Some(value) = &params.from {
+            call.query("from", value.to_string());
+        }
+        if let Some(value) = &params.to {
+            call.query("to", value.to_string());
+        }
+        for value in &params.sections {
+            call.query("sections", value.as_str().to_owned());
+        }
         self.send_json(call).await
     }
 
@@ -2638,7 +3557,7 @@ impl Client {
     ///
     /// `GET /api/v1/positions`
     ///
-    /// Returns the current positions-board feed backed by the wallet_positions mirror. Ordered by current_value_usd DESC with deterministic (wallet, condition_id, outcome_index) tiebreakers. Pre-reconcile rows (current_value_usd IS NULL) are excluded. Cursor-paginated. Every filter pushes into SQL. Deep cursor pages cost the same as the first page: the value bounds and the cursor are index conditions, so a page never rescans the feed from the top. With wallet, the same feed is read for one wallet or a book of up to 25 wallets from each wallet's own ordered index range, so the pages are that wallet's complete reconciled binary open positions and the cost is the page, never the board. min_size then defaults to 0. What a wallet read does not return: positions with shares at 0 (closed), rows the reconciler has not valued yet (current_value_usd IS NULL), and non-binary outcomes; per-row last_reconciled_at and freshness say how old each valuation is.
+    /// Returns the current positions-board feed backed by the wallet_positions mirror. Ordered by current_value_usd DESC with deterministic (wallet, condition_id, outcome_index) tiebreakers. Pre-reconcile rows (current_value_usd IS NULL) are excluded. Cursor-paginated. Every filter pushes into SQL. Deep cursor pages cost the same as the first page: the value bounds and the cursor are index conditions, so a page never rescans the feed from the top. With wallet, the same feed is read for one wallet or a book of up to 25 wallets from each wallet's own ordered index range, so the pages are that wallet's complete reconciled binary open positions and the cost is the page, never the board. min_size then defaults to 0. What a wallet read does not return: positions with shares at 0 (closed), rows the reconciler has not valued yet (current_value_usd IS NULL), and non-binary outcomes; per-row last_reconciled_at and freshness say how old each valuation is. Each row also carries additive `exact` source atoms as decimal strings with unit, scale and basis metadata; parse those values with decimal-safe arithmetic and do not reconstruct them from the display-safe numeric fields. The response adds a top-level `data_quality` object beside `data`, with positions, trader, and market groups owned by `wallet_positions.last_reconciled_at|updated_at`, `traders.last_synced`, and `market_canonical.last_refreshed_at`. Its stored clocks are part of the ETag; `meta` continues to hold transport cache facts.
     pub async fn list_positions(&self, params: &ListPositionsParams) -> Result<ListPositionsResponse> {
         let path = String::from("/api/v1/positions");
         let mut call = Call::new(&Operation::LIST_POSITIONS, path);
@@ -2647,6 +3566,9 @@ impl Client {
         }
         if let Some(value) = &params.cursor {
             call.query("cursor", value.to_string());
+        }
+        if let Some(value) = &params.consistency {
+            call.query("consistency", value.as_str().to_owned());
         }
         if let Some(value) = &params.min_size {
             call.query("min_size", value.to_string());
@@ -2699,11 +3621,47 @@ impl Client {
         self.send_json(call).await
     }
 
+    /// List large trades
+    ///
+    /// `GET /api/v1/large-trades`
+    ///
+    /// Returns recent large trades with signal scoring and persisted suspicion facts. Filter by size, category, trader grade, or persisted suspicion. Filters are applied before pagination, and every request uses SQL-backed limit + 1 pagination so has_more and next_cursor reflect the filtered result set. Cursor-paginated, newest first. Market categories come from provider-backed market_canonical identity. The response adds a top-level `data_quality` object beside `data`, grouping alert, trade, trader, ranking, market, and volume fields by their database writer. `whale_alerts.inserted_xid` is reported as unknown because it is a transaction identifier rather than a timestamp. Its stored clocks are part of the ETag; `meta` continues to hold transport cache facts.
+    pub async fn list_large_trades(&self, params: &ListLargeTradesParams) -> Result<ListLargeTradesResponse> {
+        let path = String::from("/api/v1/large-trades");
+        let mut call = Call::new(&Operation::LIST_LARGE_TRADES, path);
+        if let Some(value) = &params.limit {
+            call.query("limit", value.to_string());
+        }
+        if let Some(value) = &params.cursor {
+            call.query("cursor", value.to_string());
+        }
+        if let Some(value) = &params.min_size {
+            call.query("min_size", value.to_string());
+        }
+        if let Some(value) = &params.category {
+            call.query("category", value.to_string());
+        }
+        if let Some(value) = &params.min_grade {
+            call.query("min_grade", value.as_str().to_owned());
+        }
+        if let Some(value) = &params.suspicious_only {
+            call.query("suspicious_only", value.to_string());
+        }
+        if let Some(value) = &params.min_market_volume_share {
+            call.query("min_market_volume_share", value.to_string());
+        }
+        if let Some(value) = &params.sort {
+            call.query("sort", value.as_str().to_owned());
+        }
+        call.header("If-None-Match", params.if_none_match.as_deref());
+        self.send_json(call).await
+    }
+
     /// List whale trades
     ///
     /// `GET /api/v1/whale-trades`
     ///
-    /// Returns recent large trades with signal scoring and persisted suspicion facts. Filter by size, category, trader grade, or persisted suspicion. Filters are applied before pagination, and every request uses SQL-backed limit + 1 pagination so has_more and next_cursor reflect the filtered result set. Cursor-paginated, newest first. Market categories come from provider-backed market_canonical identity.
+    /// Returns recent large trades with signal scoring and persisted suspicion facts. Filter by size, category, trader grade, or persisted suspicion. Filters are applied before pagination, and every request uses SQL-backed limit + 1 pagination so has_more and next_cursor reflect the filtered result set. Cursor-paginated, newest first. Market categories come from provider-backed market_canonical identity. Deprecated alias of GET /api/v1/large-trades, kept live and never removed (#16304); every response carries `Deprecation: @1790047200` (RFC 9745, 2026-09-22T03:20:00Z) and a `Link` to the successor (`rel="successor-version"`) and to the versioning policy (`rel="deprecation"`). No `Sunset` header is sent because no removal is planned. The response adds a top-level `data_quality` object beside `data`, grouping alert, trade, trader, ranking, market, and volume fields by their database writer. `whale_alerts.inserted_xid` is reported as unknown because it is a transaction identifier rather than a timestamp. Its stored clocks are part of the ETag; `meta` continues to hold transport cache facts.
     pub async fn list_whale_trades(&self, params: &ListWhaleTradesParams) -> Result<ListWhaleTradesResponse> {
         let path = String::from("/api/v1/whale-trades");
         let mut call = Call::new(&Operation::LIST_WHALE_TRADES, path);
@@ -2725,6 +3683,66 @@ impl Client {
         if let Some(value) = &params.suspicious_only {
             call.query("suspicious_only", value.to_string());
         }
+        if let Some(value) = &params.min_market_volume_share {
+            call.query("min_market_volume_share", value.to_string());
+        }
+        if let Some(value) = &params.sort {
+            call.query("sort", value.as_str().to_owned());
+        }
+        call.header("If-None-Match", params.if_none_match.as_deref());
+        self.send_json(call).await
+    }
+
+    /// Replay historical large trades
+    ///
+    /// `GET /api/v1/large-trades/history`
+    ///
+    /// Returns historical large trades from local whale_alerts rows, not request-time provider fetches. Filter by condition_id, trader, category, minimum grade, persisted suspicion, platform, and RFC3339 from/to windows. All filters are pushed into SQL before LIMIT, every request uses SQL-backed limit + 1 pagination, and results are ordered newest first by traded_at desc, id desc. Metadata exposes local_replay source and best_effort completeness. POINT IN TIME: signal_score, trader.grade and the min_grade filter carry today's values on every row however old, so a backtest that selects by them selects wallets on what they did after the trade. The point-in-time fields are recorded_signal_score (from 2026-08-03T11:59Z; null before, and never backfilled, because the trader statistics it reads at insert were not kept for older rows) and trader.grade_at_trade with trader.grade_at_trade_status (from 2026-09-19T23:00Z; unknown before). CAPTURE RULES changed over the archive's life: rows before 2026-02-02 are sparse (at most a few hundred a month); from 2026-02-02 the floor was 3,000 USD (1.4% of rows through 2026-07-05 are smaller) and trades at any price were kept; from 2026-07-06 a trade is kept at 10,000 USD or more (1,000 USD in earnings markets) and only when priced below 0.97 (0.99 in earnings markets). Pass min_size=10000 for one size rule across the whole range; monthly row counts still follow the sports calendar. Until 2026-07-17 one match could be stored twice, once per wallet: from 2026-05-01 to 2026-07-17, 27.7% of rows at 10,000 USD or more share a transaction and market with another stored wallet, almost always a Yes buyer and a No buyer filled against each other. From 2026-07-18 a row is the taker's side only. Before 2026-05 the transaction hash is mostly absent, so the share cannot be measured there. From 2026-09-23 a fill must ALSO be at least 0.1% of its market's recorded traded volume, Polymarket's own share count, so a $10,000 print that lands in a market which has already traded tens of millions of shares is no longer kept; rows written before that date were not re-filtered. The response adds a top-level `data_quality` object beside `data`, grouping alert, trade, trader, ranking, market, and volume fields by their database writer. `whale_alerts.inserted_xid` is reported as unknown because it is a transaction identifier rather than a timestamp. Its stored clocks are part of the ETag; `meta` continues to hold transport cache facts.
+    pub async fn list_large_trade_history(
+        &self,
+        params: &ListLargeTradeHistoryParams,
+    ) -> Result<ListLargeTradeHistoryResponse> {
+        let path = String::from("/api/v1/large-trades/history");
+        let mut call = Call::new(&Operation::LIST_LARGE_TRADE_HISTORY, path);
+        if let Some(value) = &params.limit {
+            call.query("limit", value.to_string());
+        }
+        if let Some(value) = &params.cursor {
+            call.query("cursor", value.to_string());
+        }
+        if let Some(value) = &params.min_size {
+            call.query("min_size", value.to_string());
+        }
+        if let Some(value) = &params.condition_id {
+            call.query("condition_id", value.to_string());
+        }
+        if let Some(value) = &params.trader {
+            call.query("trader", value.to_string());
+        }
+        if let Some(value) = &params.category {
+            call.query("category", value.to_string());
+        }
+        if let Some(value) = &params.min_grade {
+            call.query("min_grade", value.as_str().to_owned());
+        }
+        if let Some(value) = &params.suspicious_only {
+            call.query("suspicious_only", value.to_string());
+        }
+        if let Some(value) = &params.platform {
+            call.query("platform", value.as_str().to_owned());
+        }
+        if let Some(value) = &params.from {
+            call.query("from", value.to_string());
+        }
+        if let Some(value) = &params.to {
+            call.query("to", value.to_string());
+        }
+        if let Some(value) = &params.min_market_volume_share {
+            call.query("min_market_volume_share", value.to_string());
+        }
+        if let Some(value) = &params.sort {
+            call.query("sort", value.as_str().to_owned());
+        }
         call.header("If-None-Match", params.if_none_match.as_deref());
         self.send_json(call).await
     }
@@ -2733,7 +3751,7 @@ impl Client {
     ///
     /// `GET /api/v1/whale-trades/history`
     ///
-    /// Returns historical whale trades from local whale_alerts rows, not request-time provider fetches. Filter by condition_id, trader, category, minimum grade, persisted suspicion, platform, and RFC3339 from/to windows. All filters are pushed into SQL before LIMIT, every request uses SQL-backed limit + 1 pagination, and results are ordered newest first by traded_at desc, id desc. Metadata exposes local_replay source and best_effort completeness. POINT IN TIME: signal_score, trader.grade and the min_grade filter carry today's values on every row however old, so a backtest that selects by them selects wallets on what they did after the trade. The point-in-time fields are recorded_signal_score (from 2026-08-03T11:59Z; null before, and never backfilled, because the trader statistics it reads at insert were not kept for older rows) and trader.grade_at_trade with trader.grade_at_trade_status (from 2026-09-19T23:00Z; unknown before). CAPTURE RULES changed over the archive's life: rows before 2026-02-02 are sparse (at most a few hundred a month); from 2026-02-02 the floor was 3,000 USD (1.4% of rows through 2026-07-05 are smaller) and trades at any price were kept; from 2026-07-06 a trade is kept at 10,000 USD or more (1,000 USD in earnings markets) and only when priced below 0.97 (0.99 in earnings markets). Pass min_size=10000 for one size rule across the whole range; monthly row counts still follow the sports calendar. Until 2026-07-17 one match could be stored twice, once per wallet: from 2026-05-01 to 2026-07-17, 27.7% of rows at 10,000 USD or more share a transaction and market with another stored wallet, almost always a Yes buyer and a No buyer filled against each other. From 2026-07-18 a row is the taker's side only. Before 2026-05 the transaction hash is mostly absent, so the share cannot be measured there.
+    /// Returns historical whale trades from local whale_alerts rows, not request-time provider fetches. Filter by condition_id, trader, category, minimum grade, persisted suspicion, platform, and RFC3339 from/to windows. All filters are pushed into SQL before LIMIT, every request uses SQL-backed limit + 1 pagination, and results are ordered newest first by traded_at desc, id desc. Metadata exposes local_replay source and best_effort completeness. Deprecated alias of GET /api/v1/large-trades/history, kept live and never removed (#16304); every response carries `Deprecation: @1790047200` (RFC 9745, 2026-09-22T03:20:00Z) and a `Link` to the successor (`rel="successor-version"`) and to the versioning policy (`rel="deprecation"`). No `Sunset` header is sent because no removal is planned. The response adds a top-level `data_quality` object beside `data`, grouping alert, trade, trader, ranking, market, and volume fields by their database writer. `whale_alerts.inserted_xid` is reported as unknown because it is a transaction identifier rather than a timestamp. Its stored clocks are part of the ETag; `meta` continues to hold transport cache facts.
     pub async fn list_whale_trade_history(
         &self,
         params: &ListWhaleTradeHistoryParams,
@@ -2773,6 +3791,24 @@ impl Client {
         if let Some(value) = &params.to {
             call.query("to", value.to_string());
         }
+        if let Some(value) = &params.min_market_volume_share {
+            call.query("min_market_volume_share", value.to_string());
+        }
+        if let Some(value) = &params.sort {
+            call.query("sort", value.as_str().to_owned());
+        }
+        call.header("If-None-Match", params.if_none_match.as_deref());
+        self.send_json(call).await
+    }
+
+    /// Get large trade by ID
+    ///
+    /// `GET /api/v1/large-trades/{id}`
+    ///
+    /// Returns one large trade by raw whale_alerts.id or the wt_-prefixed id emitted by list and history responses.
+    pub async fn get_large_trade(&self, id: &str, params: &GetLargeTradeParams) -> Result<GetLargeTradeResponse> {
+        let path = format!("/api/v1/large-trades/{id}", id = encode_path_segment(id));
+        let mut call = Call::new(&Operation::GET_LARGE_TRADE, path);
         call.header("If-None-Match", params.if_none_match.as_deref());
         self.send_json(call).await
     }
@@ -2781,7 +3817,7 @@ impl Client {
     ///
     /// `GET /api/v1/whale-trades/{id}`
     ///
-    /// Returns one whale trade by raw whale_alerts.id or the wt_-prefixed id emitted by list and history responses.
+    /// Returns one whale trade by raw whale_alerts.id or the wt_-prefixed id emitted by list and history responses. Deprecated alias of GET /api/v1/large-trades/{id}, kept live and never removed (#16304); every response carries `Deprecation: @1790047200` (RFC 9745, 2026-09-22T03:20:00Z) and a `Link` to the successor (`rel="successor-version"`) and to the versioning policy (`rel="deprecation"`). No `Sunset` header is sent because no removal is planned.
     pub async fn get_whale_trade(&self, id: &str, params: &GetWhaleTradeParams) -> Result<GetWhaleTradeResponse> {
         let path = format!("/api/v1/whale-trades/{id}", id = encode_path_segment(id));
         let mut call = Call::new(&Operation::GET_WHALE_TRADE, path);
@@ -2791,9 +3827,35 @@ impl Client {
 
     /// Page counterparty executions
     ///
+    /// `GET /api/v1/large-trades/{id}/counterparties/executions`
+    ///
+    /// Returns a bounded execution page from the immutable snapshot emitted by large-trade detail. A stale or changed snapshot returns a cursor-expired error so clients restart from detail.
+    pub async fn list_large_trade_counterparty_executions(
+        &self,
+        id: &str,
+        snapshot_id: &str,
+        params: &ListLargeTradeCounterpartyExecutionsParams,
+    ) -> Result<ListLargeTradeCounterpartyExecutionsResponse> {
+        let path = format!(
+            "/api/v1/large-trades/{id}/counterparties/executions",
+            id = encode_path_segment(id)
+        );
+        let mut call = Call::new(&Operation::LIST_LARGE_TRADE_COUNTERPARTY_EXECUTIONS, path);
+        call.query("snapshot_id", snapshot_id.to_string());
+        if let Some(value) = &params.cursor {
+            call.query("cursor", value.to_string());
+        }
+        if let Some(value) = &params.limit {
+            call.query("limit", value.to_string());
+        }
+        self.send_json(call).await
+    }
+
+    /// Page counterparty executions
+    ///
     /// `GET /api/v1/whale-trades/{id}/counterparties/executions`
     ///
-    /// Returns a bounded execution page from the immutable snapshot emitted by whale-trade detail. A stale or changed snapshot returns a cursor-expired error so clients restart from detail.
+    /// Returns a bounded execution page from the immutable snapshot emitted by whale-trade detail. A stale or changed snapshot returns a cursor-expired error so clients restart from detail. Deprecated alias of GET /api/v1/large-trades/{id}/counterparties/executions, kept live and never removed (#16304); every response carries `Deprecation: @1790047200` (RFC 9745, 2026-09-22T03:20:00Z) and a `Link` to the successor (`rel="successor-version"`) and to the versioning policy (`rel="deprecation"`). No `Sunset` header is sent because no removal is planned.
     pub async fn list_whale_trade_counterparty_executions(
         &self,
         id: &str,
@@ -2817,9 +3879,37 @@ impl Client {
 
     /// Page maker counterparties
     ///
-    /// `GET /api/v1/whale-trades/{id}/counterparties/executions/{execution_id}/makers`
+    /// `GET /api/v1/large-trades/{id}/counterparties/executions/{execution_id}/makers`
     ///
     /// Returns a bounded maker-wallet page for one exact execution. Percentages keep the complete execution denominator across pages.
+    pub async fn list_large_trade_counterparty_makers(
+        &self,
+        id: &str,
+        execution_id: &str,
+        snapshot_id: &str,
+        params: &ListLargeTradeCounterpartyMakersParams,
+    ) -> Result<ListLargeTradeCounterpartyMakersResponse> {
+        let path = format!(
+            "/api/v1/large-trades/{id}/counterparties/executions/{execution_id}/makers",
+            id = encode_path_segment(id),
+            execution_id = encode_path_segment(execution_id)
+        );
+        let mut call = Call::new(&Operation::LIST_LARGE_TRADE_COUNTERPARTY_MAKERS, path);
+        call.query("snapshot_id", snapshot_id.to_string());
+        if let Some(value) = &params.cursor {
+            call.query("cursor", value.to_string());
+        }
+        if let Some(value) = &params.limit {
+            call.query("limit", value.to_string());
+        }
+        self.send_json(call).await
+    }
+
+    /// Page maker counterparties
+    ///
+    /// `GET /api/v1/whale-trades/{id}/counterparties/executions/{execution_id}/makers`
+    ///
+    /// Returns a bounded maker-wallet page for one exact execution. Percentages keep the complete execution denominator across pages. Deprecated alias of GET /api/v1/large-trades/{id}/counterparties/executions/{execution_id}/makers, kept live and never removed (#16304); every response carries `Deprecation: @1790047200` (RFC 9745, 2026-09-22T03:20:00Z) and a `Link` to the successor (`rel="successor-version"`) and to the versioning policy (`rel="deprecation"`). No `Sunset` header is sent because no removal is planned.
     pub async fn list_whale_trade_counterparty_makers(
         &self,
         id: &str,
@@ -2873,7 +3963,7 @@ impl Client {
     ///
     /// Returns the published picks for the current product day. Pro tier.
     ///
-    /// `picks` holds up to six ranked picks. Each pick carries the backed side, the pre-game price, the flat stake (`stake_usd`, 1000) and its return (`return_usd`; `return_per_100` keeps the literal $100 basis), the sharp-money holders, the grade, and a thesis. The price is frozen before kickoff. A prior day's pick never appears here; read the archive for it.
+    /// `picks` holds up to ten ranked picks. Each pick carries the backed side, the pre-game price, the flat stake (`stake_usd`, 1000) and its return (`return_usd`; `return_per_100` keeps the literal $100 basis), the sharp-money holders, the grade, and a thesis. The price is frozen before kickoff. A prior day's pick never appears here; read the archive for it.
     ///
     /// `scheduled_picks` lists same-day slots that are selected but not released yet. Each slot exposes only `pick_rank`, `release_at`, and `kickoff`.
     ///
@@ -3022,11 +4112,11 @@ impl Client {
         self.send_json(call).await
     }
 
-    /// List ranked smart-money flows
+    /// List ranked sharp-money flows (deprecated alias)
     ///
     /// `GET /api/v1/markets/smart-money-flows`
     ///
-    /// Ranks markets by absolute net S/A/B-grade whale flow over a requested timeframe. Use this discovery endpoint to answer where smart money is flowing before drilling into a specific market with /api/v1/market/{condition_id}/intel. Pagination is anchored by an opaque cursor carrying the first-page as_of timestamp, normalized effective filters, ranking revision and aggregate collection revision; a changed filter or collection returns `cursor_expired` so callers request the first page again. Deprecated alias of GET /api/v1/markets/sharp-money-flows, kept live and never removed; every response carries `Deprecation: @1783276950` (RFC 9745, 2026-07-05T18:42:30Z) and a `Link` to the successor (`rel="successor-version"`) and to the versioning policy (`rel="deprecation"`). No `Sunset` header is sent because no removal is planned.
+    /// Ranks markets by absolute net S/A/B-grade whale flow over a requested timeframe. Use this discovery endpoint to answer where sharp money is flowing before drilling into a specific market with /api/v1/market/{condition_id}/flow. Pagination is anchored by an opaque cursor carrying the first-page as_of timestamp, normalized effective filters, ranking revision and aggregate collection revision; a changed filter or collection returns `cursor_expired` so callers request the first page again. Deprecated alias of GET /api/v1/markets/sharp-money-flows, kept live and never removed; every response carries `Deprecation: @1783276950` (RFC 9745, 2026-07-05T18:42:30Z) and a `Link` to the successor (`rel="successor-version"`) and to the versioning policy (`rel="deprecation"`). No `Sunset` header is sent because no removal is planned.
     pub async fn list_smart_money_flows(
         &self,
         params: &ListSmartMoneyFlowsParams,
@@ -3062,7 +4152,7 @@ impl Client {
     ///
     /// `GET /api/v1/markets/sharp-money-flows`
     ///
-    /// Canonical alias of /api/v1/markets/smart-money-flows, which remains live but deprecated. Ranks markets by absolute net S/A/B-grade whale flow over a requested timeframe. Use this discovery endpoint to answer where sharp money is flowing before drilling into a specific market with /api/v1/market/{condition_id}/intel. Pagination is anchored by an opaque cursor carrying the first-page as_of timestamp, normalized effective filters, ranking revision and aggregate collection revision; a changed filter or collection returns `cursor_expired` so callers request the first page again.
+    /// Canonical path for ranked sharp-money flows; /api/v1/markets/smart-money-flows remains live as a deprecated byte-identical alias of it. Ranks markets by absolute net S/A/B-grade whale flow over a requested timeframe. Use this discovery endpoint to answer where sharp money is flowing before drilling into a specific market with /api/v1/market/{condition_id}/flow. Pagination is anchored by an opaque cursor carrying the first-page as_of timestamp, normalized effective filters, ranking revision and aggregate collection revision; a changed filter or collection returns `cursor_expired` so callers request the first page again.
     pub async fn list_sharp_money_flows(
         &self,
         params: &ListSharpMoneyFlowsParams,
@@ -3094,11 +4184,64 @@ impl Client {
         self.send_json(call).await
     }
 
+    /// List upcoming games ranked by the side profitable wallets hold
+    ///
+    /// `GET /api/v1/sports/pre-game-sides`
+    ///
+    /// Canonical since #16310; GET /api/v1/sports-edge-signals is its deprecated alias and serves the same body. Pro-tier. Ranked list of upcoming pre-game sports markets (moneyline + props) where graded (S/A/B) sharp money is piled on one side, each row carrying signal_created_at (the UTC time its immutable snapshot was computed), the piled side, its grade distribution, kickoff, piled-side Polymarket CLOB token id, and required shadow-only category_skill evidence. signal_created_at is not provider market creation time or request time. Eligibility and ranking remain the funded FLOW/HOLDER contract; category skill cannot change membership, order, rank, cursor, routing, or sizing. meta exposes explicit category source/model/status plus independently computed pre/post SHA-256 base-vector hashes that must match. Served from a shared server-side snapshot cache (healthy TTL ~180s, degraded ~30s) computed once per category at the maximum 48h horizon and filtered at request time; the cursor pins to that snapshot and a stale cursor is rejected. Polymarket only; source coverage is partial first-observed post-launch Goldsky primary taker BUY fills admitted by the canonical whale-alert thresholds, never reconstructed history. Deliberately not the editorial Pick of the Day ranker. Rows carry the canonical field names side, ranked_at, backing_score and side_share; the older piled_side, signal_created_at, conviction_score and smart_score keys carry the same values and stay on the wire.
+    pub async fn list_pre_game_sides(&self, params: &ListPreGameSidesParams) -> Result<ListPreGameSidesResponse> {
+        let path = String::from("/api/v1/sports/pre-game-sides");
+        let mut call = Call::new(&Operation::LIST_PRE_GAME_SIDES, path);
+        if let Some(value) = &params.category {
+            call.query("category", value.to_string());
+        }
+        if let Some(value) = &params.limit {
+            call.query("limit", value.to_string());
+        }
+        if let Some(value) = &params.cursor {
+            call.query("cursor", value.to_string());
+        }
+        if let Some(value) = &params.horizon_hours {
+            call.query("horizon_hours", value.to_string());
+        }
+        if let Some(value) = &params.min_grade {
+            call.query("min_grade", value.as_str().to_owned());
+        }
+        call.header("If-None-Match", params.if_none_match.as_deref());
+        self.send_json(call).await
+    }
+
+    /// List observation-only pre-game side cohorts
+    ///
+    /// `GET /api/v1/sports/pre-game-side-observations`
+    ///
+    /// Canonical since #16310; GET /api/v1/sports-edge-observations is its deprecated alias and serves the same body. Pro-tier. Measures three explicitly observation-only Polymarket sports cohorts without changing or feeding GET /api/v1/sports/pre-game-sides: wider_holder measures pre-game holder piles outside the funded route's exact raw signals admission, including recent-flow rows rejected by its event, bucket, or total caps; in_play admits provider-confirmed live games and fails closed when the provider live-board snapshot is stale or unavailable or holder/directional evidence is stale or unavailable; emerging_pile is an additive post-compute projection of wider_holder rows with finite sharp_pct in [0.75, 0.85), holder_scan_complete=true, and a kickoff after its pinned projection cutoff. emerging_pile overlaps wider_holder, remains attributed to that source terminal and denominator, and is not holder-arrival history. Every row carries observation_only=true, provider/holder freshness and completeness fields, and the response carries a required snapshot-wide operational/unknown-completeness degraded boolean plus an accountable per-sport funnel over a closed 25-value terminal-reason vocabulary. Omitted or blank category selects all 14 registered observation sport buckets, including Table Tennis and Pickleball; those two remain outside the funded sports projection. All category and all-sports cache scopes share one global observation provider-work admission, so distinct scope keys cannot multiply concurrent provider fanout. One absolute ~25s compute deadline covers cache coordination, board/universe and primary-signals membership reads, holder cache/provider work, price/metadata evaluation, and directional reads, leaving ~5s below the public router timeout for funnel reconciliation, cleanup, and response transport. A shared pre-holder stage deadline jointly bounds those database reads and board reconciliation to the smaller of 12s or half of the absolute budget remaining when that stage starts, preserving holder/post-holder opportunity; board reads use bounded fair waves and cold holder admission gives each represented canonical sport one row before any sport repeats. A request that finds its scope's refresh in flight waits for that snapshot, and a scope refresh waits for another scope's global provider-work admission while at least ~15s of the absolute deadline remain. Absolute deadline exhaustion before a usable cache, provider-work admission still held at that ~15s bound, an in-flight refresh that ends without publishing while another waiting request takes it over, or pre-holder stage expiry before a usable stored universe or primary-signals membership result returns 503 with error.reason=read_model_warming. Category-resolution SQL errors, Redis coordination failures, observation-universe SQL errors, and primary-signals membership query failures return 500 internal_error instead. Once a usable universe exists, later operational or unknown-completeness board, holder, or price/metadata failures are retained as explicit terminal reasons in a degraded 200 response with degraded=true: board_source_unavailable is a completed board-source failure, board_deadline_unavailable means live-board work missed either an internal configured-scope deadline or the outer fair-wave deadline; both classify only already-started rows, so for the upcoming source read funnel.sports[].board_upcoming_status instead; provider_unavailable is an attempted holder-provider failure, and holder_deadline_unavailable is holder-stage deadline exhaustion. Directional incompleteness is cohort-specific: a wider_holder row remains emitted with terminal wider_holder_emitted and directional_status=unavailable, while an in_play row fails closed with terminal in_play_directional_unavailable. capacity_limited records intentional bounded provider-work admission in the funnel and does not by itself set degraded=true. Healthy wider_holder requests may reuse a snapshot for ~180s; healthy emerging_pile requests may use the same snapshot. in_play never serves a cached observation snapshot older than ~30s, and degraded snapshots use ~30s. The ETag is a weak semantic validator over the stable page payload, including next_cursor page position; request-specific meta excluded; the opaque emerging_pile projection cutoff in next_cursor is not itself a validator input. Rows carry the canonical field names side, backing_score and side_share; the older piled_side, conviction_score and smart_score keys carry the same values and stay on the wire.
+    pub async fn list_pre_game_side_observations(
+        &self,
+        cohort: Cohort,
+        params: &ListPreGameSideObservationsParams,
+    ) -> Result<ListPreGameSideObservationsResponse> {
+        let path = String::from("/api/v1/sports/pre-game-side-observations");
+        let mut call = Call::new(&Operation::LIST_PRE_GAME_SIDE_OBSERVATIONS, path);
+        call.query("cohort", cohort.as_str().to_owned());
+        if let Some(value) = &params.category {
+            call.query("category", value.to_string());
+        }
+        if let Some(value) = &params.limit {
+            call.query("limit", value.to_string());
+        }
+        if let Some(value) = &params.cursor {
+            call.query("cursor", value.to_string());
+        }
+        call.header("If-None-Match", params.if_none_match.as_deref());
+        self.send_json(call).await
+    }
+
     /// List ranked pre-game sports-edge signals
     ///
     /// `GET /api/v1/sports-edge-signals`
     ///
-    /// Pro-tier. Ranked list of upcoming pre-game sports markets (moneyline + props) where graded (S/A/B) sharp money is piled on one side, each row carrying signal_created_at (the UTC time its immutable snapshot was computed), the piled side, its grade distribution, kickoff, piled-side Polymarket CLOB token id, and required shadow-only category_skill evidence. signal_created_at is not provider market creation time or request time. Eligibility and ranking remain the funded FLOW/HOLDER contract; category skill cannot change membership, order, rank, cursor, routing, or sizing. meta exposes explicit category source/model/status plus independently computed pre/post SHA-256 base-vector hashes that must match. Served from a shared server-side snapshot cache (healthy TTL ~180s, degraded ~30s) computed once per category at the maximum 48h horizon and filtered at request time; the cursor pins to that snapshot and a stale cursor is rejected. Polymarket only; source coverage is partial first-observed post-launch Goldsky primary taker BUY fills admitted by the canonical whale-alert thresholds, never reconstructed history. Deliberately not the editorial Pick of the Day ranker.
+    /// Deprecated since #16310: use GET /api/v1/sports/pre-game-sides, which serves the same body. This path stays live and answers with Deprecation and successor Link headers. Pro-tier. Ranked list of upcoming pre-game sports markets (moneyline + props) where graded (S/A/B) sharp money is piled on one side, each row carrying signal_created_at (the UTC time its immutable snapshot was computed), the piled side, its grade distribution, kickoff, piled-side Polymarket CLOB token id, and required shadow-only category_skill evidence. signal_created_at is not provider market creation time or request time. Eligibility and ranking remain the funded FLOW/HOLDER contract; category skill cannot change membership, order, rank, cursor, routing, or sizing. meta exposes explicit category source/model/status plus independently computed pre/post SHA-256 base-vector hashes that must match. Served from a shared server-side snapshot cache (healthy TTL ~180s, degraded ~30s) computed once per category at the maximum 48h horizon and filtered at request time; the cursor pins to that snapshot and a stale cursor is rejected. Polymarket only; source coverage is partial first-observed post-launch Goldsky primary taker BUY fills admitted by the canonical whale-alert thresholds, never reconstructed history. Deliberately not the editorial Pick of the Day ranker.
     pub async fn list_sports_edge_signals(
         &self,
         params: &ListSportsEdgeSignalsParams,
@@ -3128,7 +4271,7 @@ impl Client {
     ///
     /// `GET /api/v1/sports-edge-observations`
     ///
-    /// Pro-tier. Measures three explicitly observation-only Polymarket sports cohorts without changing or feeding GET /api/v1/sports-edge-signals: wider_holder measures pre-game holder piles outside the funded route's exact raw signals admission, including recent-flow rows rejected by its event, bucket, or total caps; in_play admits provider-confirmed live games and fails closed when the provider live-board snapshot is stale or unavailable or holder/directional evidence is stale or unavailable; emerging_pile is an additive post-compute projection of wider_holder rows with finite sharp_pct in [0.75, 0.85), holder_scan_complete=true, and a kickoff after its pinned projection cutoff. emerging_pile overlaps wider_holder, remains attributed to that source terminal and denominator, and is not holder-arrival history. Every row carries observation_only=true, provider/holder freshness and completeness fields, and the response carries a required snapshot-wide operational/unknown-completeness degraded boolean plus an accountable per-sport funnel over a closed 25-value terminal-reason vocabulary. Omitted or blank category selects all 14 registered observation sport buckets, including Table Tennis and Pickleball; those two remain outside the funded sports projection. All category and all-sports cache scopes share one global observation provider-work admission, so distinct scope keys cannot multiply concurrent provider fanout. One absolute ~25s compute deadline covers cache coordination, board/universe and primary-signals membership reads, holder cache/provider work, price/metadata evaluation, and directional reads, leaving ~5s below the public router timeout for funnel reconciliation, cleanup, and response transport. A shared pre-holder stage deadline jointly bounds those database reads and board reconciliation to the smaller of 12s or half of the absolute budget remaining when that stage starts, preserving holder/post-holder opportunity; board reads use bounded fair waves and cold holder admission gives each represented canonical sport one row before any sport repeats. A request that finds its scope's refresh in flight waits for that snapshot, and a scope refresh waits for another scope's global provider-work admission while at least ~15s of the absolute deadline remain. Absolute deadline exhaustion before a usable cache, provider-work admission still held at that ~15s bound, an in-flight refresh that ends without publishing while another waiting request takes it over, or pre-holder stage expiry before a usable stored universe or primary-signals membership result returns 503 with error.reason=read_model_warming. Category-resolution SQL errors, Redis coordination failures, observation-universe SQL errors, and primary-signals membership query failures return 500 internal_error instead. Once a usable universe exists, later operational or unknown-completeness board, holder, or price/metadata failures are retained as explicit terminal reasons in a degraded 200 response with degraded=true: board_source_unavailable is a completed board-source failure, board_deadline_unavailable means live-board work missed either an internal configured-scope deadline or the outer fair-wave deadline; both classify only already-started rows, so for the upcoming source read funnel.sports[].board_upcoming_status instead; provider_unavailable is an attempted holder-provider failure, and holder_deadline_unavailable is holder-stage deadline exhaustion. Directional incompleteness is cohort-specific: a wider_holder row remains emitted with terminal wider_holder_emitted and directional_status=unavailable, while an in_play row fails closed with terminal in_play_directional_unavailable. capacity_limited records intentional bounded provider-work admission in the funnel and does not by itself set degraded=true. Healthy wider_holder requests may reuse a snapshot for ~180s; healthy emerging_pile requests may use the same snapshot. in_play never serves a cached observation snapshot older than ~30s, and degraded snapshots use ~30s. The ETag is a weak semantic validator over the stable page payload, including next_cursor page position; request-specific meta excluded; the opaque emerging_pile projection cutoff in next_cursor is not itself a validator input.
+    /// Deprecated since #16310: use GET /api/v1/sports/pre-game-side-observations, which serves the same body. This path stays live and answers with Deprecation and successor Link headers. Pro-tier. Measures three explicitly observation-only Polymarket sports cohorts without changing or feeding GET /api/v1/sports-edge-signals: wider_holder measures pre-game holder piles outside the funded route's exact raw signals admission, including recent-flow rows rejected by its event, bucket, or total caps; in_play admits provider-confirmed live games and fails closed when the provider live-board snapshot is stale or unavailable or holder/directional evidence is stale or unavailable; emerging_pile is an additive post-compute projection of wider_holder rows with finite sharp_pct in [0.75, 0.85), holder_scan_complete=true, and a kickoff after its pinned projection cutoff. emerging_pile overlaps wider_holder, remains attributed to that source terminal and denominator, and is not holder-arrival history. Every row carries observation_only=true, provider/holder freshness and completeness fields, and the response carries a required snapshot-wide operational/unknown-completeness degraded boolean plus an accountable per-sport funnel over a closed 25-value terminal-reason vocabulary. Omitted or blank category selects all 14 registered observation sport buckets, including Table Tennis and Pickleball; those two remain outside the funded sports projection. All category and all-sports cache scopes share one global observation provider-work admission, so distinct scope keys cannot multiply concurrent provider fanout. One absolute ~25s compute deadline covers cache coordination, board/universe and primary-signals membership reads, holder cache/provider work, price/metadata evaluation, and directional reads, leaving ~5s below the public router timeout for funnel reconciliation, cleanup, and response transport. A shared pre-holder stage deadline jointly bounds those database reads and board reconciliation to the smaller of 12s or half of the absolute budget remaining when that stage starts, preserving holder/post-holder opportunity; board reads use bounded fair waves and cold holder admission gives each represented canonical sport one row before any sport repeats. A request that finds its scope's refresh in flight waits for that snapshot, and a scope refresh waits for another scope's global provider-work admission while at least ~15s of the absolute deadline remain. Absolute deadline exhaustion before a usable cache, provider-work admission still held at that ~15s bound, an in-flight refresh that ends without publishing while another waiting request takes it over, or pre-holder stage expiry before a usable stored universe or primary-signals membership result returns 503 with error.reason=read_model_warming. Category-resolution SQL errors, Redis coordination failures, observation-universe SQL errors, and primary-signals membership query failures return 500 internal_error instead. Once a usable universe exists, later operational or unknown-completeness board, holder, or price/metadata failures are retained as explicit terminal reasons in a degraded 200 response with degraded=true: board_source_unavailable is a completed board-source failure, board_deadline_unavailable means live-board work missed either an internal configured-scope deadline or the outer fair-wave deadline; both classify only already-started rows, so for the upcoming source read funnel.sports[].board_upcoming_status instead; provider_unavailable is an attempted holder-provider failure, and holder_deadline_unavailable is holder-stage deadline exhaustion. Directional incompleteness is cohort-specific: a wider_holder row remains emitted with terminal wider_holder_emitted and directional_status=unavailable, while an in_play row fails closed with terminal in_play_directional_unavailable. capacity_limited records intentional bounded provider-work admission in the funnel and does not by itself set degraded=true. Healthy wider_holder requests may reuse a snapshot for ~180s; healthy emerging_pile requests may use the same snapshot. in_play never serves a cached observation snapshot older than ~30s, and degraded snapshots use ~30s. The ETag is a weak semantic validator over the stable page payload, including next_cursor page position; request-specific meta excluded; the opaque emerging_pile projection cutoff in next_cursor is not itself a validator input.
     pub async fn list_sports_edge_observations(
         &self,
         cohort: Cohort,
@@ -3150,11 +4293,22 @@ impl Client {
         self.send_json(call).await
     }
 
+    /// Which reads the API serves for Polymarket
+    ///
+    /// `GET /api/v1/coverage`
+    ///
+    /// Unauthenticated discovery endpoint that declares which V1 data surfaces are supported, partial, or unsupported for Polymarket, the one venue the API covers. Canonical since #16315; GET /api/v1/platforms is its deprecated alias with the same body.
+    pub async fn get_coverage(&self) -> Result<GetCoverageResponse> {
+        let path = String::from("/api/v1/coverage");
+        let call = Call::new(&Operation::GET_COVERAGE, path);
+        self.send_json(call).await
+    }
+
     /// Get platform capability matrix
     ///
     /// `GET /api/v1/platforms`
     ///
-    /// Unauthenticated discovery endpoint that declares which V1 intelligence surfaces are supported, partial, or unsupported per provider platform.
+    /// Deprecated since #16315: use GET /api/v1/coverage, which serves the same body. This path stays live and answers with Deprecation and successor Link headers. Unauthenticated discovery endpoint that declares which V1 data surfaces are supported, partial, or unsupported per provider platform.
     pub async fn get_platforms(&self) -> Result<GetPlatformsResponse> {
         let path = String::from("/api/v1/platforms");
         let call = Call::new(&Operation::GET_PLATFORMS, path);
@@ -3165,7 +4319,7 @@ impl Client {
     ///
     /// `GET /api/v1/market/{condition_id}/holders`
     ///
-    /// The graded holder roster of one market, the list a Pick of the Day shows for its market, for any Polymarket market: every S/A/B wallet with open shares on either outcome, from a complete provider holder scan, each with its shares, Polymarket's own currentValue for the leg, its grade, its win record in the market's category, and its badges. Both outcomes are listed; a wallet holding both is listed once on its net side. Ordered by current_value_usd DESC, then shares DESC, then address. The roster is computed at most once a minute per market and shared by every caller; a page is cut from that roster, so paging is cheap and `total` is exact. The route never widens past the graded cohort: `scan.wallet_count` reports every wallet the walk saw, graded or not. An incomplete, unstable or failed scan is a 503 with Retry-After, never a shorter list. The cohort is S, A and B by the wallet's current grade (`traders.latest_grade`); a C, D, F or ungraded wallet is never listed here and appears only inside `scan.wallet_count`. A count here will not match GET /api/v1/positions for the same market, and the cohort is only one of three reasons: /positions reads the `wallet_positions` mirror rather than this live provider scan, and without a `wallet` its `min_size` defaults to 100 USD, so it drops the smaller legs this route keeps. Read a difference as all three, never as a grade count. This is current state and takes no as-of parameter: the roster is at most 60 s old over a provider walk at most 180 s old, and `scan.fetched_at` is the only timestamp on it. For a point-in-time roster, snapshot this route yourself on your own schedule; the one frozen roster the API serves is `display_holders` on GET /api/v1/pick-of-the-day, for that pick's market and backed side at publication.
+    /// The graded holder roster of one market, the list a Pick of the Day shows for its market, for any Polymarket market: every S/A/B wallet with open shares on either outcome, from a complete provider holder scan, each with its shares, Polymarket's own currentValue for the leg, its grade, its win record in the market's category, and its badges. Both outcomes are listed; a wallet holding both is listed once on its net side. Ordered by current_value_usd DESC, then shares DESC, then address. The roster is computed at most once a minute per market and shared by every caller; a page is cut from that roster, so paging is cheap and `total` is exact. The route never widens past the graded cohort: `scan.wallet_count` reports every wallet the walk saw, graded or not. An incomplete, unstable or failed scan is a 503 with Retry-After, never a shorter list. A complete scan in which no S, A or B wallet holds either outcome is a 200 with an empty holders list and zero totals; retrying cannot change it. The cohort is S, A and B by the wallet's current grade (`traders.latest_grade`); a C, D, F or ungraded wallet is never listed here and appears only inside `scan.wallet_count`. A count here will not match GET /api/v1/positions for the same market, and the cohort is only one of three reasons: /positions reads the `wallet_positions` mirror rather than this live provider scan, and without a `wallet` its `min_size` defaults to 100 USD, so it drops the smaller legs this route keeps. Read a difference as all three, never as a grade count. This is current state and takes no as-of parameter: the roster is at most 60 s old over a provider walk at most 180 s old, and `scan.fetched_at` is the only timestamp on it. For a point-in-time roster, snapshot this route yourself on your own schedule; the one frozen roster the API serves is `display_holders` on GET /api/v1/pick-of-the-day, for that pick's market and backed side at publication.
     pub async fn get_market_holders(
         &self,
         condition_id: &str,
@@ -3192,11 +4346,33 @@ impl Client {
         self.send_json(call).await
     }
 
+    /// Get a market's flow and top positions
+    ///
+    /// `GET /api/v1/market/{condition_id}/flow`
+    ///
+    /// Canonical since #16312; GET /api/v1/market/{condition_id}/intel is its deprecated alias and serves the same body under object market_intel. One market's flow and top positions: the signed flow of every tracked large trade in the window (net_flow_usd and its YES or NO direction), the large-trade count, gross buy and sell volumes, and the top five graded trader positions.
+    pub async fn get_market_flow(
+        &self,
+        condition_id: &str,
+        params: &GetMarketFlowParams,
+    ) -> Result<GetMarketFlowResponse> {
+        let path = format!(
+            "/api/v1/market/{condition_id}/flow",
+            condition_id = encode_path_segment(condition_id)
+        );
+        let mut call = Call::new(&Operation::GET_MARKET_FLOW, path);
+        if let Some(value) = &params.timeframe {
+            call.query("timeframe", value.as_str().to_owned());
+        }
+        call.header("If-None-Match", params.if_none_match.as_deref());
+        self.send_json(call).await
+    }
+
     /// Get market intelligence
     ///
     /// `GET /api/v1/market/{condition_id}/intel`
     ///
-    /// Smart money flow analysis for a specific market — net flow direction, whale trade count, buy/sell volumes, and top graded trader positions.
+    /// Deprecated since #16312: use GET /api/v1/market/{condition_id}/flow, which serves the same body under object market_flow. This path stays live, keeps object market_intel, and answers with Deprecation and successor Link headers. One market's flow and top positions: the signed flow of every tracked large trade in the window (net_flow_usd and its YES or NO direction), the large-trade count, gross buy and sell volumes, and the top five graded trader positions.
     pub async fn get_market_intel(
         &self,
         condition_id: &str,
@@ -3214,11 +4390,23 @@ impl Client {
         self.send_json(call).await
     }
 
+    /// Batch market flow
+    ///
+    /// `POST /api/v1/markets/flow/batch`
+    ///
+    /// Returns each market's flow and top positions for 1-25 raw provider condition_id values. Results preserve request order, duplicate inputs return duplicate rows, and each item is charged one batch item unit before execution. Do not pass prefixed mkt_ IDs; use market.condition_id from search or explore.
+    pub async fn batch_get_market_flow(&self, body: &BatchGetMarketFlowBody) -> Result<BatchGetMarketFlowResponse> {
+        let path = String::from("/api/v1/markets/flow/batch");
+        let mut call = Call::new(&Operation::BATCH_GET_MARKET_FLOW, path);
+        call.json(body)?;
+        self.send_json(call).await
+    }
+
     /// Batch market intelligence
     ///
     /// `POST /api/v1/markets/intel/batch`
     ///
-    /// Returns smart-money market intelligence for 1-25 raw provider condition_id values. Results preserve request order, duplicate inputs return duplicate rows, and each item is charged one batch item unit before execution. Do not pass prefixed mkt_ IDs; use market.condition_id from search or explore.
+    /// Deprecated since #16312: use POST /api/v1/markets/flow/batch, which returns the same items under object market_flow_batch. This path stays live, keeps object market_intel_batch, and answers with Deprecation and successor Link headers. Returns each market's flow and top positions for 1-25 raw provider condition_id values. Results preserve request order, duplicate inputs return duplicate rows, and each item is charged one batch item unit before execution. Do not pass prefixed mkt_ IDs; use market.condition_id from search or explore.
     pub async fn batch_get_market_intel(&self, body: &BatchGetMarketIntelBody) -> Result<BatchGetMarketIntelResponse> {
         let path = String::from("/api/v1/markets/intel/batch");
         let mut call = Call::new(&Operation::BATCH_GET_MARKET_INTEL, path);
@@ -3276,11 +4464,105 @@ impl Client {
         self.send_json(call).await
     }
 
+    /// Get suspicious trades
+    ///
+    /// `GET /api/v1/suspicious-trades`
+    ///
+    /// Stored trades whose recorded suspicion score meets the live flag threshold. Evidence contains the scorer's stored signals. Cursor-paginated by suspicion score. mode=live (default) uses fresh cached pages; mode=stable pins pagination to one published scoring generation and returns cursor_expired when scores or filters change. Canonical since 2026-09-23; GET /api/v1/insider-radar is its deprecated alias.
+    pub async fn list_suspicious_trades(
+        &self,
+        params: &ListSuspiciousTradesParams,
+    ) -> Result<ListSuspiciousTradesResponse> {
+        let path = String::from("/api/v1/suspicious-trades");
+        let mut call = Call::new(&Operation::LIST_SUSPICIOUS_TRADES, path);
+        if let Some(value) = &params.limit {
+            call.query("limit", value.to_string());
+        }
+        if let Some(value) = &params.cursor {
+            call.query("cursor", value.to_string());
+        }
+        if let Some(value) = &params.min_suspicion {
+            call.query("min_suspicion", value.to_string());
+        }
+        if let Some(value) = &params.severity {
+            call.query("severity", value.as_str().to_owned());
+        }
+        if let Some(value) = &params.mode {
+            call.query("mode", value.as_str().to_owned());
+        }
+        call.header("If-None-Match", params.if_none_match.as_deref());
+        self.send_json(call).await
+    }
+
+    /// Get suspicious trade by ID
+    ///
+    /// `GET /api/v1/suspicious-trades/{id}`
+    ///
+    /// Returns one suspicious trade by raw whale_alerts.id or the rf_-prefixed id emitted by list responses. Canonical since 2026-09-23; GET /api/v1/insider-radar/{id} is its deprecated alias and keeps answering object: radar_flag.
+    pub async fn get_suspicious_trade(
+        &self,
+        id: &str,
+        params: &GetSuspiciousTradeParams,
+    ) -> Result<GetSuspiciousTradeResponse> {
+        let path = format!("/api/v1/suspicious-trades/{id}", id = encode_path_segment(id));
+        let mut call = Call::new(&Operation::GET_SUSPICIOUS_TRADE, path);
+        call.header("If-None-Match", params.if_none_match.as_deref());
+        self.send_json(call).await
+    }
+
+    /// List covered games
+    ///
+    /// `GET /api/v1/games`
+    ///
+    /// One coherent game view per row: both sides with their provider ids and live scores, the UTC kickoff, the provider's own status, the esports series format, and every linked Polymarket market with its condition id and outcome token ids. Built from the same provider-first live and upcoming projections the site's sports boards use, so a request pays no provider fan-out of its own. Ordered by kickoff, then by event_slug; games whose kickoff the provider has not published sort last. coverage names the sports and leagues this deployment serves and any scope whose source was unavailable for the read, so an empty page is never ambiguous. A sport or status outside the published vocabulary returns an empty page rather than a 400. Carries the board's existing competitor-bound provider moneyline price state by default, with an observation clock and explicit incomplete or invalid state. It does not fetch another provider endpoint. Sharp-money splits and holder identities remain on their own gated routes.
+    pub async fn list_games(&self, params: &ListGamesParams) -> Result<ListGamesResponse> {
+        let path = String::from("/api/v1/games");
+        let mut call = Call::new(&Operation::LIST_GAMES, path);
+        if let Some(value) = &params.sport {
+            call.query("sport", value.to_string());
+        }
+        if let Some(value) = &params.league {
+            call.query("league", value.to_string());
+        }
+        if let Some(value) = &params.status {
+            call.query("status", value.as_str().to_owned());
+        }
+        if let Some(value) = &params.starts_after {
+            call.query("starts_after", value.to_string());
+        }
+        if let Some(value) = &params.starts_before {
+            call.query("starts_before", value.to_string());
+        }
+        if let Some(value) = &params.limit {
+            call.query("limit", value.to_string());
+        }
+        if let Some(value) = &params.cursor {
+            call.query("cursor", value.to_string());
+        }
+        call.header("If-None-Match", params.if_none_match.as_deref());
+        self.send_json(call).await
+    }
+
+    /// Get one game
+    ///
+    /// `GET /api/v1/games/{event_slug}`
+    ///
+    /// The same game object GET /api/v1/games returns, for one event_slug. The slug is the identity the live_sports_updated webhook pulse carries, so a receiver can read the full game straight from a pulse. A slug outside the published coverage returns 404, including a real Polymarket event in a sport this deployment does not serve; GET /api/v1/games names what is covered.
+    pub async fn get_game(&self, event_slug: &str, params: &GetGameParams) -> Result<GetGameResponse> {
+        let path = format!(
+            "/api/v1/games/{event_slug}",
+            event_slug = encode_path_segment(event_slug)
+        );
+        let mut call = Call::new(&Operation::GET_GAME, path);
+        call.header("If-None-Match", params.if_none_match.as_deref());
+        self.send_json(call).await
+    }
+
     /// Get insider radar flags
     ///
     /// `GET /api/v1/insider-radar`
     ///
-    /// Stored trades whose recorded suspicion score meets the live flag threshold. Evidence contains the scorer's stored signals. Cursor-paginated by suspicion score. mode=live (default) uses fresh cached pages; mode=stable pins pagination to one published scoring generation and returns cursor_expired when scores or filters change.
+    /// Deprecated alias of GET /api/v1/suspicious-trades (2026-09-23), kept live with no retirement date; responses carry Deprecation and a Link rel="successor-version" to it. Stored trades whose recorded suspicion score meets the live flag threshold. Evidence contains the scorer's stored signals. Cursor-paginated by suspicion score. mode=live (default) uses fresh cached pages; mode=stable pins pagination to one published scoring generation and returns cursor_expired when scores or filters change.
     pub async fn list_insider_radar(&self, params: &ListInsiderRadarParams) -> Result<ListInsiderRadarResponse> {
         let path = String::from("/api/v1/insider-radar");
         let mut call = Call::new(&Operation::LIST_INSIDER_RADAR, path);
@@ -3307,7 +4589,7 @@ impl Client {
     ///
     /// `GET /api/v1/insider-radar/{id}`
     ///
-    /// Returns one suspicious-trading radar flag by raw whale_alerts.id or the rf_-prefixed id emitted by list responses.
+    /// Deprecated alias of GET /api/v1/suspicious-trades/{id} (2026-09-23), kept live with no retirement date; responses carry Deprecation and a Link rel="successor-version" to it. The envelope keeps object: radar_flag, so an integration that branches on it keeps working here. Returns one suspicious-trading radar flag by raw whale_alerts.id or the rf_-prefixed id emitted by list responses.
     pub async fn get_insider_radar_flag(
         &self,
         id: &str,
@@ -3319,11 +4601,11 @@ impl Client {
         self.send_json(call).await
     }
 
-    /// Replay public whale-trade intelligence events
+    /// Replay public large-trade events
     ///
     /// `GET /api/v1/events/feed/since`
     ///
-    /// Returns durable public whale-trade intelligence events strictly after an opaque cursor, in commit order: events are ordered by the position at which their write became visible to every reader (whale_alerts.inserted_xid), then by whale_alerts.id, and a page never reaches past the oldest write transaction still open when it was read. A trade whose id is lower than one already delivered but whose write finished later is therefore delivered on a later request instead of being skipped (#16180). This is a separate API-key contract from the browser/session /api/events/feed stream: browser-only and private alert, following, radar, and position patch events are excluded until they have a durable public outbox.
+    /// Returns durable public large-trade events strictly after an opaque cursor, in commit order: events are ordered by the position at which their write became visible to every reader (whale_alerts.inserted_xid), then by whale_alerts.id, and a page never reaches past the oldest write transaction still open when it was read. A trade whose id is lower than one already delivered but whose write finished later is therefore delivered on a later request instead of being skipped (#16180). This is a separate API-key contract from the browser/session /api/events/feed stream: browser-only and private alert, following, radar, and position patch events are excluded until they have a durable public outbox.
     pub async fn get_event_replay_since(
         &self,
         params: &GetEventReplaySinceParams,
@@ -3358,7 +4640,7 @@ impl Client {
     ///
     /// `GET /api/v1/webhooks`
     ///
-    /// Returns webhook destinations owned by the authenticated API key user. Deleted endpoints are omitted; an endpoint paused with PATCH or disabled after consecutive failures is listed with status disabled. Subscribable event_types and their payload shapes are described by GET /api/v1/webhooks/events. Four subscribable event types are Pro-only and only deliver to API keys on an active Pro subscription. whale_trades_inserted is one of them, gated by the same SubscriberScope::InsiderOnly mechanism as the other three (each type carries its own LiveEventContract entry; they share the scope value). The other three: wallet_grade_changed (data: wallet, trader_id, old_grade, new_grade, direction (upgrade|downgrade), skill_index, final_score, date) fires on a Pass-2 grade transition; insider_radar_flag_raised (data: trade_id, wallet, trader_id, condition_id, suspicion_score, track, side (yes|no), size, price) fires the first time a trade's suspicion score crosses the radar flag threshold; smart_money_flow_detected (data: condition_id, net_flow_usd, abs_net_flow_usd, dominant_side (yes|no), grade_floor (S|A|B|C|D|F), whale_trade_count, window) fires when a scheduled scanner detects ranked-trader net flow crossing a threshold (up or down) on a market.
+    /// Returns webhook destinations owned by the authenticated API key user. Deleted endpoints are omitted; an endpoint paused with PATCH or disabled after consecutive failures is listed with status disabled. Subscribable event_types and their payload shapes are described by GET /api/v1/webhooks/events. Export lifecycle event types (export_job_ready, export_job_failed, export_job_expired, export_job_cancelled) are delivered only to the API-key account that created the export and contain no download URL; use the authorized export status and download routes. Four subscribable event types are Pro-only and only deliver to API keys on an active Pro subscription. whale_trades_inserted is one of them, gated by the same SubscriberScope::InsiderOnly mechanism as the other three (each type carries its own LiveEventContract entry; they share the scope value). The other three: wallet_grade_changed (data: wallet, trader_id, old_grade, new_grade, direction (upgrade|downgrade), skill_index, final_score, date) fires on a Pass-2 grade transition; insider_radar_flag_raised (data: trade_id, wallet, trader_id, condition_id, suspicion_score, track, side (yes|no), size, price) fires the first time a trade's suspicion score crosses the radar flag threshold; sharp_money_flow_detected (data: condition_id, net_flow_usd, abs_net_flow_usd, dominant_side (yes|no), grade_floor (S|A|B|C|D|F), whale_trade_count, window) fires when a scheduled scanner detects ranked-trader net flow crossing a threshold (up or down) on a market, and smart_money_flow_detected is its deprecated spelling of the same event. live_sports_updated (data: event_slug, game_id, league, version, changed, observed_at, published_at, status, period, clock, live, ended, scores, series_format, snapshot_url) is ungated and fires as a bounded per-game pulse when a live game's scores, status, period or live/ended state moves: at most one delivery per game per 20 seconds, with a live or ended transition exempt from that interval, and the game clock alone never firing one. version is a durable per-game ordinal, changed lists the material fields that moved since that game's previous delivered pulse, and snapshot_url is where to re-read the whole game after a gap.
     pub async fn list_webhooks(&self) -> Result<ListWebhooksResponse> {
         let path = String::from("/api/v1/webhooks");
         let call = Call::new(&Operation::LIST_WEBHOOKS, path);
@@ -3369,7 +4651,7 @@ impl Client {
     ///
     /// `POST /api/v1/webhooks`
     ///
-    /// Creates a pending HTTPS webhook destination. The response includes one-time signing_secret and verification.token values. Deliveries are not sent until the endpoint is verified, and verification requires the destination to answer 2xx to a signed webhook.verification challenge (see POST /api/v1/webhooks/{id}/verify). The subscribable event_types and their data payload shapes are described by GET /api/v1/webhooks/events; the per-endpoint delivery log is GET /api/v1/webhooks/{id}/deliveries. Four subscribable event types are Pro-only and only deliver to API keys on an active Pro subscription. whale_trades_inserted is one of them, gated by the same SubscriberScope::InsiderOnly mechanism as the other three (each type carries its own LiveEventContract entry; they share the scope value). The other three: wallet_grade_changed (data: wallet, trader_id, old_grade, new_grade, direction (upgrade|downgrade), skill_index, final_score, date) fires on a Pass-2 grade transition; insider_radar_flag_raised (data: trade_id, wallet, trader_id, condition_id, suspicion_score, track, side (yes|no), size, price) fires the first time a trade's suspicion score crosses the radar flag threshold; smart_money_flow_detected (data: condition_id, net_flow_usd, abs_net_flow_usd, dominant_side (yes|no), grade_floor (S|A|B|C|D|F), whale_trade_count, window) fires when a scheduled scanner detects ranked-trader net flow crossing a threshold (up or down) on a market. Delivery signing: each delivery request carries one or more HMAC-SHA256 signatures in the x-0xinsider-signature header as comma-separated v1=<hex> candidates. During staged rotation, the current and previous signing secrets are both signed for one hour; accept any valid candidate. Each candidate is HMAC-SHA256(signing_secret, "<timestamp>.<raw_request_body>"). The signed <timestamp> is sent separately as x-0xinsider-timestamp (unix seconds). To verify a delivery: read x-0xinsider-timestamp, reject it if it differs from the current time by more than 300 seconds, recompute each candidate over "<timestamp>.<raw_body>" with the active secrets, and compare using a constant-time comparison. Each delivery also carries x-0xinsider-event-id, x-0xinsider-event-type, x-0xinsider-delivery-id, and x-0xinsider-delivery-attempt headers. Retries and disabling: ordinary transient delivery failures use stable jitter between half and the existing 60, 120, 240, 480, 960, 1920 and 3600-second upper bounds (retry_policy.retry_horizon_seconds = 7380); on 408, 429, or 5xx, a valid Retry-After delta-seconds or HTTP-date replaces that one wait and is clamped to 60–3600 seconds, while missing, malformed, past, or non-retryable-response hints use the ordinary schedule. The delivery still has eight attempts (retry_policy.max_attempts), and an eighth failure becomes dead_letter. The delivery log exposes retry_schedule_reason and next_attempt_at so a receiver can see the active schedule. Separately, an endpoint is disabled after 8 consecutive failed attempts across all of its deliveries (retry_policy.disable_after_consecutive_failures); any successful attempt resets that count, so a busy endpoint that goes down can be disabled in minutes, well before any single delivery exhausts its retries. Disabling dead-letters every delivery still queued for the endpoint and emails the account owner, within about an hour, with each disabled endpoint and its last failed response. Re-enable it with PATCH /api/v1/webhooks/{id} {"enabled": true}; re-enabling does not resend dead-lettered deliveries. Resend each one with POST /api/v1/webhooks/{id}/deliveries/{delivery_id}/redeliver, or catch up with GET /api/v1/events/feed/since from the last event you processed. GET /api/v1/webhooks/{id}/deliveries shows next_attempt_at and retry_schedule_reason for a delivery still waiting to retry.
+    /// Creates a pending HTTPS webhook destination. The response includes one-time signing_secret and verification.token values. Deliveries are not sent until the endpoint is verified, and verification requires the destination to answer 2xx to a signed webhook.verification challenge (see POST /api/v1/webhooks/{id}/verify). The subscribable event_types and their data payload shapes are described by GET /api/v1/webhooks/events; the per-endpoint delivery log is GET /api/v1/webhooks/{id}/deliveries. Export lifecycle event types (export_job_ready, export_job_failed, export_job_expired, export_job_cancelled) are delivered only to the API-key account that created the export and contain no download URL; use the authorized export status and download routes. Four subscribable event types are Pro-only and only deliver to API keys on an active Pro subscription. whale_trades_inserted is one of them, gated by the same SubscriberScope::InsiderOnly mechanism as the other three (each type carries its own LiveEventContract entry; they share the scope value). The other three: wallet_grade_changed (data: wallet, trader_id, old_grade, new_grade, direction (upgrade|downgrade), skill_index, final_score, date) fires on a Pass-2 grade transition; insider_radar_flag_raised (data: trade_id, wallet, trader_id, condition_id, suspicion_score, track, side (yes|no), size, price) fires the first time a trade's suspicion score crosses the radar flag threshold; sharp_money_flow_detected (data: condition_id, net_flow_usd, abs_net_flow_usd, dominant_side (yes|no), grade_floor (S|A|B|C|D|F), whale_trade_count, window) fires when a scheduled scanner detects ranked-trader net flow crossing a threshold (up or down) on a market, and smart_money_flow_detected is its deprecated spelling of the same event. live_sports_updated (data: event_slug, game_id, league, version, changed, observed_at, published_at, status, period, clock, live, ended, scores, series_format, snapshot_url) is ungated and fires as a bounded per-game pulse when a live game's scores, status, period or live/ended state moves: at most one delivery per game per 20 seconds, with a live or ended transition exempt from that interval, and the game clock alone never firing one. version is a durable per-game ordinal, changed lists the material fields that moved since that game's previous delivered pulse, and snapshot_url is where to re-read the whole game after a gap. Delivery signing: each delivery request carries one or more HMAC-SHA256 signatures in the x-0xinsider-signature header as comma-separated v1=<hex> candidates. During staged rotation, the current and previous signing secrets are both signed for one hour; accept any valid candidate. Each candidate is HMAC-SHA256(signing_secret, "<timestamp>.<raw_request_body>"). The signed <timestamp> is sent separately as x-0xinsider-timestamp (unix seconds). To verify a delivery: read x-0xinsider-timestamp, reject it if it differs from the current time by more than 300 seconds, recompute each candidate over "<timestamp>.<raw_body>" with the active secrets, and compare using a constant-time comparison. Each delivery also carries x-0xinsider-event-id, x-0xinsider-event-type, x-0xinsider-delivery-id, and x-0xinsider-delivery-attempt headers. Retries and disabling: ordinary transient delivery failures use stable jitter between half and the existing 60, 120, 240, 480, 960, 1920 and 3600-second upper bounds (retry_policy.retry_horizon_seconds = 7380); on 408, 429, or 5xx, a valid Retry-After delta-seconds or HTTP-date replaces that one wait and is clamped to 60–3600 seconds, while missing, malformed, past, or non-retryable-response hints use the ordinary schedule. The delivery still has eight attempts (retry_policy.max_attempts), and an eighth failure becomes dead_letter. The delivery log exposes retry_schedule_reason and next_attempt_at so a receiver can see the active schedule. Separately, an endpoint is disabled after 8 consecutive failed attempts across all of its deliveries (retry_policy.disable_after_consecutive_failures); any successful attempt resets that count, so a busy endpoint that goes down can be disabled in minutes, well before any single delivery exhausts its retries. Disabling dead-letters every delivery still queued for the endpoint and emails the account owner, within about an hour, with each disabled endpoint and its last failed response. Re-enable it with PATCH /api/v1/webhooks/{id} {"enabled": true}; re-enabling does not resend dead-lettered deliveries. Resend each one with POST /api/v1/webhooks/{id}/deliveries/{delivery_id}/redeliver, or catch up with GET /api/v1/events/feed/since from the last event you processed. GET /api/v1/webhooks/{id}/deliveries shows next_attempt_at and retry_schedule_reason for a delivery still waiting to retry.
     pub async fn create_webhook(
         &self,
         body: &CreateWebhookRequest,
@@ -3386,7 +4668,7 @@ impl Client {
     ///
     /// `GET /api/v1/webhooks/events`
     ///
-    /// Self-describing catalog of every webhook event type: its description, data payload shape, and whether it is active (has a firing producer) or dormant (subscribable but not yet delivered). The catalog is identical for every authenticated key and exposes no owner-scoped data. Pro-only event types (whale_trades_inserted, wallet_grade_changed, insider_radar_flag_raised, smart_money_flow_detected) appear in the catalog but only deliver to API keys on an active Pro subscription.
+    /// Self-describing catalog of every webhook event type: its description, data payload shape, and whether it is active (has a firing producer) or dormant (subscribable but not yet delivered; no event type is dormant today). The catalog is identical for every authenticated key and exposes no owner-scoped data. Pro-only event types (large_trades_inserted, whale_trades_inserted, wallet_grade_changed, suspicious_trade_flagged, insider_radar_flag_raised, sharp_money_flow_detected, smart_money_flow_detected) appear in the catalog but only deliver to API keys on an active Pro subscription. Export lifecycle event types (export_job_ready, export_job_failed, export_job_expired, export_job_cancelled) are owner-scoped to the API-key account that created the export and contain no download URL; use the authorized export status and download routes.
     pub async fn list_webhook_events(&self) -> Result<ListWebhookEventsResponse> {
         let path = String::from("/api/v1/webhooks/events");
         let call = Call::new(&Operation::LIST_WEBHOOK_EVENTS, path);
@@ -3568,7 +4850,7 @@ impl Client {
     ///
     /// `POST /api/v1/mcp`
     ///
-    /// Model Context Protocol (MCP) Streamable HTTP transport. Accepts one JSON-RPC 2.0 request or notification. ID-bearing initialize, ping, tools/list, and tools/call requests receive one same-ID JSON-RPC response. ID-less ping, notifications/initialized, and notifications/cancelled receive HTTP 202 with no body; other ID-less methods and unsolicited response messages receive HTTP 400 with no body. Unknown cancellation IDs are ignored; cancellation does not stop running tool work. Remote MCP exposes 35 read-only tools for public V1 read operations: get_leaderboard, get_trader, batch_get_traders, get_whale_trades, get_whale_trade, get_whale_trades_history, get_sports_edge_signals, get_sports_edge_observations, get_market_intel, batch_get_market_intel, get_smart_money_flows, get_sharp_money_flows, get_market_snapshot, get_insider_radar, get_insider_radar_flag, get_positions, get_position_timeline, get_position_timeline_by_id, search_markets, search_content, explore_markets, get_event_replay_since, list_webhooks, get_webhook, get_daily_report_snapshot, get_weekly_report_snapshot, get_monthly_report_snapshot, get_report, get_trader_export_snapshot, get_platforms, get_large_positions, get_trending_wallets, get_trader_pnl, get_pick_of_the_day, get_pick_of_the_day_archive. Webhook create/update/delete/verify/rotate operations are intentionally not exposed as remote MCP tools. The remote endpoint advertises tools only; it does not implement resources/list, resources/read, prompts/list, or prompts/get. Each tool dispatches to the matching /api/v1/* handler in-process so auth, rate limits, and payload shape match. initialize, notifications/initialized, ping and tools/list answer without a credential; tools/call (and any GET) need Authorization: Bearer <token> with an OAuth 2.1 access token (see the oauth2 security scheme; a tool outside the token's scopes returns isError) or an API key, and without one answer HTTP 401 with a WWW-Authenticate challenge whose resource_metadata names the RFC 9728 document at /.well-known/oauth-protected-resource/api/v1/mcp. A key in a ?token= query parameter is rejected on every authenticated route (the public routes ignore it) with 401 invalid_api_key and error.reason api_key_in_query, because URLs land in shell history, browser history, and logs; a client that can only take a URL can run the @0xinsider/mcp stdio package. Mcp-Session-Id is minted on initialize and echoed on every response. Origin header, when present, is validated against the 0xinsider + localhost allowlist. tools/call arguments are validated against the tool's advertised inputSchema before anything runs: a non-object, an unknown key, a wrong type, an out-of-range number, a value outside an enum or an argument combination outside a oneOf answers a tool result with isError true whose text names the field, never a query built from the arguments that fit. Every tools/call result carries the REST envelope's meta verbatim (request_id, cached, cache_age_s, cost, and the route's provenance such as source and completeness on get_whale_trades_history or ranking_source, directional_source and the category_skill_* fields on get_sports_edge_signals) as structuredContent.meta beside the payload's own keys, and a tool failure carries structuredContent.error with the REST error fields verbatim (code, reason, param, doc_url, retry_at) plus retry_after_seconds, request_id and status, beside its text. The MCP-Protocol-Version request header is checked on every POST and GET: a value outside 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05 answers HTTP 400 with JSON-RPC error -32600 before the body is read; an absent header is served as 2025-03-26, the transport specification's compatibility default. Browser preflight allows the header.
+    /// Model Context Protocol (MCP) Streamable HTTP transport. Accepts one JSON-RPC 2.0 request or notification. ID-bearing initialize, ping, tools/list, and tools/call requests receive one same-ID JSON-RPC response. ID-less ping, notifications/initialized, and notifications/cancelled receive HTTP 202 with no body; other ID-less methods and unsolicited response messages receive HTTP 400 with no body. Unknown cancellation IDs are ignored; cancellation does not stop running tool work. Remote MCP exposes 46 read-only tools for public V1 read operations: get_leaderboard, get_trader, batch_get_traders, get_large_trades, get_large_trade, get_large_trades_history, get_whale_trades, get_whale_trade, get_whale_trades_history, get_pre_game_sides, get_pre_game_side_observations, get_sports_edge_signals, get_sports_edge_observations, list_games, get_game, get_market_flow, batch_get_market_flow, get_market_intel, batch_get_market_intel, get_smart_money_flows, get_sharp_money_flows, get_market_snapshot, get_suspicious_trades, get_suspicious_trade, get_insider_radar, get_insider_radar_flag, get_positions, get_position_timeline, get_position_timeline_by_id, search_markets, search_content, explore_markets, get_event_replay_since, list_webhooks, get_webhook, get_daily_report_snapshot, get_weekly_report_snapshot, get_monthly_report_snapshot, get_report, get_trader_export_snapshot, get_platforms, get_large_positions, get_trending_wallets, get_trader_pnl, get_pick_of_the_day, get_pick_of_the_day_archive. Webhook create/update/delete/verify/rotate operations are intentionally not exposed as remote MCP tools. The remote endpoint advertises tools only; it does not implement resources/list, resources/read, prompts/list, or prompts/get. Each tool dispatches to the matching /api/v1/* handler in-process so auth, rate limits, and payload shape match. initialize, notifications/initialized, ping and tools/list answer without a credential; tools/call (and any GET) need Authorization: Bearer <token> with an OAuth 2.1 access token (see the oauth2 security scheme; a tool outside the token's scopes returns isError) or an API key, and without one answer HTTP 401 with a WWW-Authenticate challenge whose resource_metadata names the RFC 9728 document at /.well-known/oauth-protected-resource/api/v1/mcp. A key in a ?token= query parameter is rejected on every authenticated route (the public routes ignore it) with 401 invalid_api_key and error.reason api_key_in_query, because URLs land in shell history, browser history, and logs; a client that can only take a URL can run the @0xinsider/mcp stdio package. Mcp-Session-Id is minted on initialize and echoed on every response. Origin header, when present, is validated against the 0xinsider + localhost allowlist. tools/call arguments are validated against the tool's advertised inputSchema before anything runs: a non-object, an unknown key, a wrong type, an out-of-range number, a value outside an enum or an argument combination outside a oneOf answers a tool result with isError true whose text names the field, never a query built from the arguments that fit. Every tools/call result carries the REST envelope's meta verbatim (request_id, cached, cache_age_s, cost, and the route's provenance such as source and completeness on get_whale_trades_history or ranking_source, directional_source and the category_skill_* fields on get_sports_edge_signals) as structuredContent.meta beside the payload's own keys, and a tool failure carries structuredContent.error with the REST error fields verbatim (code, reason, param, doc_url, retry_at) plus retry_after_seconds, request_id and status, beside its text. The MCP-Protocol-Version request header is checked on every POST and GET: a value outside 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05 answers HTTP 400 with JSON-RPC error -32600 before the body is read; an absent header is served as 2025-03-26, the transport specification's compatibility default. Browser preflight allows the header.
     ///
     /// Returns `None` when the API answers with an empty success body.
     pub async fn create_mcp_json_rpc_response(
@@ -3662,7 +4944,7 @@ impl Client {
     ///
     /// `POST /api/v1/trader/{address}/export`
     ///
-    /// Queues an async export of the trader's full dataset in the requested format (json default, ndjson, or csv) and returns the job. Poll the status route, then follow the download route once status is 'ready'. Quotas are the per-user daily and per-address hourly export caps, keyed on the API key owner so an API key never widens its owner's quota. New full exports select one database read generation before delivery. JSON and NDJSON add export_metadata.generation (id, selected_at, consistency=repeatable_read, source_watermarks for positions, native P&L, categories and all matching trades), position_generation, provider_observations (provider values and observation/revision metadata), category_data_as_of, pnl_date_from/to, pnl_rows, pnl_row_limit (3650), markets_rows, markets_row_limit (50000), summary_basis and trades_basis. Summary counts cover all stored markets; the markets section retains its existing latest-activity 50000-row limit and P&L its earliest-3650-days limit. These are database consistency and section coverage facts, not a claim that providers observed every section simultaneously. CSV appends export_generation, export_selected_at and export_consistency columns. Downloaded objects also expose x-amz-meta-export-generation, x-amz-meta-export-selected-at, x-amz-meta-export-consistency, x-amz-meta-export-trades and x-amz-meta-export-provenance headers, including empty CSV files. Historical artifacts remain unchanged. Select CSV columns by name; JSON/NDJSON readers may ignore the additive fields. A read exceeding 600 seconds or an uncompressed artifact exceeding 2 GiB fails without publishing a partial file.
+    /// Queues an async export of the trader's full dataset in the requested format (json default, ndjson, or csv) and returns the job resource. Poll the status route at poll_after_s until terminal is true, then follow the download route while status is 'ready' (until expires_at, 24 hours from submit). Reuse: without fresh=true, a live job for the same trader and format inside its retention window (queued, running, reconcile_required or ready) is returned with 200 instead of a new one, except a job its owner asked to cancel, which is never reused; its data_as_of says what its file is a snapshot of. With fresh=true only a queued job (which has not started reading) is reused; a running, reconciling or ready job is left alone and a new job is reserved, which consumes quota like any new job. Both decisions run under one per-account lock, so two concurrent submits cannot both reserve when one would have reused the other. Quotas are the per-user daily and per-address hourly export caps, keyed on the API key owner so an API key never widens its owner's quota. New full exports select one database read generation before delivery. JSON and NDJSON add export_metadata.generation (id, selected_at, consistency=repeatable_read, source_watermarks for positions, native P&L, categories and all matching trades), position_generation, provider_observations (provider values and observation/revision metadata), category_data_as_of, pnl_date_from/to, pnl_rows, pnl_row_limit (3650), markets_rows, markets_row_limit (50000), summary_basis and trades_basis. Summary counts cover all stored markets; the markets section retains its existing latest-activity 50000-row limit and P&L its earliest-3650-days limit. These are database consistency and section coverage facts, not a claim that providers observed every section simultaneously. CSV appends export_generation, export_selected_at and export_consistency columns. Downloaded objects also expose x-amz-meta-export-generation, x-amz-meta-export-selected-at, x-amz-meta-export-consistency, x-amz-meta-export-trades and x-amz-meta-export-provenance headers, including empty CSV files. Historical artifacts remain unchanged. Select CSV columns by name; JSON/NDJSON readers may ignore the additive fields. A read exceeding 600 seconds or an uncompressed artifact exceeding 2 GiB fails without publishing a partial file.
     pub async fn submit_trader_export(
         &self,
         address: &str,
@@ -3676,6 +4958,9 @@ impl Client {
         if let Some(value) = &params.format {
             call.query("format", value.as_str().to_owned());
         }
+        if let Some(value) = &params.fresh {
+            call.query("fresh", value.to_string());
+        }
         self.send_json(call).await
     }
 
@@ -3683,7 +4968,7 @@ impl Client {
     ///
     /// `GET /api/v1/trader/{address}/export/status`
     ///
-    /// Returns the current state of a submitted export job (queued | running | ready | failed) for the authenticated API key.
+    /// Returns the job resource for a submitted export: status (queued | running | cancel_requested | reconcile_required | ready | failed | expired | cancelled), terminal, next_action and poll_after_s, the lifecycle timestamps, the retention window (expires_at) and, once the file is written, data_as_of and the artifact identity. A ready job past expires_at reads expired; a queued or reconciling job past expires_at reads failed. A running job its owner cancelled reads cancel_requested until the worker stops, then cancelled. failed, cancelled and expired jobs stay readable for 48 hours, then 404.
     pub async fn get_trader_export_status(&self, address: &str, job_id: i64) -> Result<TraderExportJob> {
         let path = format!(
             "/api/v1/trader/{address}/export/status",
@@ -3694,11 +4979,26 @@ impl Client {
         self.send_json(call).await
     }
 
+    /// Cancel a trader export job
+    ///
+    /// `POST /api/v1/trader/{address}/export/cancel`
+    ///
+    /// Cancels a submitted export and returns the job resource, the same shape the status route returns. A queued job reads cancelled at once and no worker will start it. A running job reads cancel_requested until the worker reaches its next safe point, then cancelled: the worker checks every 5 seconds while it reads the snapshot and between upload parts, and once more at the last point before the file is published; a storage request already in flight finishes first (each is bounded at 120 seconds), and a partial upload is discarded. If the worker itself stops first, the job reads cancelled after its 30-minute lease lapses, at the next hourly cleanup. A job a cancel can no longer reach is returned unchanged with 200: once its upload is being completed it finishes as ready (or reconcile_required, then ready or failed), and ready, failed, expired and cancelled jobs are terminal. A cancel never deletes a ready file; compare status before and after. Repeating the request is safe: it converges on the same state and never repeats a transition, so a client that lost the answer can send it again or read the status route. While terminal is false, poll the status route after poll_after_s. Quota is unchanged: the submit's reservation keeps counting toward the per-user daily and per-address hourly export caps for its full window, as a failed export's does, and a job its owner asked to cancel is never reused by a later submit, which reserves a new job. Webhook endpoints subscribed to export_job_cancelled receive it when the job reaches cancelled. An unknown job id, or a job owned by another account or submitted for another trader, answers 404 exactly as the status route does.
+    pub async fn cancel_trader_export(&self, address: &str, job_id: i64) -> Result<TraderExportJob> {
+        let path = format!(
+            "/api/v1/trader/{address}/export/cancel",
+            address = encode_path_segment(address)
+        );
+        let mut call = Call::new(&Operation::CANCEL_TRADER_EXPORT, path);
+        call.query("job_id", job_id.to_string());
+        self.send_json(call).await
+    }
+
     /// Download a finished trader export
     ///
     /// `GET /api/v1/trader/{address}/export/download`
     ///
-    /// Redirects (302) to a short-lived presigned URL for the finished export file once the job status is 'ready'. The file is gzip-compressed and served with the format's Content-Type (application/json, application/x-ndjson, or text/csv). Returns 400 while the job is not yet ready (poll the status route first).
+    /// Redirects (302) to a short-lived presigned URL for the finished export file while the job status is 'ready' and expires_at has not passed. The file is gzip-compressed and served with the format's Content-Type (application/json, application/x-ndjson, or text/csv). Returns 400 while the job is queued, running, cancel_requested or reconciling (poll the status route first) and for a failed or cancelled job (submit a new export); returns 410 with error.code not_found and error.reason export_expired once the retention window has passed or the file has been retired, so the redirect never points at a file that is gone.
     ///
     /// The API answers with a redirect to the file. It is followed once, by a fresh
     /// request that carries no credential, and the file comes back as a streaming
@@ -3742,7 +5042,7 @@ impl Client {
     ///
     /// `GET /api/v1/me`
     ///
-    /// Returns caller-owned account and credential IDs, credential validity, paid-data entitlement and approved scopes. Null scopes mean full developer-key access. Valid credentials can use this control-plane diagnostic path after paid access lapses; data routes still require active paid access. OAuth grants need read scope. Does not return credentials, payment details or personal contact details.
+    /// Returns caller-owned account and credential IDs, credential validity, paid-data entitlement and approved scopes. Null scopes mean full legacy developer-key access. Valid credentials can use this control-plane diagnostic path after paid access lapses; data routes still require active paid access. OAuth grants and named integration keys need read scope. Does not return credentials, payment details or personal contact details.
     pub async fn get_account_identity(&self) -> Result<AccountIdentity> {
         let path = String::from("/api/v1/me");
         let call = Call::new(&Operation::GET_ACCOUNT_IDENTITY, path);
@@ -3850,14 +5150,34 @@ impl ListPage for GetPositionTimelineResponse {
     }
 }
 
-impl ListPage for ListInsiderRadarResponse {
-    type Item = RadarFlag;
+impl ListPage for ListGamesResponse {
+    type Item = Game;
 
-    fn items(&self) -> &[RadarFlag] {
+    fn items(&self) -> &[Game] {
         &self.data
     }
 
-    fn into_items(self) -> Vec<RadarFlag> {
+    fn into_items(self) -> Vec<Game> {
+        self.data
+    }
+
+    fn has_more(&self) -> bool {
+        self.has_more
+    }
+
+    fn next_cursor(&self) -> Option<&str> {
+        self.next_cursor.as_deref()
+    }
+}
+
+impl ListPage for ListInsiderRadarResponse {
+    type Item = SuspiciousTrade;
+
+    fn items(&self) -> &[SuspiciousTrade] {
+        &self.data
+    }
+
+    fn into_items(self) -> Vec<SuspiciousTrade> {
         self.data
     }
 
@@ -3878,6 +5198,46 @@ impl ListPage for ListLargePositionsResponse {
     }
 
     fn into_items(self) -> Vec<LargePosition> {
+        self.data
+    }
+
+    fn has_more(&self) -> bool {
+        self.has_more
+    }
+
+    fn next_cursor(&self) -> Option<&str> {
+        self.next_cursor.as_deref()
+    }
+}
+
+impl ListPage for ListLargeTradeHistoryResponse {
+    type Item = LargeTrade;
+
+    fn items(&self) -> &[LargeTrade] {
+        &self.data
+    }
+
+    fn into_items(self) -> Vec<LargeTrade> {
+        self.data
+    }
+
+    fn has_more(&self) -> bool {
+        self.has_more
+    }
+
+    fn next_cursor(&self) -> Option<&str> {
+        self.next_cursor.as_deref()
+    }
+}
+
+impl ListPage for ListLargeTradesResponse {
+    type Item = LargeTrade;
+
+    fn items(&self) -> &[LargeTrade] {
+        &self.data
+    }
+
+    fn into_items(self) -> Vec<LargeTrade> {
         self.data
     }
 
@@ -3918,6 +5278,46 @@ impl ListPage for ListPositionsResponse {
     }
 
     fn into_items(self) -> Vec<Position> {
+        self.data
+    }
+
+    fn has_more(&self) -> bool {
+        self.has_more
+    }
+
+    fn next_cursor(&self) -> Option<&str> {
+        self.next_cursor.as_deref()
+    }
+}
+
+impl ListPage for ListPreGameSideObservationsResponse {
+    type Item = PreGameSideObservation;
+
+    fn items(&self) -> &[PreGameSideObservation] {
+        &self.data
+    }
+
+    fn into_items(self) -> Vec<PreGameSideObservation> {
+        self.data
+    }
+
+    fn has_more(&self) -> bool {
+        self.has_more
+    }
+
+    fn next_cursor(&self) -> Option<&str> {
+        self.next_cursor.as_deref()
+    }
+}
+
+impl ListPage for ListPreGameSidesResponse {
+    type Item = PreGameSide;
+
+    fn items(&self) -> &[PreGameSide] {
+        &self.data
+    }
+
+    fn into_items(self) -> Vec<PreGameSide> {
         self.data
     }
 
@@ -3971,13 +5371,13 @@ impl ListPage for ListSmartMoneyFlowsResponse {
 }
 
 impl ListPage for ListSportsEdgeObservationsResponse {
-    type Item = SportsEdgeObservation;
+    type Item = PreGameSideObservation;
 
-    fn items(&self) -> &[SportsEdgeObservation] {
+    fn items(&self) -> &[PreGameSideObservation] {
         &self.data
     }
 
-    fn into_items(self) -> Vec<SportsEdgeObservation> {
+    fn into_items(self) -> Vec<PreGameSideObservation> {
         self.data
     }
 
@@ -3991,13 +5391,33 @@ impl ListPage for ListSportsEdgeObservationsResponse {
 }
 
 impl ListPage for ListSportsEdgeSignalsResponse {
-    type Item = SportsEdgeSignal;
+    type Item = PreGameSide;
 
-    fn items(&self) -> &[SportsEdgeSignal] {
+    fn items(&self) -> &[PreGameSide] {
         &self.data
     }
 
-    fn into_items(self) -> Vec<SportsEdgeSignal> {
+    fn into_items(self) -> Vec<PreGameSide> {
+        self.data
+    }
+
+    fn has_more(&self) -> bool {
+        self.has_more
+    }
+
+    fn next_cursor(&self) -> Option<&str> {
+        self.next_cursor.as_deref()
+    }
+}
+
+impl ListPage for ListSuspiciousTradesResponse {
+    type Item = SuspiciousTrade;
+
+    fn items(&self) -> &[SuspiciousTrade] {
+        &self.data
+    }
+
+    fn into_items(self) -> Vec<SuspiciousTrade> {
         self.data
     }
 
@@ -4091,13 +5511,13 @@ impl ListPage for ListWebhooksResponse {
 }
 
 impl ListPage for ListWhaleTradeHistoryResponse {
-    type Item = WhaleTrade;
+    type Item = LargeTrade;
 
-    fn items(&self) -> &[WhaleTrade] {
+    fn items(&self) -> &[LargeTrade] {
         &self.data
     }
 
-    fn into_items(self) -> Vec<WhaleTrade> {
+    fn into_items(self) -> Vec<LargeTrade> {
         self.data
     }
 
@@ -4111,13 +5531,13 @@ impl ListPage for ListWhaleTradeHistoryResponse {
 }
 
 impl ListPage for ListWhaleTradesResponse {
-    type Item = WhaleTrade;
+    type Item = LargeTrade;
 
-    fn items(&self) -> &[WhaleTrade] {
+    fn items(&self) -> &[LargeTrade] {
         &self.data
     }
 
-    fn into_items(self) -> Vec<WhaleTrade> {
+    fn into_items(self) -> Vec<LargeTrade> {
         self.data
     }
 
@@ -4200,6 +5620,12 @@ impl CursorParams for GetPositionTimelineParams {
     }
 }
 
+impl CursorParams for ListGamesParams {
+    fn set_cursor(&mut self, cursor: Option<String>) {
+        self.cursor = cursor;
+    }
+}
+
 impl CursorParams for ListInsiderRadarParams {
     fn set_cursor(&mut self, cursor: Option<String>) {
         self.cursor = cursor;
@@ -4212,6 +5638,30 @@ impl CursorParams for ListLargePositionsParams {
     }
 }
 
+impl CursorParams for ListLargeTradeCounterpartyExecutionsParams {
+    fn set_cursor(&mut self, cursor: Option<String>) {
+        self.cursor = cursor;
+    }
+}
+
+impl CursorParams for ListLargeTradeCounterpartyMakersParams {
+    fn set_cursor(&mut self, cursor: Option<String>) {
+        self.cursor = cursor;
+    }
+}
+
+impl CursorParams for ListLargeTradeHistoryParams {
+    fn set_cursor(&mut self, cursor: Option<String>) {
+        self.cursor = cursor;
+    }
+}
+
+impl CursorParams for ListLargeTradesParams {
+    fn set_cursor(&mut self, cursor: Option<String>) {
+        self.cursor = cursor;
+    }
+}
+
 impl CursorParams for ListLeaderboardParams {
     fn set_cursor(&mut self, cursor: Option<String>) {
         self.cursor = cursor;
@@ -4219,6 +5669,18 @@ impl CursorParams for ListLeaderboardParams {
 }
 
 impl CursorParams for ListPositionsParams {
+    fn set_cursor(&mut self, cursor: Option<String>) {
+        self.cursor = cursor;
+    }
+}
+
+impl CursorParams for ListPreGameSideObservationsParams {
+    fn set_cursor(&mut self, cursor: Option<String>) {
+        self.cursor = cursor;
+    }
+}
+
+impl CursorParams for ListPreGameSidesParams {
     fn set_cursor(&mut self, cursor: Option<String>) {
         self.cursor = cursor;
     }
@@ -4243,6 +5705,12 @@ impl CursorParams for ListSportsEdgeObservationsParams {
 }
 
 impl CursorParams for ListSportsEdgeSignalsParams {
+    fn set_cursor(&mut self, cursor: Option<String>) {
+        self.cursor = cursor;
+    }
+}
+
+impl CursorParams for ListSuspiciousTradesParams {
     fn set_cursor(&mut self, cursor: Option<String>) {
         self.cursor = cursor;
     }

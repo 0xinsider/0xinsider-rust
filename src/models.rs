@@ -2481,6 +2481,7 @@ pub struct ExploreGroup {
     pub parent_title: String,
     #[serde(default)]
     pub image: Option<String>,
+    /// Provider platform. Always polymarket, or null when the row carries no stored value.
     #[serde(default)]
     pub platform: Option<String>,
     #[serde(default)]
@@ -2515,6 +2516,7 @@ pub struct ExploreMarket {
     pub icon: Option<String>,
     #[serde(default)]
     pub category: Option<String>,
+    /// Provider platform. Always polymarket, or null when the row carries no stored value.
     #[serde(default)]
     pub platform: Option<String>,
     /// closed once Polymarket has closed trading or the market has resolved; active otherwise. The same rule labels a market on markets/search, markets/explore and market/{condition_id}/snapshot.
@@ -4459,6 +4461,7 @@ pub struct LeaderboardEntry {
     pub win_rate: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub strategy_type: Option<String>,
+    /// Provider platform. Always polymarket.
     pub platform: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_active: Option<String>,
@@ -4833,6 +4836,7 @@ pub struct MarketFlowMarket {
     pub slug: Option<String>,
     #[serde(default)]
     pub category: Option<String>,
+    /// Provider platform. Always polymarket, or null when the row carries no stored value.
     #[serde(default)]
     pub platform: Option<String>,
 }
@@ -5167,6 +5171,7 @@ pub struct MarketSearchResult {
     pub slug: Option<String>,
     #[serde(default)]
     pub category: Option<String>,
+    /// Provider platform. Always polymarket, or null when the row carries no stored value.
     #[serde(default)]
     pub platform: Option<String>,
     /// closed once Polymarket has closed trading or the market has resolved; active otherwise. The same rule labels a market on markets/search, markets/explore and market/{condition_id}/snapshot.
@@ -6142,7 +6147,7 @@ pub struct PickOfTheDay {
     /// Frozen public presentation category: the competition the Polymarket event belongs to. A curated label comes first -- an official league (e.g. "WNBA" or "UFC"), the esports title (e.g. "CS2", "LoL", "Dota 2" or "Valorant"), or a soccer competition (e.g. "LaLiga", "Premier League", "Serie A" or "UEFA Champions League"); any other competition carries the provider's own competition name without its season year (e.g. "UEFA Nations League", "ATP" or "Wimbledon"). It equals category only when the provider names no competition. An esports pick keeps the pooled "Esports" bucket in category, so a per-title label never implies a per-title measured cohort. Additive and optional for mixed-version client compatibility.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub display_category: Option<String>,
-    /// Provider platform (e.g. "polymarket").
+    /// Provider platform. Always polymarket.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub platform: Option<String>,
     /// The pick's stored release instant. Normally the current provider kickoff minus one hour; an operator may override it. The actual publish instant can trail it because of worker or claim delay.
@@ -6456,7 +6461,7 @@ pub struct PickOfTheDayCommitmentPayload {
     pub pick_outcome_label: String,
     /// 1-based daily slot.
     pub pick_rank: i64,
-    /// Provider platform.
+    /// Provider platform. Always polymarket.
     pub platform: String,
 }
 
@@ -6818,7 +6823,7 @@ pub struct PickOfTheDayUncommittedPayload {
     pub pick_outcome_label: String,
     /// 1-based daily slot.
     pub pick_rank: i64,
-    /// Provider platform.
+    /// Provider platform. Always polymarket.
     pub platform: String,
 }
 
@@ -6971,58 +6976,8 @@ pub struct PlatformCapabilities {
     pub market_snapshot: PlatformCapabilityStatus,
 }
 
-/// A value this release does not know is kept in `Other`, so a new value never fails a response.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum PlatformCapabilityStatus {
-    /// `supported`
-    #[serde(rename = "supported")]
-    Supported,
-    /// `partial`
-    #[serde(rename = "partial")]
-    Partial,
-    /// `unsupported`
-    #[serde(rename = "unsupported")]
-    Unsupported,
-    /// A value this release does not know, kept as sent.
-    #[serde(untagged)]
-    Other(String),
-}
-
-impl PlatformCapabilityStatus {
-    /// The value as the API spells it.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Supported => "supported",
-            Self::Partial => "partial",
-            Self::Unsupported => "unsupported",
-            Self::Other(value) => value,
-        }
-    }
-}
-
-impl From<&str> for PlatformCapabilityStatus {
-    fn from(value: &str) -> Self {
-        match value {
-            "supported" => Self::Supported,
-            "partial" => Self::Partial,
-            "unsupported" => Self::Unsupported,
-            other => Self::Other(other.to_owned()),
-        }
-    }
-}
-
-impl std::fmt::Display for PlatformCapabilityStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-impl AsRef<str> for PlatformCapabilityStatus {
-    fn as_ref(&self) -> &str {
-        self.as_str()
-    }
-}
+/// Every capability the API serves reports supported. The field names a per-capability status so a client can branch on coverage; no other value is emitted.
+pub type PlatformCapabilityStatus = String;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -7906,7 +7861,7 @@ pub struct ReportPayloadTopLargeTradesItem {
     /// Provider market category.
     #[serde(default)]
     pub market_category: Option<String>,
-    /// Venue: polymarket.
+    /// Always polymarket, or null when the row carries no stored value.
     #[serde(default)]
     pub platform: Option<String>,
     /// Trader display name, when known.
@@ -7950,7 +7905,7 @@ pub struct ReportPayloadTopWhaleTradesItem {
     /// Provider market category.
     #[serde(default)]
     pub market_category: Option<String>,
-    /// Venue: polymarket.
+    /// Always polymarket, or null when the row carries no stored value.
     #[serde(default)]
     pub platform: Option<String>,
     /// Trader display name, when known.
@@ -8575,6 +8530,7 @@ pub struct SmartMoneyFlowMarketMarket {
     pub slug: Option<String>,
     #[serde(default)]
     pub category: Option<String>,
+    /// Provider platform. Always polymarket, or null when the row carries no stored value.
     #[serde(default)]
     pub platform: Option<String>,
 }
@@ -9690,7 +9646,7 @@ pub struct Trader {
     pub stats: TraderStats,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub strategy: Option<TraderStrategy>,
-    /// Per-category performance breakdown (expand=categories or expand[]=categories). Omitted unless expanded. Object keyed by category name; each value is the precomputed trader_rankings.category_ranks payload (rank, total_in_category, total_pnl, scaled_total_pnl, n_markets, wins, losses, win_rate; scaled_total_pnl is a legacy alias that currently equals total_pnl). BASIS: the calibration sample, which admits a position only above a 20 USD notional floor and with a chosen-side entry price strictly inside (0,1), because the ranks and the calibration edge derived from it depend on both rules. That is a different sample from GET /api/v1/trader/{address}/categories, which counts every settled market at any size, and the two differ in both directions. Measured on production 2026-09-22 over the 122,497 wallet-category pairs with at least 20 decided markets on both bases: the floored rate was higher in 56.5% of pairs, lower in 34.5% and equal in 9.0%, median +0.6 points, p10 -4.6, p90 +9.8, and 14.0% of pairs differ by 10 points or more. The difference is not only small positions: on a 1-in-250 wallet sample the same day, admitted markets won 56.6% while markets dropped by the notional floor alone won 45.2% and markets dropped by the entry-price rule alone won 48.7%. n_markets counts every admitted market including the ones that resolved at exactly zero P&L, so it is not the denominator of win_rate: it differed from wins + losses in 15.8% of pairs with at least 5 decided markets. The two tables also run on different clocks, this one updated incrementally and that route rebuilt daily, so a same-day read can differ on timing alone. Use this for rank context and that route for the wallet's plain record. Pass-through DB JSON: keys and value shape are DB-owned, so the inner shape is intentionally unconstrained and may carry additional compatibility fields.
+    /// Per-category performance breakdown (expand=categories or expand[]=categories). Omitted unless expanded. Object keyed by category name; each value is the precomputed trader_rankings.category_ranks payload (rank, total_in_category, total_pnl, scaled_total_pnl, n_markets, wins, losses, win_rate; scaled_total_pnl is a legacy alias that currently equals total_pnl). RANK BASIS: rank and total_in_category use the same hourly breakpoint publication; categories absent from that publication are omitted until a later publication includes them. Current trader performance values update separately, so this is not a frozen historical record. BASIS: the calibration sample, which admits a position only above a 20 USD notional floor and with a chosen-side entry price strictly inside (0,1), because the ranks and the calibration edge derived from it depend on both rules. That is a different sample from GET /api/v1/trader/{address}/categories, which counts every settled market at any size, and the two differ in both directions. Measured on production 2026-09-22 over the 122,497 wallet-category pairs with at least 20 decided markets on both bases: the floored rate was higher in 56.5% of pairs, lower in 34.5% and equal in 9.0%, median +0.6 points, p10 -4.6, p90 +9.8, and 14.0% of pairs differ by 10 points or more. The difference is not only small positions: on a 1-in-250 wallet sample the same day, admitted markets won 56.6% while markets dropped by the notional floor alone won 45.2% and markets dropped by the entry-price rule alone won 48.7%. n_markets counts every admitted market including the ones that resolved at exactly zero P&L, so it is not the denominator of win_rate: it differed from wins + losses in 15.8% of pairs with at least 5 decided markets. The two tables also run on different clocks, this one updated incrementally and that route rebuilt daily, so a same-day read can differ on timing alone. Use this for rank context and that route for the wallet's plain record. Pass-through DB JSON: keys and value shape are DB-owned, so the inner shape is intentionally unconstrained and may carry additional compatibility fields.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_strengths: Option<serde_json::Map<String, serde_json::Value>>,
     /// Curated advanced risk/performance metrics (expand=quant_metrics or expand[]=quant_metrics). Omitted unless expanded and backed by a computed row strictly under six hours old; a missing row, NULL computed_at, or age of exactly six hours or more is stale and omitted. Provider-input changes may intentionally lag inside the bounded six-hour window. When present, all listed fields are present (each is a number or null); null means insufficient trade history and must not be treated as 0. The fixed field shape is unchanged.
@@ -10499,7 +10455,7 @@ pub struct TrendingWallet {
     pub profile_image_url: Option<String>,
     /// Real provider platform; surfaced, never coerced. Polymarket only.
     pub platform: String,
-    /// Polymarket weekly/monthly P&L for the wallet in USD, taken from Polymarket's canonical leaderboard (data-api.polymarket.com/v1/leaderboard?timePeriod=week|month&orderBy=PNL). This is the ranking axis and the rows are returned in Polymarket's by-PNL order; it is the provider's number, not a locally summed realized-leaf total.
+    /// Polymarket weekly/monthly P&L for the wallet in USD, taken from Polymarket's canonical leaderboard (data-api.polymarket.com/v2/leaderboard?time_period=week|month&sort_by=PNL). This is the ranking axis and the rows are returned in Polymarket's by-PNL order; it is the provider's number, not a locally summed realized-leaf total.
     pub trending_pnl_usd: f64,
     /// Both-sides cash volume over the window in USD, from Polymarket GET /v2/user-volume (volume_usdc). Omitted when Polymarket served no volume for the wallet: an absent observation, never zero. Polymarket tracks volume in whole UTC days, so this window is the whole-day span covering the requested one, which is not the exact span trending_pnl_usd was scored over.
     #[serde(default, skip_serializing_if = "Option::is_none")]

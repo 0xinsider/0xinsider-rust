@@ -80,7 +80,7 @@ pub struct SavedDownload {
     /// Bytes written.
     pub bytes_written: u64,
     /// Lowercase hex SHA-256 of exactly the bytes written. No checksum is
-    /// published for an export; this is the one to record.
+    /// compared automatically; compare it with the artifact manifest.
     pub sha256: String,
 }
 

@@ -344,6 +344,7 @@ class Generator:
         self.enum_defs: OrderedDict[str, tuple[list[str], str | None]] = OrderedDict()
         self.structs: OrderedDict[str, tuple[list[Field], str | None]] = OrderedDict()
         self.unions: OrderedDict[str, tuple[str, list[tuple[str, str, str]], str | None]] = OrderedDict()
+        self.scalar_query_unions: OrderedDict[str, str | None] = OrderedDict()
         self.aliases: OrderedDict[str, tuple[str, str | None]] = OrderedDict()
         self.params: OrderedDict[str, list[str]] = OrderedDict()
         self.request_roots: set[str] = set()
@@ -672,6 +673,12 @@ class Generator:
         )
 
     def param_type(self, param: dict, owner: str) -> str:
+        schema = param.get("schema", {})
+        arms = schema.get("oneOf") or schema.get("anyOf") or []
+        if len(arms) == 2 and {arm.get("type") for arm in arms} == {"number", "string"}:
+            name = owner + pascal(param["name"])
+            self.scalar_query_unions[name] = param.get("description")
+            return name
         rust, _ = self.rust_type(param.get("schema", {}), owner + pascal(param["name"]), owner)
         return rust
 
@@ -785,6 +792,8 @@ class Generator:
             return f"{ident}.to_string()"
         if rust in ("i64", "f64", "bool"):
             return f"{ident}.to_string()"
+        if rust in self.scalar_query_unions:
+            return f"{ident}.to_string()"
         if rust in self.enum_defs:
             return f"{ident}.as_str().to_owned()"
         raise GenerateError(f"unsupported query parameter type {rust}")
@@ -824,8 +833,9 @@ class Generator:
                 else:
                     lines.append(f"    pub fn {param.ident}<I: IntoIterator<Item = {inner}>>(mut self, values: I) -> Self {{")
                     lines.append(f"        self.{param.ident} = values.into_iter().collect();")
-            elif param.rust_type == "String":
-                lines.append(f"    pub fn {param.ident}(mut self, value: impl Into<String>) -> Self {{")
+            elif param.rust_type == "String" or param.rust_type in self.scalar_query_unions:
+                target = param.rust_type
+                lines.append(f"    pub fn {param.ident}(mut self, value: impl Into<{target}>) -> Self {{")
                 lines.append(f"        self.{param.ident} = Some(value.into());")
             else:
                 lines.append(f"    pub fn {param.ident}(mut self, value: {param.rust_type}) -> Self {{")
@@ -1030,6 +1040,33 @@ class Generator:
             blocks.append((name, self.render_struct(name, name in request)))
         for name in self.unions:
             blocks.append((name, self.render_union(name)))
+        for name, description in self.scalar_query_unions.items():
+            lines = docs(description) + [
+                "#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]",
+                "#[serde(untagged)]",
+                "#[non_exhaustive]",
+                f"pub enum {name} {{",
+                "    /// A numeric request value.",
+                "    Number(f64),",
+                "    /// The exact decimal query spelling, kept unchanged.",
+                "    Text(String),",
+                "}",
+                f"impl From<f64> for {name} {{",
+                "    fn from(value: f64) -> Self { Self::Number(value) }",
+                "}",
+                f"impl From<String> for {name} {{",
+                "    fn from(value: String) -> Self { Self::Text(value) }",
+                "}",
+                f"impl From<&str> for {name} {{",
+                "    fn from(value: &str) -> Self { Self::Text(value.to_owned()) }",
+                "}",
+                f"impl std::fmt::Display for {name} {{",
+                "    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {",
+                "        match self { Self::Number(value) => value.fmt(f), Self::Text(value) => value.fmt(f) }",
+                "    }",
+                "}",
+            ]
+            blocks.append((name, lines))
         for name, (values, description) in self.enum_defs.items():
             blocks.append((name, self.render_enum(name, values, description)))
         for name, (rust, description) in self.aliases.items():

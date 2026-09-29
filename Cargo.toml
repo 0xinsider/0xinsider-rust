@@ -1,6 +1,6 @@
 [package]
 name = "oxinsider"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.87"
 description = "Official Rust client for the 0xinsider Developer API: Polymarket sports and esports analytics, wallet grades, large trades and sharp-money flow."

@@ -199,6 +199,14 @@ OXINSIDER_API_KEY=oxi_sk_live_... cargo run --example stream
 - Remote MCP server: `https://api.0xinsider.com/api/v1/mcp`
 - Agent Plugin and skills: [0xinsider/agent-plugin](https://github.com/0xinsider/agent-plugin)
 
+## Immutable whale datasets
+
+`submit_whale_dataset` creates a bounded NDJSON snapshot. Read `get_whale_dataset_status` and follow `next_action` and `poll_after_s`; `cancel_whale_dataset` cancels work before its completion fence.
+
+When the job is ready, `download_whale_dataset` returns a credential-safe streaming `Download`. Its `save(path)` writes the transferred content and returns its SHA-256; compare it with the artifact manifest. The default client decodes gzip, so use the content SHA-256 for that client.
+
+Resume `get_event_replay_since` with the manifest's continuation cursor and non-null filters. Pass the exact decimal string to `GetEventReplaySinceParams::min_size`; numeric builder calls remain supported. The finite snapshot window does not restrict later deltas; deduplicate snapshot and expanded replay rows by their `wt_` trade ID. Coverage is detected whale alerts, not all provider fills or updates and deletions.
+
 ## License
 
 MIT

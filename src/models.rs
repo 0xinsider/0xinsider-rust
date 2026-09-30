@@ -2372,54 +2372,6 @@ impl AsRef<str> for Expand {
     }
 }
 
-/// A value this release does not know is kept in `Other`, so a new value never fails a response.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum ExpertDefinition {
-    /// `v1`
-    #[serde(rename = "v1")]
-    V1,
-    /// `v2`
-    #[serde(rename = "v2")]
-    V2,
-    /// A value this release does not know, kept as sent.
-    #[serde(untagged)]
-    Other(String),
-}
-
-impl ExpertDefinition {
-    /// The value as the API spells it.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::V1 => "v1",
-            Self::V2 => "v2",
-            Self::Other(value) => value,
-        }
-    }
-}
-
-impl From<&str> for ExpertDefinition {
-    fn from(value: &str) -> Self {
-        match value {
-            "v1" => Self::V1,
-            "v2" => Self::V2,
-            other => Self::Other(other.to_owned()),
-        }
-    }
-}
-
-impl std::fmt::Display for ExpertDefinition {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-impl AsRef<str> for ExpertDefinition {
-    fn as_ref(&self) -> &str {
-        self.as_str()
-    }
-}
-
 /// Discriminated by `type`. A `type` this release does not know is kept whole in
 /// `Unknown`, so a new kind never fails a response.
 #[derive(Debug, Clone, PartialEq)]
@@ -3770,6 +3722,14 @@ pub struct GetPickOfTheDayArchiveResponse {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
+pub struct GetPickOfTheDayLedgerEntryResponse {
+    pub object: String,
+    pub data: PickOfTheDayLedgerEntry,
+    pub meta: ResponseMeta,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct GetPickOfTheDayLedgerResponse {
     pub object: String,
     pub data: PickOfTheDayLedger,
@@ -4146,54 +4106,6 @@ impl AsRef<str> for IdentityStatus {
     }
 }
 
-/// A value this release does not know is kept in `Other`, so a new value never fails a response.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum Lane {
-    /// `standard`
-    #[serde(rename = "standard")]
-    Standard,
-    /// `longshot_specialist`
-    #[serde(rename = "longshot_specialist")]
-    LongshotSpecialist,
-    /// A value this release does not know, kept as sent.
-    #[serde(untagged)]
-    Other(String),
-}
-
-impl Lane {
-    /// The value as the API spells it.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Standard => "standard",
-            Self::LongshotSpecialist => "longshot_specialist",
-            Self::Other(value) => value,
-        }
-    }
-}
-
-impl From<&str> for Lane {
-    fn from(value: &str) -> Self {
-        match value {
-            "standard" => Self::Standard,
-            "longshot_specialist" => Self::LongshotSpecialist,
-            other => Self::Other(other.to_owned()),
-        }
-    }
-}
-
-impl std::fmt::Display for Lane {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-impl AsRef<str> for Lane {
-    fn as_ref(&self) -> &str {
-        self.as_str()
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct LargeExportPolicy {
@@ -4358,9 +4270,9 @@ pub struct LargeTrade {
     #[serde(default)]
     pub token_id: Option<String>,
     pub price: f64,
-    /// Current 0.0–1.0 review score, computed at request time from the trade's size, the trader's win rate today, a bonus when a trader with a win rate above 55% trades at a price below 30¢, and the trade's age now. A higher score means read this trade first; it does not measure edge or predict an outcome. On a historical row it is today's view of the trade, not what a reader saw then; use recorded_review_score for that. Canonical since #16311; signal_score carries the same value.
+    /// Current trade review score on a 0..1 scale; higher values indicate a stronger review signal. This is the current response value and can differ from the recorded score. Missing measurements remain unavailable.
     pub review_score: f64,
-    /// Current 0.0–1.0 review score, computed at request time from the trader's win rate today and the trade's age now. Deprecated (#16311): `review_score` is the canonical spelling and carries the same value; this key stays on the wire.
+    /// Deprecated alias of review_score with the same current value and 0..1 scale.
     pub signal_score: f64,
     /// 0.0–1.0 review score written once when the trade row is inserted, from the trader's statistics at that moment. Populated from 2026-08-03T11:59Z; older rows return null and are never backfilled, because a backfill could only read today's statistics. If a trade is added later, its time-sensitive recorded score reflects that delay. Canonical since #16311; recorded_signal_score carries the same value.
     #[serde(default)]
@@ -6138,8 +6050,6 @@ pub struct PickHolder {
     /// The wallet's X handle from its Polymarket profile, normalized to 1-15 characters of [A-Za-z0-9_] with no `@`. Link it as `https://x.com/<handle>`. Stamped at serve time from the wallet's current trader record, never frozen with the pick. The five badge fields are present together, and only for a wallet that carries at least one badge; all absent means no badge, or a body cached before the fields shipped.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub x_username: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub category_evidence: Option<HolderCategoryEvidence>,
 }
 
 /// The two counts `category_win_rate` is the ratio of, read from the same row: `wins / decided` equals the rate. Counts every resolved Polymarket market the wallet traded in the pick's canonical category (or in its game, when `category_win_rate_game` is present), at any position size; the counts are rebuilt daily. Present only with `category_win_rate_status` = `measured`; absent otherwise and on payloads predating the field.
@@ -6160,10 +6070,10 @@ pub struct PickOfTheDay {
     /// The pick's local publication date (YYYY-MM-DD).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pick_date: Option<String>,
-    /// Stable 1-based slot within the product day's ranked picks.
+    /// Deprecated compatibility daily release slot; use pick_id for identity and publication_order for scheduling.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pick_rank: Option<i64>,
-    /// The complete ranked picks for this product day, ordered by pick_rank. Thin days contain fewer items; the selector never fabricates rows.
+    /// Published picks for this product day in the returned display order. Use pick_id for identity.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub picks: Option<Vec<PickOfTheDay>>,
     /// Number of items in `picks`: the proof-readable picks. Picks held in `proof_pending_picks` are not counted.
@@ -6175,7 +6085,7 @@ pub struct PickOfTheDay {
     /// Human-readable matchup (e.g. "Portugal vs. Uzbekistan").
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub matchup: Option<String>,
-    /// Frozen canonical calibration/report bucket (e.g. "Basketball", "MMA", or "Soccer"). Existing semantics are unchanged; presentation consumers should prefer display_category when present.
+    /// Recorded canonical sport category. Prefer display_category for the public competition label.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category: Option<String>,
     /// Frozen public presentation category: the competition the Polymarket event belongs to. A curated label comes first -- an official league (e.g. "WNBA" or "UFC"), the esports title (e.g. "CS2", "LoL", "Dota 2" or "Valorant"), or a soccer competition (e.g. "LaLiga", "Premier League", "Serie A" or "UEFA Champions League"); any other competition carries the provider's own competition name without its season year (e.g. "UEFA Nations League", "ATP" or "Wimbledon"). It equals category only when the provider names no competition. An esports pick keeps the pooled "Esports" bucket in category, so a per-title label never implies a per-title measured cohort. Additive and optional for mixed-version client compatibility.
@@ -6214,25 +6124,19 @@ pub struct PickOfTheDay {
     /// One-line summary of which side sharp money is backing. Required on every item in `picks`: a current-day published pick whose required holder proof is not safely readable is listed in `proof_pending_picks` instead of being served with a partial success shape or a synthetic zero, and the route returns 503 read_model_warming only when no published pick has readable proof.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub side_summary: Option<String>,
-    /// Public V1 compatibility count of S/A sharp-money wallets on the backed side. The first-party/internal current policy counts S/A/B; historical rows retain their frozen policy's count. Required on every item in `picks`: a current-day published pick whose required holder proof is not safely readable is listed in `proof_pending_picks` instead of being served with a partial success shape or a synthetic zero, and the route returns 503 read_model_warming only when no published pick has readable proof. Canonical key since #16308; smart_wallet_count is its deprecated spelling, emitted beside it with the same value.
+    /// S/A wallet count on the backed side in the public V1 compatibility projection.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sharp_wallet_count: Option<i64>,
-    /// Deprecated spelling of sharp_wallet_count, emitted beside it with the same value and never removed. Public V1 compatibility count of S/A sharp-money wallets on the backed side. The first-party/internal current policy counts S/A/B; historical rows retain their frozen policy's count. Required on every item in `picks`: a current-day published pick whose required holder proof is not safely readable is listed in `proof_pending_picks` instead of being served with a partial success shape or a synthetic zero, and the route returns 503 read_model_warming only when no published pick has readable proof.
+    /// Deprecated spelling of sharp_wallet_count with the same value.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub smart_wallet_count: Option<i64>,
-    /// Best public V1-compatible S/A sharp-money grade on the backed side. The first-party/internal current policy can select B, but a current B-only grade is omitted by the stable V1 adapter. Historical rows retain their frozen policy's grade. A current-day published pick with pending legacy proof, unknown-future proof, or structurally invalid current-policy proof returns 503 before this success schema is served. Resolved legacy proof remains readable on both current-day and archive/history responses.
+    /// Best recorded S/A grade in the public V1 compatibility projection.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub top_grade: Option<String>,
-    /// Deprecated (#7170): no longer populated for picks selected on/after the calibration-edge change; omitted (absent) for new picks (the field uses skip_serializing_if, so a null value is dropped from the JSON rather than serialized as null). Permanently frozen-legacy -- retained for historical picks, with no removal or replacement planned, so no v2 is implied. Historical picks may still carry a value. Legacy meaning: category win-rate edge as a fraction (the backed-side cohort's win rate in this category minus the non-market-maker category baseline, e.g. 0.09 = +9 points), paired with category_edge_sample.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub category_edge_pct: Option<f64>,
-    /// Deprecated (#7170): no longer populated for picks selected on/after the calibration-edge change; omitted (absent) for new picks (the field uses skip_serializing_if, so a null value is dropped from the JSON rather than serialized as null). Permanently frozen-legacy -- retained for historical picks, with no removal or replacement planned, so no v2 is implied. Historical picks may still carry a value. Legacy meaning: pooled count of resolved markets behind category_edge_pct (the headline's n).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub category_edge_sample: Option<i64>,
-    /// Recency-weighted graded-flow magnitude in USD; omitted when <= 0. Canonical key since #16308; smart_usd is its deprecated spelling, emitted beside it with the same value.
+    /// Recorded sharp-money magnitude in USD when available.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sharp_usd: Option<f64>,
-    /// Deprecated spelling of sharp_usd, emitted beside it with the same value and never removed. Recency-weighted graded-flow magnitude in USD; omitted when <= 0.
+    /// Deprecated spelling of sharp_usd with the same value.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub smart_usd: Option<f64>,
     /// Frozen pre-game probability (0..1) for the backed side, written once at publication. It is the Polymarket CLOB order book midpoint at release, not an executed fill: a buyer lifts the ask, so a subscriber's own entry is usually a little worse than this price.
@@ -6280,48 +6184,28 @@ pub struct PickOfTheDay {
     /// Backend-formatted signed unit score, present exactly when unit_score is present.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unit_score_display: Option<String>,
-    /// First-party/internal backed-side sharp-money dollar consensus as a fraction 0..1: the share of current-policy sharp dollars on the backed side. Omitted on current public V1 rows when the B-inclusive value has no reconstructible S/A equivalent. A conviction signal, NOT a probability or expected-value claim. Frozen at generation.
+    /// Recorded sharp-money share as a 0..1 fraction when available. This is not a winning probability.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sharp_pct: Option<f64>,
-    /// Market-implied probability of the backed side as a fraction 0..1 (equals backed_price), re-exposed alongside sharp_pct for the WHY breakdown.
+    /// Recorded market-implied probability as a 0..1 fraction when available.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub market_pct: Option<f64>,
-    /// First-party/internal consensus edge = sharp_pct - market_pct, the conviction-vs-price gap (how much more of the current-policy sharp money sits on this side than the price implies). Omitted on current public V1 rows when the B-inclusive value has no reconstructible S/A equivalent. This is NOT an expected-value or guaranteed edge. Omitted when either input is unavailable.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub consensus_edge_pct: Option<f64>,
-    /// First-party/internal team-directional commitment read at selection time: the fraction (0..1) of the backed side's current-policy graded sharp-money DOLLARS held by wallets read one-way rather than hedged: no opposite leg on this market worth at least 10% of the backed leg (Polymarket's own currentValue pair), and no opposing team across the game's markets where the wallet's synced legs are fresh. Current public V1 rows omit this B-inclusive read because its historical S/A equivalent is not reconstructed. A high value means the graded pile is really committed to this side; a low one means much of it is hedged or unreadable. Omitted when the read was not computed (a pick selected before the field existed, an ungroupable game, an empty graded pile, or a pile where no holder carried usable evidence) -- which is NOT the same as 0.0, a computed reading that classified holders and found none one-way.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub directional_confidence: Option<f64>,
-    /// Graded backed-side holders read as one-way-committed on this game.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub one_way_holder_count: Option<i64>,
-    /// Graded backed-side holders read as HEDGED across the game's markets.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub hedged_holder_count: Option<i64>,
-    /// The one-way holders' share of the backed-side graded dollars (the confidence's numerator).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub one_way_graded_usd: Option<f64>,
-    /// Backed-side graded dollars the confidence is measured against (its denominator).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub total_graded_usd: Option<f64>,
-    /// The qualifying category expert whose sport-specific record and real position earned this pick its top selection tier. The first-party/internal current policy admits S/A/B; public V1 exposes a compatible S/A expert and omits a current-policy B-grade expert: a candidate backed by one outranks every candidate without one. Present only on the full payload. Omitted when no wallet qualified on the backed side, on picks generated before the field existed, and on the first-party web teaser, which withholds all backed-side evidence. Frozen at SELECTION time — the wallet's position can move before the pick renders.
+    /// Optional recorded specialist facts. These describe the trader and do not disclose selection decisions. Present only on a full response when available.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub qualifying_expert: Option<PickOfTheDayQualifyingExpert>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub trust: Option<PickTrust>,
-    /// Public V1 S/A compatibility count on the backed side (equals the adapted sharp_wallet_count). The first-party/internal current policy counts S/A/B. Historical rows retain their frozen policy's count.
+    /// Public V1 S/A wallet count on the backed side, equal to sharp_wallet_count.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub traders: Option<i64>,
-    /// Raw backed-side sharp-money USD frozen at generation. This is the Sharp USD value, not the recency-weighted sharp_usd which decays. Omitted on current public V1 rows when the B-inclusive value has no reconstructible S/A equivalent.
+    /// Recorded backed-side sharp-money value in USD when available.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub backed_sharp_usd: Option<f64>,
-    /// Bounded S/A compatibility projection of the frozen sharp-money holders on the backed side. Current full payloads expose the complete S/A/B roster in display_holders; historical rows can retain their earlier frozen shape.
+    /// Bounded S/A holder display projection. Historical rows retain their recorded display shape.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub holders: Option<Vec<PickHolder>>,
-    /// Full-only complete provider-confirmed S/A/B holder roster for the current Pick of the Day backing policy. Omitted for teaser, no-pick, and historical rows whose frozen holder proof predates this policy. Each entry may additionally carry `category_win_rate` / `category_win_rate_status`: the wallet's win rate in the pick's canonical `category`, stamped at serve time from the current category read model (the same annotation the sports sharp-money chips carry). The bounded `holders` compatibility projection never carries these fields.
+    /// Optional complete holder display roster. Each entry carries ordinary trader and recorded position facts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub display_holders: Option<Vec<PickHolder>>,
-    /// Exact S/A sharp-money proof count on the backed side. The current display_holders roster can be longer because it also carries B-grade sharp-money holders.
+    /// S/A holder count for the public V1 compatibility projection. display_holders can include additional grades.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub holder_count: Option<i64>,
     /// Optional editorial note attached to the pick.
@@ -6351,12 +6235,21 @@ pub struct PickOfTheDay {
     /// Published same-day picks whose holder proof is not readable yet, ordered by pick_rank. Additive and optional: present only while at least one such pick exists. While present, `picks` carries only the proof-readable picks and `pick_count` counts them. Schedule the next read from the earliest retry_at instead of polling. The route returns 503 read_model_warming only when no published pick has readable proof.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub proof_pending_picks: Option<Vec<ProofPendingPickSlot>>,
-    /// Frozen admission classification, full payload only. The specialist lane exempts two probability rejects and adds no rank bonus. Historical rows remain standard.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub selection_lane: Option<Lane>,
-    /// Optional full-only authorization for newly issued policy-7 picks; omitted for legacy or unissued picks and teasers. It remains historical after expiry.
+    /// Optional full-response entry authorization. Missing or expired authorization cannot authorize an automated entry.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub entry_authorization: Option<PotdEntryAuthorization>,
+    /// Stable pick row identity as decimal text. Never use a quality rank as identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pick_id: Option<String>,
+    /// Compatibility release slot. No quality claim; historic scheduling order is retained.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub publication_order: Option<i64>,
+    /// Viewer-independent free selection designation. New rows store it explicitly; historic null storage uses the original free slot.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_free_selection: Option<bool>,
+    /// Replacement predecessor stable id; null when no lineage is recorded.
+    #[serde(default)]
+    pub supersedes_pick_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -6400,7 +6293,7 @@ pub struct PickOfTheDayArchiveDay {
 pub struct PickOfTheDayArchiveEntry {
     /// The pick's local publication date (YYYY-MM-DD).
     pub pick_date: String,
-    /// Stable 1-based slot within the product day's ranked picks.
+    /// Deprecated compatibility daily release slot; use pick_id for identity and publication_order for scheduling.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pick_rank: Option<i64>,
     /// When this pick became public (RFC3339 UTC). pick_date above is the America/New_York product day, not an instant, so read this whenever you need a real time: reading the bare date as UTC midnight places it hours before the earliest instant a pick can drop (11:00 UTC on that date). A day's last pick can drop at 23:00 ET, which is the following UTC date. Omitted (not null) when the instant is unknown; additive and optional for mixed-version client compatibility.
@@ -6475,12 +6368,24 @@ pub struct PickOfTheDayArchiveEntry {
     /// Backend-formatted signed unit score, present exactly when unit_score is present.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unit_score_display: Option<String>,
+    /// Stable pick row identity as decimal text. Never use a quality rank as identity.
+    pub pick_id: String,
+    /// Compatibility release slot. No quality claim; historic scheduling order is retained.
+    pub publication_order: i64,
+    /// Viewer-independent free selection designation. New rows store it explicitly; historic null storage uses the original free slot.
+    pub is_free_selection: bool,
+    /// Replacement predecessor stable id; null when no lineage is recorded.
+    #[serde(default)]
+    pub supersedes_pick_id: Option<String>,
 }
+
+/// Select using the entry commitment_version, never implicit payload shape. All historic v1 hashes remain unchanged.
+pub type PickOfTheDayCommitmentPayload = serde_json::Value;
 
 /// The frozen identity of the pick, exactly as the hash was taken over it. Served byte for byte as it was hashed -- keys sorted by UTF-8 byte value, no insignificant whitespace -- so a verifier concatenates and hashes with nothing to reconstruct. Property order below is the wire order. The outcome is deliberately NOT part of it: surviving a corrected outcome unchanged is the case the commitment exists for. Worked example: {"backed_price":"0.545000","condition_id":"0xabc","kickoff":"2026-09-20T23:05:00Z","pick_date":"2026-09-20","pick_outcome_index":1,"pick_outcome_label":"Lakers","pick_rank":1,"platform":"polymarket"} with the nonce 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f hashes to 44d18fa5e2aa3a2bf3c971dcc9317c8ccbdfd5480a4773b6d8ffd5fbeeea84dc.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct PickOfTheDayCommitmentPayload {
+pub struct PickOfTheDayCommitmentPayloadV1 {
     /// Frozen pre-game price of the backed side, 0..1, as the plain decimal text of the stored NUMERIC at full stored precision, trailing zeros included. A string, never a number: a float round-trip would change the bytes and break the hash. Deliberately not normalized -- 0.545000 stays "0.545000".
     pub backed_price: String,
     /// Provider condition id of the backed market.
@@ -6497,6 +6402,29 @@ pub struct PickOfTheDayCommitmentPayload {
     pub pick_rank: i64,
     /// Provider platform. Always polymarket.
     pub platform: String,
+}
+
+/// Version 2 rank-free canonical payload: sorted nine keys, unchanged string escaping, exact decimal text and whole-second UTC kickoff. pick_id is decimal text; version is JSON integer 2.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PickOfTheDayCommitmentPayloadV2 {
+    /// Frozen pre-game price of the backed side, 0..1, as the plain decimal text of the stored NUMERIC at full stored precision, trailing zeros included. A string, never a number: a float round-trip would change the bytes and break the hash. Deliberately not normalized -- 0.545000 stays "0.545000".
+    pub backed_price: String,
+    /// Provider condition id of the backed market.
+    pub condition_id: String,
+    /// Frozen provider kickoff, whole seconds, UTC, literal Z. Fixed precision, never a shortest-lossless rendering.
+    pub kickoff: String,
+    /// ET product day (YYYY-MM-DD).
+    pub pick_date: String,
+    /// Index of the backed outcome within the market.
+    pub pick_outcome_index: i64,
+    /// Frozen display label of the backed outcome.
+    pub pick_outcome_label: String,
+    /// Provider platform. Always polymarket.
+    pub platform: String,
+    /// Stable pick row identity as decimal text. Never use a quality rank as identity.
+    pub pick_id: String,
+    pub version: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -6661,7 +6589,7 @@ pub struct PickOfTheDayLedgerOpenedEntry {
     pub state: String,
     /// ET product day the pick belongs to (YYYY-MM-DD).
     pub pick_date: String,
-    /// 1-based daily slot within the product day.
+    /// Deprecated compatibility daily release slot; use pick_id for identity and publication_order for scheduling.
     pub pick_rank: i64,
     /// sha256(canonical_json(payload) || nonce), lowercase hex, no 0x prefix. Publishable the moment the pick releases: without the nonce it is not invertible.
     pub commitment_hash: String,
@@ -6685,6 +6613,17 @@ pub struct PickOfTheDayLedgerOpenedEntry {
     pub category: String,
     /// The pick's public page.
     pub permalink: String,
+    /// Stable pick row identity as decimal text. Never use a quality rank as identity.
+    pub pick_id: String,
+    /// Compatibility release slot. No quality claim; historic scheduling order is retained.
+    pub publication_order: i64,
+    /// Viewer-independent free selection designation. New rows store it explicitly; historic null storage uses the original free slot.
+    pub is_free_selection: bool,
+    /// Replacement predecessor stable id; null when no lineage is recorded.
+    #[serde(default)]
+    pub supersedes_pick_id: Option<String>,
+    /// Explicit proof provenance: 1 retains historic eight-field canonical JSON; 2 binds stable pick_id and version without pick_rank.
+    pub commitment_version: i64,
 }
 
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
@@ -6747,7 +6686,7 @@ pub struct PickOfTheDayLedgerSealedEntry {
     pub state: String,
     /// ET product day the pick belongs to (YYYY-MM-DD).
     pub pick_date: String,
-    /// 1-based daily slot within the product day.
+    /// Deprecated compatibility daily release slot; use pick_id for identity and publication_order for scheduling.
     pub pick_rank: i64,
     /// sha256(canonical_json(payload) || nonce), lowercase hex, no 0x prefix. Publishable the moment the pick releases: without the nonce it is not invertible.
     pub commitment_hash: String,
@@ -6759,6 +6698,17 @@ pub struct PickOfTheDayLedgerSealedEntry {
     pub kickoff: String,
     /// The pick's public page.
     pub permalink: String,
+    /// Stable pick row identity as decimal text. Never use a quality rank as identity.
+    pub pick_id: String,
+    /// Compatibility release slot. No quality claim; historic scheduling order is retained.
+    pub publication_order: i64,
+    /// Viewer-independent free selection designation. New rows store it explicitly; historic null storage uses the original free slot.
+    pub is_free_selection: bool,
+    /// Replacement predecessor stable id; null when no lineage is recorded.
+    #[serde(default)]
+    pub supersedes_pick_id: Option<String>,
+    /// Explicit proof provenance: 1 retains historic eight-field canonical JSON; 2 binds stable pick_id and version without pick_rank.
+    pub commitment_version: i64,
 }
 
 /// A published pick with no commitment: it predates the scheme, or it reached kickoff unsealed. Nothing here is evidence of WHEN the pick was made. It is emitted rather than skipped, because a ledger with holes where the unprovable picks were would silently flatter the record. Once the pick settles, payload names its market, side and price, so the outcome can still be checked against the market's own resolution.
@@ -6768,7 +6718,7 @@ pub struct PickOfTheDayLedgerUncommittedEntry {
     pub state: String,
     /// ET product day the pick belongs to (YYYY-MM-DD).
     pub pick_date: String,
-    /// 1-based daily slot within the product day.
+    /// Deprecated compatibility daily release slot; use pick_id for identity and publication_order for scheduling.
     pub pick_rank: i64,
     /// Always true: this pick has no commitment and never will.
     pub pre_commitment: bool,
@@ -6786,56 +6736,44 @@ pub struct PickOfTheDayLedgerUncommittedEntry {
     pub payload: Option<PickOfTheDayUncommittedPayload>,
     /// The pick's public page.
     pub permalink: String,
+    /// Stable pick row identity as decimal text. Never use a quality rank as identity.
+    pub pick_id: String,
+    /// Compatibility release slot. No quality claim; historic scheduling order is retained.
+    pub publication_order: i64,
+    /// Viewer-independent free selection designation. New rows store it explicitly; historic null storage uses the original free slot.
+    pub is_free_selection: bool,
+    /// Replacement predecessor stable id; null when no lineage is recorded.
+    #[serde(default)]
+    pub supersedes_pick_id: Option<String>,
 }
 
-/// The qualifying category expert whose sport-specific record and real position earned this pick its top selection tier. The first-party/internal current policy admits S/A/B; public V1 exposes a compatible S/A expert and omits a current-policy B-grade expert: a candidate backed by one outranks every candidate without one. Present only on the full payload. Omitted when no wallet qualified on the backed side, on picks generated before the field existed, and on the first-party web teaser, which withholds all backed-side evidence. Frozen at SELECTION time — the wallet's position can move before the pick renders.
+/// Optional recorded specialist facts. These describe the trader and do not disclose selection decisions. Present only on a full response when available.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct PickOfTheDayQualifyingExpert {
-    /// Wallet address of the qualifying expert.
+    /// Trader wallet address.
     pub address: String,
     /// Provider display name, or null for an unnamed wallet.
     #[serde(default)]
     pub name: Option<String>,
-    /// 0xinsider grade letter. The first-party/internal current Pick of the Day policy counts S, A, and B; public V1 exposes only the compatible S/A expert.
+    /// Recorded trader grade. Public V1 preserves its S/A compatibility projection.
     #[serde(default)]
     pub grade: Option<String>,
     /// The canonical sport bucket the win rate was measured over (for example Basketball). Can be BROADER than the pick's display_category, which names an exact league such as NBA — label the rate with this field, never with display_category.
     pub canonical_category: String,
-    /// Share of this wallet's resolved markets in canonical_category whose realized P&L came out positive, as a 0..1 fraction. Above 0.60 by construction for a source=v1 expert; null for an expert who qualified on the category-skill v2 definition only. Deliberately NOT phrased as "closed profitable": the metric counts realized P&L above zero, so a resolved winner the wallet never redeemed sits at zero and counts against it.
+    /// Share of the trader’s resolved markets in canonical_category with positive realized P&L, as a 0..1 fraction. Null when not measured. This is a trader statistic, not the pick’s probability of winning.
     #[serde(default)]
     pub win_rate: Option<f64>,
-    /// Resolved markets in canonical_category behind win_rate. At least 10 by construction for a source=v1 expert; null with win_rate.
+    /// Number of resolved markets behind win_rate; null when not measured.
     #[serde(default)]
     pub n_resolved: Option<i64>,
-    /// Current expert policy 10 does not require a category-skill v2 specialist in any sport; in every sport a specialist raises the candidate's rank tier rather than gating it. Standard specialists need a positive edge_lower_95 over enough independent events and enough net backing on the backed side; the floors are not published. Fresh healthy records below the shared model's live sample floor can qualify; stale, unknown and degraded records cannot. Historical records preserve which definition qualified the wallet: v1, the profitability rate (win_rate over n_resolved), or v2, the forward-only category-skill calibration edge (edge_lower_95 over independent_event_count). Absent on picks frozen before the v2 definition existed; read absence as v1. A Tennis pick frozen under gate policy v4 or later carries v2 only: a v1 rate stopped qualifying a tennis expert at v4. A Tennis pick frozen under an earlier policy can still carry v1 with a win rate.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub source: Option<ExpertDefinition>,
-    /// 95% lower bound of the wallet's mean calibration edge over the market price in canonical_category, in probability units (0.08 is 8 points). Positive by construction for a v2 expert; present on a v1 expert only when the wallet also holds a live v2 row.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub edge_lower_95: Option<f64>,
-    /// Point estimate behind edge_lower_95.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub edge_mean: Option<f64>,
-    /// Independent canonical events behind the edge. At least 10 by construction for a v2 expert.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub independent_event_count: Option<i64>,
-    /// Polymarket's own currentValue for this wallet on the backed outcome, in USD, as of selection. At least 1000 by construction through gate policy v7; the standard floor is 500 from v8. From gate policy v5 the floor is read on the net: position_usd minus opposite_position_usd is at least that floor, and the pick re-verifies that net against the live holder snapshot when it is released.
+    /// Recorded Polymarket position value on the backed outcome, in USD. It can change after this snapshot.
     pub position_usd: f64,
-    /// The same wallet's currentValue on the OTHER outcome of this market, in USD, as of selection. Present from gate policy v5, when the floor moved to net exposure; a wallet long both sides does not qualify. Absent on picks frozen before v5, which never read the leg. 0 is a measured one-way position, not an absence.
+    /// Recorded position value on the other outcome of this market, in USD. Omitted when not recorded; zero is a measured value.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub opposite_position_usd: Option<f64>,
-    /// When the skill read model behind the evidence was last rebuilt: trader_category_stats.computed_at for a source=v1 expert, category_skill_v2_current.as_of for a source=v2 expert.
+    /// Timestamp of the recorded trader statistics.
     pub stats_computed_at: String,
-    /// Present from expert policy 6. Current expert policy 10 retains the longshot requirement of live v2 only, with a positive lower bound over a large sample, large net backed value and no meaningful opposite value. Historical policy 6: a specialist required large net backed value, no meaningful opposite value, and either a live v2 positive lower bound over a large sample or a high v1 rate over enough resolved markets. Tennis requires v2. The floors are not published.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub lane: Option<Lane>,
-    /// Answered, spread-gated, index-scoped backed probability frozen only on a specialist exception.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub lane_probability: Option<f64>,
-    /// Canonical provider probability pair branch; absent on standard experts.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub lane_probability_source: Option<String>,
 }
 
 /// A settled uncommitted pick's market, side and price. The same eight fields as PickOfTheDayCommitmentPayload, in the same key order, so a settled pick's side and price sit under payload whatever the entry's state. It is NOT a commitment: no hash was taken over it before the game, and it proves nothing about when the pick was made.
@@ -6937,14 +6875,6 @@ pub struct PickSportsTeam {
     /// Completed sets won by this side. Present only when both sides expose the same set columns, so a partially parsed scoreline reports no tally rather than a misleading one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sets_won: Option<i64>,
-}
-
-/// Field-level trust metadata for the full Pick of the Day payload. Present on the full shape only (omitted on the teaser and the no-pick state, because whether a specialist backs the pick is itself backed-side evidence). Unlike TraderTrust it is not gated behind expand=trust: it carries one member on an endpoint that returns a single object per day.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct PickTrust {
-    /// Provenance of the frozen qualifying category expert. source.kind=database with reconciliation.status=db_mirror means the evidence deserialized, still satisfies every frozen selection gate, and is being served. On that arm freshness.status is always not_live and never fresh, because this evidence is frozen at selection and never refreshed, so on an archived pick the as_of (the expert's own stats_computed_at) can be days or months old by design. source.kind=computed with reconciliation.status=not_applicable means the selector evaluated the backed side and nobody qualified -- a real negative. source.kind=computed with freshness.status=unknown and completeness.status=not_computed means the selector never evaluated this field, as on a pre-feature pick. source.kind=unavailable means the payload is malformed, violates a selection gate, or conflicts with its persisted status, or the public V1 adapter intentionally omitted a current-policy B-grade expert; read the reason before treating it as a negative. Do not read an omitted qualifying_expert as 'no specialist' without checking this field.
-    pub qualifying_expert: TrustMetadata,
 }
 
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
@@ -7156,7 +7086,7 @@ pub struct PositionTrader {
     pub is_new_wallet: bool,
 }
 
-/// Policy-7 issuance binds one condition, selected token, outcome, canonical event and sport. Reuse the same authorization across public/private discovery and retries. Require a new account-size executable book and current market eligibility; this frozen reference does not prove current liquidity or positive expected value. Absence or expiry cannot authorize a new automated entry.
+/// Returned entry permission bound to the named market, token and outcome. Honor max_entry_price and expires_at, and check a current executable order book for the actual stake. This snapshot does not guarantee current liquidity, execution or positive expected value.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct PotdEntryAuthorization {
@@ -7170,13 +7100,13 @@ pub struct PotdEntryAuthorization {
     pub category: String,
     /// Exact provider parent event ID, or provider event ID when no parent exists.
     pub canonical_event_id: String,
-    /// Immutable decimal limit: first fresh selected-token ask plus 0.02, floored to the provider tick below 1. Fees excluded. Never a calibrated fair probability.
+    /// Returned maximum entry price as an exact decimal string. Honor this bound; fees are excluded. This is not a fair probability.
     pub max_entry_price: String,
     pub reference_best_ask: String,
     pub reference_book_hash: String,
     pub reference_book_at: String,
     pub issued_at: String,
-    /// Original provider kickoff ceiling. Never extended on retry.
+    /// Authorization expiry. An expired authorization cannot authorize a new automated entry.
     pub expires_at: String,
 }
 
@@ -7189,7 +7119,7 @@ pub struct PreGameSide {
     pub side: Option<String>,
     /// UTC time at which the snapshot that ranked this row was computed. Canonical spelling of signal_created_at (#16310), same value.
     pub ranked_at: String,
-    /// Grade-weighted holders times the share of their money on the side: (5*s + 4*a + 3*b) * sharp_pct. Canonical spelling of conviction_score (#16310), same value.
+    /// Recorded side backing score; higher values indicate stronger backing.
     pub backing_score: f64,
     /// Signed share of graded money on the side, (yes_usd - no_usd)/(yes_usd + no_usd) in [-1, 1] (side-yes positive, side-no negative). Canonical spelling of smart_score (#16309, #16310), same value.
     #[serde(default)]
@@ -7235,7 +7165,7 @@ pub struct PreGameSide {
     /// Best grade present on the piled side; null when none.
     #[serde(default)]
     pub top_grade: Option<MarketHolderGrade>,
-    /// Canonical sharp-money score (yes_usd - no_usd)/(yes_usd + no_usd) in [-1, 1] (piled-yes positive, piled-no negative); a lower-order ranking tiebreak (after directional_rank_score and conviction_score). Deprecated (#16310): `side_share` is the canonical spelling and carries the same value; this key stays on the wire.
+    /// Canonical sharp-money score (yes_usd - no_usd)/(yes_usd + no_usd) in [-1, 1] (piled-yes positive, piled-no negative). Deprecated (#16310): `side_share` is the canonical spelling and carries the same value; this key stays on the wire.
     #[serde(default)]
     pub smart_score: Option<f64>,
     /// Market volume (USD).
@@ -7244,7 +7174,7 @@ pub struct PreGameSide {
     /// Aggregate recent flow direction on the market; null when unavailable.
     #[serde(default)]
     pub net_side: Option<LargeTradeSide>,
-    /// Grade-weighted pile score (5*s + 4*a + 3*b) * sharp_pct; the raw conviction input to the ranking (see directional_rank_score). Deprecated (#16310): `backing_score` is the canonical spelling and carries the same value; this key stays on the wire.
+    /// Recorded conviction score; higher values indicate stronger conviction.
     pub conviction_score: f64,
     /// Piled-side graded holders read one-way: their fresh open legs across the signal game's markets (cross-market within the one game; moneyline+spread family only) all back the same team, or, when the market's holder scan was complete, Polymarket's currentValue shows no opposite leg on this market worth 10% of the backed leg and no fresh leg opposes it. Null when the directional read was not computed (no groupable game, no holder-level data on this ranking path, or the enrichment read failed) or classified nobody.
     #[serde(default)]
@@ -7258,7 +7188,7 @@ pub struct PreGameSide {
     /// One-way fraction of the piled graded dollars, in [0, 1] -- the metric orthogonal to sharp_pct. Stale, unknown, hedged, and two-sided dollars dilute it toward zero (conservative). Null when the directional read was not computed or classified nobody.
     #[serde(default)]
     pub directional_confidence: Option<f64>,
-    /// The ranking key, descending: conviction_score * (1 + 0.25 * directional_confidence). Equals conviction_score when the directional read is null/zero, so signals without the read rank exactly as before.
+    /// Recorded side ordering score; higher values sort first.
     pub directional_rank_score: f64,
     pub category_skill: PreGameSideCategorySkill,
     /// 1-based rank within the (min_grade-filtered) ranked result.
@@ -7316,7 +7246,7 @@ pub struct PreGameSideObservation {
     /// The side profitable wallets hold, as a provider-backed display label. Canonical spelling of piled_side (#16310), same value: when provider group context is unavailable it may remain a bare Yes/No/Over/Under, so do not use it alone as participant identity.
     #[serde(default)]
     pub side: Option<String>,
-    /// Grade-weighted holder-pile score before directional enrichment. Canonical spelling of conviction_score (#16310), same value.
+    /// Recorded side backing score; higher values indicate stronger backing.
     pub backing_score: f64,
     /// Signed share of graded money on the side, in [-1, 1]. Canonical spelling of smart_score (#16309, #16310), same value.
     pub side_share: f64,
@@ -7368,7 +7298,7 @@ pub struct PreGameSideObservation {
     pub smart_score: f64,
     /// Strictly positive stored market volume in USD. Missing, zero, or non-finite volume terminates as invalid_market and is never emitted as an observation.
     pub volume: f64,
-    /// Grade-weighted holder-pile score before directional enrichment. Deprecated (#16310): `backing_score` is the canonical spelling and carries the same value; this key stays on the wire.
+    /// Recorded conviction score; higher values indicate stronger conviction.
     pub conviction_score: f64,
     /// Whether the provider holder page came from the shared cache or a live provider read.
     pub provider_read_source: ProviderReadSource,
@@ -7387,7 +7317,7 @@ pub struct PreGameSideObservation {
     pub one_way_graded_usd: Option<f64>,
     #[serde(default)]
     pub directional_confidence: Option<f64>,
-    /// Default cohort ordering key: conviction_score * (1 + 0.25 * directional_confidence), or conviction_score when confidence is null.
+    /// Recorded side ordering score; higher values sort first.
     pub directional_rank_score: f64,
     /// 1-based rank within this observation cohort and snapshot.
     pub rank: i64,
@@ -7645,7 +7575,7 @@ impl AsRef<str> for PriceProvenance {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct ProofPendingPickSlot {
-    /// Stable 1-based slot within the product day's ranked picks. The pick keeps this rank once its proof is readable and it moves into `picks`.
+    /// Deprecated compatibility daily release slot; use pick_id for identity and publication_order for scheduling.
     pub pick_rank: i64,
     /// The pick's stored release instant.
     pub release_at: String,
@@ -7654,6 +7584,15 @@ pub struct ProofPendingPickSlot {
     pub kickoff: Option<String>,
     /// Recommended next read: 30 seconds ahead while pre-game proof is warming, one hour ahead for a post-kickoff pending legacy row that only settlement can make readable. Schedule against it instead of polling.
     pub retry_at: String,
+    /// Stable pick row identity as decimal text. Never use a quality rank as identity.
+    pub pick_id: String,
+    /// Compatibility release slot. No quality claim; historic scheduling order is retained.
+    pub publication_order: i64,
+    /// Viewer-independent free selection designation. New rows store it explicitly; historic null storage uses the original free slot.
+    pub is_free_selection: bool,
+    /// Replacement predecessor stable id; null when no lineage is recorded.
+    #[serde(default)]
+    pub supersedes_pick_id: Option<String>,
 }
 
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
@@ -8174,12 +8113,21 @@ pub struct RotateWebhookSecretResponse {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct ScheduledPickSlot {
-    /// Stable 1-based slot within the product day's ranked picks. The slot keeps this rank when it releases.
+    /// Deprecated compatibility daily release slot; use pick_id for identity and publication_order for scheduling.
     pub pick_rank: i64,
     /// The slot's scheduled release instant, normally the current provider kickoff minus one hour. The actual publish can trail it by bounded worker delay.
     pub release_at: String,
     /// The backed game's current kickoff instant.
     pub kickoff: String,
+    /// Stable pick row identity as decimal text. Never use a quality rank as identity.
+    pub pick_id: String,
+    /// Compatibility release slot. No quality claim; historic scheduling order is retained.
+    pub publication_order: i64,
+    /// Viewer-independent free selection designation. New rows store it explicitly; historic null storage uses the original free slot.
+    pub is_free_selection: bool,
+    /// Replacement predecessor stable id; null when no lineage is recorded.
+    #[serde(default)]
+    pub supersedes_pick_id: Option<String>,
 }
 
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
@@ -9680,10 +9628,10 @@ pub struct Trader {
     pub streak_tier: Option<StreakTier>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub score: Option<f64>,
-    /// Capital-normalized forecasting score: the cohort percentile (0-100) of the EB-shrunk calibration edge. Omitted when the forecasting signal is unavailable; never replaced with zero.
+    /// Optional forecast score on the documented display scale. Null when unavailable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub forecast_score: Option<f64>,
-    /// Share of forecast_score supported by the trader's own resolved-market record rather than the cohort prior: n / (n + 30). Omitted when forecast_score is unavailable.
+    /// Optional measured forecast context. Missing values remain unavailable rather than being inferred.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub forecast_evidence: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -9692,7 +9640,7 @@ pub struct Trader {
     pub stats: TraderStats,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub strategy: Option<TraderStrategy>,
-    /// Per-category performance breakdown (expand=categories or expand[]=categories). Omitted unless expanded. Object keyed by category name; each value is the precomputed trader_rankings.category_ranks payload (rank, total_in_category, total_pnl, scaled_total_pnl, n_markets, wins, losses, win_rate; scaled_total_pnl is a legacy alias that currently equals total_pnl). RANK BASIS: rank and total_in_category use the same hourly breakpoint publication; categories absent from that publication are omitted until a later publication includes them. Current trader performance values update separately, so this is not a frozen historical record. BASIS: the calibration sample, which admits a position only above a 20 USD notional floor and with a chosen-side entry price strictly inside (0,1), because the ranks and the calibration edge derived from it depend on both rules. That is a different sample from GET /api/v1/trader/{address}/categories, which counts every settled market at any size, and the two differ in both directions. Measured on production 2026-09-22 over the 122,497 wallet-category pairs with at least 20 decided markets on both bases: the floored rate was higher in 56.5% of pairs, lower in 34.5% and equal in 9.0%, median +0.6 points, p10 -4.6, p90 +9.8, and 14.0% of pairs differ by 10 points or more. The difference is not only small positions: on a 1-in-250 wallet sample the same day, admitted markets won 56.6% while markets dropped by the notional floor alone won 45.2% and markets dropped by the entry-price rule alone won 48.7%. n_markets counts every admitted market including the ones that resolved at exactly zero P&L, so it is not the denominator of win_rate: it differed from wins + losses in 15.8% of pairs with at least 5 decided markets. The two tables also run on different clocks, this one updated incrementally and that route rebuilt daily, so a same-day read can differ on timing alone. Use this for rank context and that route for the wallet's plain record. Pass-through DB JSON: keys and value shape are DB-owned, so the inner shape is intentionally unconstrained and may carry additional compatibility fields.
+    /// Per-category rank context when expand=categories is requested. Values include available rank, category totals, performance and record counts; scaled_total_pnl is a legacy alias of total_pnl. Its measurement basis and update timing differ from the plain record returned by GET /api/v1/trader/{address}/categories, so the two need not agree. Use this for rank context and that route for the plain record. The inner key-set is intentionally unconstrained and may contain additional compatibility fields.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_strengths: Option<serde_json::Map<String, serde_json::Value>>,
     /// Curated advanced risk/performance metrics (expand=quant_metrics or expand[]=quant_metrics). Omitted unless expanded and backed by a computed row strictly under six hours old; a missing row, NULL computed_at, or age of exactly six hours or more is stale and omitted. Provider-input changes may intentionally lag inside the bounded six-hour window. When present, all listed fields are present (each is a number or null); null means insufficient trade history and must not be treated as 0. The fixed field shape is unchanged.
@@ -10394,7 +10342,7 @@ pub struct TraderPnlYearTotalsItem {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct TraderQuantMetrics {
-    /// Composite skill score, 0-100. smart_score = clamp(0, 100, 30*sharpe_percentile_fraction + 20*profit_factor_percentile_fraction + 20*edge_consistency_percentile_fraction + 10*min(1, return_on_capital/2) + 10*equity_smoothness + 10*(1 - min(1, asset_concentration))). Higher is better. null when insufficient history.
+    /// Trader smart score on a 0..100 display scale; higher is stronger. Null when unavailable.
     #[serde(default)]
     pub smart_score: Option<f64>,
     /// Copyability score, 0-100. Same base as smart_score minus penalties for traits that make a strategy hard to replicate: -20 if fewer than 50 markets traded, -15 if positions are highly concentrated, -15 if position sizing exceeds about 2x Kelly, -10 if the worst single-trade loss exceeds 30%, -10 if edge is inconsistent; result clamped to 0-100. Higher means easier to follow. null when insufficient history.

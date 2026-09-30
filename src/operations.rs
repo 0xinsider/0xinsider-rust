@@ -11,6 +11,15 @@ use crate::pagination::{CursorParams, ListPage};
 use crate::{Client, Download, Operation, Result, RetryClass};
 
 impl Operation {
+    /// `GET /api/v1/pick-of-the-day/ledger/{pick_id}`
+    pub const GET_PICK_OF_THE_DAY_LEDGER_ENTRY: Operation = Operation {
+        id: "getPickOfTheDayLedgerEntry",
+        method: "GET",
+        path: "/api/v1/pick-of-the-day/ledger/{pick_id}",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: false,
+    };
     /// `GET /api/v1`
     pub const GET_API_DISCOVERY: Operation = Operation {
         id: "getApiDiscovery",
@@ -798,6 +807,7 @@ impl Operation {
 
 /// Every operation in the OpenAPI document, in document order.
 pub const OPERATIONS: &[Operation] = &[
+    Operation::GET_PICK_OF_THE_DAY_LEDGER_ENTRY,
     Operation::GET_API_DISCOVERY,
     Operation::REDIRECT_API_OPENAPI_SPEC,
     Operation::REGISTER_AGENT,
@@ -886,6 +896,28 @@ pub const OPERATIONS: &[Operation] = &[
     Operation::DOWNLOAD_WHALE_DATASET,
     Operation::CANCEL_WHALE_DATASET,
 ];
+
+/// Optional parameters for [`Client::get_pick_of_the_day_ledger_entry`] (`GET /api/v1/pick-of-the-day/ledger/{pick_id}`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct GetPickOfTheDayLedgerEntryParams {
+    /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
+    ///
+    /// Sent as the `If-None-Match` header.
+    pub if_none_match: Option<String>,
+}
+
+impl GetPickOfTheDayLedgerEntryParams {
+    /// Sets `If-None-Match`.
+    #[must_use]
+    pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
+        self.if_none_match = Some(value.into());
+        self
+    }
+}
 
 /// Optional parameters for [`Client::get_trader`] (`GET /api/v1/trader/{address}`).
 ///
@@ -3392,6 +3424,25 @@ impl SubmitTraderExportParams {
 }
 
 impl Client {
+    /// Read a pick proof by stable id
+    ///
+    /// `GET /api/v1/pick-of-the-day/ledger/{pick_id}`
+    ///
+    /// Public read of one published pick by its stable decimal-string pick_id. Same proof gating, canonical bytes, ETag and integrity failures as the ledger. Invalid ids return 400; absent or unpublished picks return 404.
+    pub async fn get_pick_of_the_day_ledger_entry(
+        &self,
+        pick_id: &str,
+        params: &GetPickOfTheDayLedgerEntryParams,
+    ) -> Result<GetPickOfTheDayLedgerEntryResponse> {
+        let path = format!(
+            "/api/v1/pick-of-the-day/ledger/{pick_id}",
+            pick_id = encode_path_segment(pick_id)
+        );
+        let mut call = Call::new(&Operation::GET_PICK_OF_THE_DAY_LEDGER_ENTRY, path);
+        call.header("If-None-Match", params.if_none_match.as_deref());
+        self.send_json(call).await
+    }
+
     /// API discovery
     ///
     /// `GET /api/v1`
@@ -3433,7 +3484,7 @@ impl Client {
     ///
     /// `GET /api/v1/trader/{address}`
     ///
-    /// Returns a trader's grade (S through F; ranked about 95% by realized profit, with calibration, track record, and consistency as a tie-breaker and proven-trader guardrails), P&L, win rate, and optional strategy/category data. The path accepts either an Ethereum wallet address, a known trader username, or a trd_-prefixed trader ID emitted by this API. A wallet address this API does not track yet returns 200 with sync_status "unknown" instead of 404, so it can be polled. A value that is not a wallet address and matches no username or trader ID this API knows returns 404 not_found with error.param address; it is never echoed back as a trader address. The additive `pnl.exact.realized` and `stats.exact.total_volume` fields carry decimal strings from verified source atoms with unit, scale and basis metadata; parse them with decimal-safe arithmetic and keep the existing numeric twins for display.
+    /// Returns a trader's grade (S through F), P&L, win rate, and optional strategy/category data. The path accepts either an Ethereum wallet address, a known trader username, or a trd_-prefixed trader ID emitted by this API. A wallet address this API does not track yet returns 200 with sync_status "unknown" instead of 404, so it can be polled. A value that is not a wallet address and matches no username or trader ID this API knows returns 404 not_found with error.param address; it is never echoed back as a trader address. The additive `pnl.exact.realized` and `stats.exact.total_volume` fields carry decimal strings from verified source atoms with unit, scale and basis metadata; parse them with decimal-safe arithmetic and keep the existing numeric twins for display.
     pub async fn get_trader(&self, address: &str, params: &GetTraderParams) -> Result<GetTraderResponse> {
         let path = format!("/api/v1/trader/{address}", address = encode_path_segment(address));
         let mut call = Call::new(&Operation::GET_TRADER, path);
@@ -4023,15 +4074,15 @@ impl Client {
     ///
     /// `GET /api/v1/pick-of-the-day`
     ///
-    /// Returns the published picks for the current product day. Pro tier.
+    /// Returns published picks for the current product day. Pro tier.
     ///
-    /// `picks` holds up to ten ranked picks. Each pick carries the backed side, the pre-game price, the flat stake (`stake_usd`, 1000) and its return (`return_usd`; `return_per_100` keeps the literal $100 basis), the sharp-money holders, the grade, and a thesis. The price is frozen before kickoff. A prior day's pick never appears here; read the archive for it.
+    /// `picks` holds up to ten selections with the selected side, game context, frozen publication price, modeled stake and return, holder positions and grades, and execution permission when available. `publication_order` describes presentation, and `is_free_selection` describes access; neither is a quality rating.
     ///
-    /// `scheduled_picks` lists same-day slots that are selected but not released yet. Each slot exposes only `pick_rank`, `release_at`, and `kickoff`.
+    /// New eligible selections use a neutral presentation order. Standing selections retain their identity, slot, and release schedule, and later additions fill available slots. Historical IDs, order, and proof bytes remain unchanged.
     ///
-    /// When no pick is published for the current product day, the endpoint returns `404` with `error.code="not_found"` and `error.reason="pick_not_released"`. Branch on the reason; the code is frozen. The `404` is a schedule, not an outage.
+    /// `scheduled_picks` contains selected but unreleased slots with `pick_rank`, `release_at`, and `kickoff`. A prior day's pick never appears here; use the archive for past results.
     ///
-    /// Do not poll. Read `Retry-After` or `error.retry_at` and schedule one request for that instant. The `404` response below says how the instant is chosen.
+    /// When no pick is published for the current product day, the endpoint returns `404` with `error.code="not_found"` and `error.reason="pick_not_released"`. Branch on the reason and schedule one request using `Retry-After` or `error.retry_at` instead of polling.
     pub async fn get_pick_of_the_day(&self, params: &GetPickOfTheDayParams) -> Result<GetPickOfTheDayResponse> {
         let path = String::from("/api/v1/pick-of-the-day");
         let mut call = Call::new(&Operation::GET_PICK_OF_THE_DAY, path);
@@ -4043,11 +4094,13 @@ impl Client {
     ///
     /// `GET /api/v1/pick-of-the-day/archive`
     ///
-    /// Returns every published pick with its outcome, unit score, closing-line value, and the rolling hit rate.
+    /// Returns every published pick with its outcome, modeled return, unit score, closing-line value, and the cumulative record.
     ///
-    /// Resolved picks are public. A pending pick's backed side appears only for an authenticated Pro key.
+    /// Resolved picks are public. A pending pick's selected side appears only for an authenticated Pro key.
     ///
-    /// Each row carries a CLV value or the reason it was not measured. Coverage divides measured rows by resolved rows published before kickoff. A post-kickoff publication is `not_applicable`.
+    /// Historical picks retain their original IDs, order, and proof bytes. `publication_order` describes presentation, and `is_free_selection` records access designation; neither is a quality rating. New selections use a neutral presentation order, while standing selections retain their identity, slot, and release schedule.
+    ///
+    /// Each row carries a CLV value or the reason it was not measured. Coverage is the share of resolved picks published before kickoff that have measured CLV. A post-kickoff publication is `not_applicable`.
     pub async fn get_pick_of_the_day_archive(
         &self,
         params: &GetPickOfTheDayArchiveParams,
@@ -5060,7 +5113,7 @@ impl Client {
     ///
     /// `GET /api/v1/trader/{address}/export/download`
     ///
-    /// Redirects (302) to a short-lived presigned URL for the finished export file while the job status is 'ready' and expires_at has not passed. The file is gzip-compressed and served with the format's Content-Type (application/json, application/x-ndjson, or text/csv). Returns 400 while the job is queued, running, cancel_requested or reconciling (poll the status route first) and for a failed or cancelled job (submit a new export); returns 410 with error.code not_found and error.reason export_expired once the retention window has passed or the file has been retired, so the redirect never points at a file that is gone.
+    /// Redirects (302) to a presigned URL lasting at most one hour and no later than the job's expires_at for the finished export file while the job status is 'ready' and expires_at has not passed. The file is gzip-compressed and served with the format's Content-Type (application/json, application/x-ndjson, or text/csv). Returns 400 while the job is queued, running, cancel_requested or reconciling (poll the status route first) and for a failed or cancelled job (submit a new export); returns 410 with error.code not_found and error.reason export_expired once the retention window has passed, less than one whole second remains when signing, or the file has been retired, so the redirect never points at a file that is gone.
     ///
     /// The API answers with a redirect to the file. It is followed once, by a fresh
     /// request that carries no credential, and the file comes back as a streaming

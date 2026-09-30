@@ -70,7 +70,6 @@ ENUM_NAME_OVERRIDES = {
     "initialize": "McpMethod",  # the MCP JSON-RPC request method
     "provider": "TrustSourceKind",  # TrustSource.kind
     "learn": "ContentKind",  # ContentSearchResult.kind
-    "v1": "ExpertDefinition",  # PickOfTheDayQualifyingExpert.source
 }
 
 # Names for inline objects whose natural name (owner + property) is a component's.

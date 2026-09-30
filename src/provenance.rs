@@ -17,4 +17,4 @@ pub const APP_REPOSITORY: &str = "0xinsider/0xinsider";
 /// The document's path in that repository.
 pub const APP_SPEC_PATH: &str = "web/public/api/v1/openapi.json";
 /// The app repository commit that last changed the document, or `None` when it could not be resolved.
-pub const APP_COMMIT: Option<&str> = Some("f651cbfa3e9e8b9c9e86be68f299a6c4f72e207f");
+pub const APP_COMMIT: Option<&str> = Some("e0e77bbf198862553e626ed93e21dcef73df3b64");

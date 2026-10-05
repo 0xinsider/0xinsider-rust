@@ -11,15 +11,6 @@ use crate::pagination::{CursorParams, ListPage};
 use crate::{Client, Download, Operation, Result, RetryClass};
 
 impl Operation {
-    /// `GET /api/v1/pick-of-the-day/ledger/{pick_id}`
-    pub const GET_PICK_OF_THE_DAY_LEDGER_ENTRY: Operation = Operation {
-        id: "getPickOfTheDayLedgerEntry",
-        method: "GET",
-        path: "/api/v1/pick-of-the-day/ledger/{pick_id}",
-        accept: "application/json",
-        retry: RetryClass::Read,
-        requires_credential: false,
-    };
     /// `GET /api/v1`
     pub const GET_API_DISCOVERY: Operation = Operation {
         id: "getApiDiscovery",
@@ -803,11 +794,37 @@ impl Operation {
         retry: RetryClass::Never,
         requires_credential: true,
     };
+    /// `GET /api/v1/pick-of-the-day/ledger/{pick_id}`
+    pub const GET_PICK_OF_THE_DAY_LEDGER_ENTRY: Operation = Operation {
+        id: "getPickOfTheDayLedgerEntry",
+        method: "GET",
+        path: "/api/v1/pick-of-the-day/ledger/{pick_id}",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: false,
+    };
+    /// `POST /api/v1/webhooks/{id}/verification-attempts`
+    pub const CREATE_WEBHOOK_VERIFICATION_ATTEMPT: Operation = Operation {
+        id: "createWebhookVerificationAttempt",
+        method: "POST",
+        path: "/api/v1/webhooks/{id}/verification-attempts",
+        accept: "application/json",
+        retry: RetryClass::Keyed,
+        requires_credential: true,
+    };
+    /// `GET /api/v1/webhooks/{id}/verification-attempts/{attempt_id}`
+    pub const GET_WEBHOOK_VERIFICATION_ATTEMPT: Operation = Operation {
+        id: "getWebhookVerificationAttempt",
+        method: "GET",
+        path: "/api/v1/webhooks/{id}/verification-attempts/{attempt_id}",
+        accept: "application/json",
+        retry: RetryClass::Read,
+        requires_credential: true,
+    };
 }
 
 /// Every operation in the OpenAPI document, in document order.
 pub const OPERATIONS: &[Operation] = &[
-    Operation::GET_PICK_OF_THE_DAY_LEDGER_ENTRY,
     Operation::GET_API_DISCOVERY,
     Operation::REDIRECT_API_OPENAPI_SPEC,
     Operation::REGISTER_AGENT,
@@ -895,29 +912,10 @@ pub const OPERATIONS: &[Operation] = &[
     Operation::GET_WHALE_DATASET_STATUS,
     Operation::DOWNLOAD_WHALE_DATASET,
     Operation::CANCEL_WHALE_DATASET,
+    Operation::GET_PICK_OF_THE_DAY_LEDGER_ENTRY,
+    Operation::CREATE_WEBHOOK_VERIFICATION_ATTEMPT,
+    Operation::GET_WEBHOOK_VERIFICATION_ATTEMPT,
 ];
-
-/// Optional parameters for [`Client::get_pick_of_the_day_ledger_entry`] (`GET /api/v1/pick-of-the-day/ledger/{pick_id}`).
-///
-/// Start from `Default::default()` and set what you need, through the field or the
-/// chainable setter of the same name.
-#[derive(Debug, Clone, Default, PartialEq)]
-#[non_exhaustive]
-pub struct GetPickOfTheDayLedgerEntryParams {
-    /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
-    ///
-    /// Sent as the `If-None-Match` header.
-    pub if_none_match: Option<String>,
-}
-
-impl GetPickOfTheDayLedgerEntryParams {
-    /// Sets `If-None-Match`.
-    #[must_use]
-    pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
-        self.if_none_match = Some(value.into());
-        self
-    }
-}
 
 /// Optional parameters for [`Client::get_trader`] (`GET /api/v1/trader/{address}`).
 ///
@@ -1910,7 +1908,7 @@ pub struct ListLeaderboardParams {
     pub cursor: Option<String>,
     /// Filter by category. Values are matched to canonical category buckets: political variants (Elections, Global Politics, U.S. Politics, ...) fold into Politics, Geopolitics stays distinct, Culture/Entertainment map to Pop Culture, Science maps to Science & Tech, and Finance/Business map to Stocks. Mapped buckets are case-insensitive; passthrough categories (Crypto, NBA, and the sports leagues) match case-sensitively against the provider-native bucket key, so use exact casing (e.g. Crypto, NBA).
     pub category: Option<String>,
-    /// Filter by ML-detected strategy type. Values come from backend/crates/analytics/src/trader_analysis/classification/decision_tree.rs and are matched exactly against ml_trader_category.primary_type. Values outside the declared enum return HTTP 400.
+    /// Filter by observed trading style. Current styles: two_sided, category_focused, high_activity, diversified, mixed, unclassified. The original ten archetype identifiers remain accepted for historical rows until normal reclassification. Style describes recorded behavior; grade measures performance.
     pub strategy: Option<Strategy>,
     /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
     ///
@@ -2580,7 +2578,7 @@ pub struct GetMarketHoldersParams {
     pub min_grade: Option<MarketHolderGrade>,
     /// Maximum holders per page. Out-of-range values are clamped to 1..100.
     pub limit: Option<i64>,
-    /// Opaque pagination cursor from the previous response's next_cursor. It encodes a page of one shared roster, so it stays valid across the roster's refresh, but a page read after a refresh can repeat or skip a holder.
+    /// Opaque pagination cursor from the previous response's next_cursor. New cursors carry an absolute next offset bound to normalized condition_id, outcome and effective min_grade, so limit can change without skipping or repeating rows on the same roster. Different market/filter bindings return 400 bad_request with param=cursor; omitted filters match all/B and mkt_-prefixed IDs match their raw condition_id. Legacy page-only cursors remain accepted without scheduled retirement and require their original limit; their next response emits the new format. A cursor remains valid across roster refreshes, which can still repeat or skip holders as the live roster changes.
     pub cursor: Option<String>,
     /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
     ///
@@ -3423,26 +3421,51 @@ impl SubmitTraderExportParams {
     }
 }
 
-impl Client {
-    /// Read a pick proof by stable id
+/// Optional parameters for [`Client::get_pick_of_the_day_ledger_entry`] (`GET /api/v1/pick-of-the-day/ledger/{pick_id}`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct GetPickOfTheDayLedgerEntryParams {
+    /// Conditional GET validator from a previous ETag. Matching values return 304 Not Modified with an empty body.
     ///
-    /// `GET /api/v1/pick-of-the-day/ledger/{pick_id}`
-    ///
-    /// Public read of one published pick by its stable decimal-string pick_id. Same proof gating, canonical bytes, ETag and integrity failures as the ledger. Invalid ids return 400; absent or unpublished picks return 404.
-    pub async fn get_pick_of_the_day_ledger_entry(
-        &self,
-        pick_id: &str,
-        params: &GetPickOfTheDayLedgerEntryParams,
-    ) -> Result<GetPickOfTheDayLedgerEntryResponse> {
-        let path = format!(
-            "/api/v1/pick-of-the-day/ledger/{pick_id}",
-            pick_id = encode_path_segment(pick_id)
-        );
-        let mut call = Call::new(&Operation::GET_PICK_OF_THE_DAY_LEDGER_ENTRY, path);
-        call.header("If-None-Match", params.if_none_match.as_deref());
-        self.send_json(call).await
-    }
+    /// Sent as the `If-None-Match` header.
+    pub if_none_match: Option<String>,
+}
 
+impl GetPickOfTheDayLedgerEntryParams {
+    /// Sets `If-None-Match`.
+    #[must_use]
+    pub fn if_none_match(mut self, value: impl Into<String>) -> Self {
+        self.if_none_match = Some(value.into());
+        self
+    }
+}
+
+/// Optional parameters for [`Client::create_webhook_verification_attempt`] (`POST /api/v1/webhooks/{id}/verification-attempts`).
+///
+/// Start from `Default::default()` and set what you need, through the field or the
+/// chainable setter of the same name.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct CreateWebhookVerificationAttemptParams {
+    /// Optional safe-retry key. Reuse the same value only when retrying the exact same mutation request body; a different body returns 422 and an in-flight matching request returns 409.
+    ///
+    /// Sent as the `Idempotency-Key` header.
+    pub idempotency_key: Option<String>,
+}
+
+impl CreateWebhookVerificationAttemptParams {
+    /// Sets `Idempotency-Key`.
+    #[must_use]
+    pub fn idempotency_key(mut self, value: impl Into<String>) -> Self {
+        self.idempotency_key = Some(value.into());
+        self
+    }
+}
+
+impl Client {
     /// API discovery
     ///
     /// `GET /api/v1`
@@ -4074,15 +4097,17 @@ impl Client {
     ///
     /// `GET /api/v1/pick-of-the-day`
     ///
-    /// Returns published picks for the current product day. Pro tier.
+    /// Returns entitled published picks for the current product day. Pro includes five selections in total: the designated free selection and the first four non-free selections in publication order. Max opens every available selection, up to fifteen. A day may contain up to two verified compatible selections per game: a team's full-game moneyline and handicap. Each selection retains its individual requirements. Same-game picks share exposure and need not be independent; retain each `pick_id` instead of deduplicating by game. Both read resolved picks. Publication prices and backing are frozen; a prior day never appears here, so use the archive.
     ///
-    /// `picks` holds up to ten selections with the selected side, game context, frozen publication price, modeled stake and return, holder positions and grades, and execution permission when available. `publication_order` describes presentation, and `is_free_selection` describes access; neither is a quality rating.
+    /// Stable `pick_id` values identify selections. `publication_order` describes presentation and `is_free_selection` describes access; neither is a quality rating. Standing selections retain their identity, slot, and release schedule. Later additions fill available slots. Historical IDs, order, and proof bytes remain unchanged.
     ///
-    /// New eligible selections use a neutral presentation order. Standing selections retain their identity, slot, and release schedule, and later additions fill available slots. Historical IDs, order, and proof bytes remain unchanged.
+    /// Unauthorized unresolved selections appear only as identity-free `locked_picks` containing `pick_rank` and `required_tier`. When only locked selections are published, HTTP 200 carries `state=none`, `picks=[]`, `pick_count=0`, and an Upgrade to Max message. Proof warming applies only to entitled picks.
     ///
-    /// `scheduled_picks` contains selected but unreleased slots with `pick_rank`, `release_at`, and `kickoff`. A prior day's pick never appears here; use the archive for past results.
+    /// `scheduled_picks` contains only entitled slots and retains required `release_at` and `kickoff`. Unauthorized scheduled selections expose no game identity or release time.
     ///
-    /// When no pick is published for the current product day, the endpoint returns `404` with `error.code="not_found"` and `error.reason="pick_not_released"`. Branch on the reason and schedule one request using `Retry-After` or `error.retry_at` instead of polling.
+    /// When no pick is published, HTTP 404 carries `error.code="not_found"` and `error.reason="pick_not_released"`. Branch on the reason and schedule one request using `Retry-After` or `error.retry_at` instead of polling. This advisory retry does not reveal an unauthorized game's release time.
+    ///
+    /// Final sporting scores are retained for resolved picks after the event is confirmed ended and both sides have verified scores. A result without a verified final stays unavailable; a win/loss outcome alone does not establish a sporting score. Existing sports_context fields and return calculations are unchanged.
     pub async fn get_pick_of_the_day(&self, params: &GetPickOfTheDayParams) -> Result<GetPickOfTheDayResponse> {
         let path = String::from("/api/v1/pick-of-the-day");
         let mut call = Call::new(&Operation::GET_PICK_OF_THE_DAY, path);
@@ -4094,13 +4119,11 @@ impl Client {
     ///
     /// `GET /api/v1/pick-of-the-day/archive`
     ///
-    /// Returns every published pick with its outcome, modeled return, unit score, closing-line value, and the cumulative record.
+    /// Returns every published pick with its outcome, modeled return, unit score, closing-line value, and cumulative record. Resolved game details and results are public. For unauthorized unresolved selections, game identity, category, image, publication time, and backed facts are omitted; `required_tier` and `backed_side_locked` provide an upgrade action. Pro includes the designated free selection and the first four non-free selections in publication order, five in total. Max opens every available selection, up to fifteen.
     ///
-    /// Resolved picks are public. A pending pick's selected side appears only for an authenticated Pro key.
+    /// Stable `pick_id` values identify selections. Historical picks retain their original IDs, order, and proof bytes. `publication_order` describes presentation and `is_free_selection` records access designation; neither is a quality rating. New selections use a neutral presentation order, while standing selections retain their identity, slot, and release schedule.
     ///
-    /// Historical picks retain their original IDs, order, and proof bytes. `publication_order` describes presentation, and `is_free_selection` records access designation; neither is a quality rating. New selections use a neutral presentation order, while standing selections retain their identity, slot, and release schedule.
-    ///
-    /// Each row carries a CLV value or the reason it was not measured. Coverage is the share of resolved picks published before kickoff that have measured CLV. A post-kickoff publication is `not_applicable`.
+    /// Each row carries measured CLV or the reason it was not measured. Coverage is the share of resolved picks published before kickoff that have measured CLV. A post-kickoff publication is `not_applicable`.
     pub async fn get_pick_of_the_day_archive(
         &self,
         params: &GetPickOfTheDayArchiveParams,
@@ -4117,11 +4140,11 @@ impl Client {
     ///
     /// Returns the pre-game commitment for every published pick, so the public track record can be checked by someone who was not watching when the pick dropped.
     ///
-    /// One entry per (pick_date, pick_rank), ascending by pick_date then pick_rank, in one of three states. `sealed` is a live pick: the hash, the algorithm, the seal instant and the kickoff, and nothing that states a side or a price. `opened` is a settled pick: the nonce and the exact canonical payload the hash was taken over. `uncommitted` is a pick with no commitment -- published before the scheme existed, or one that reached kickoff unsealed -- named rather than omitted.
+    /// One entry per (pick_date, pick_rank), ascending by pick_date then pick_rank, in one of three states. `sealed` is a live pick: the hash, the algorithm, the seal instant, and nothing that states a side or a price. `opened` is a settled pick: the nonce and the exact canonical payload the hash was taken over. `uncommitted` is a pick with no commitment -- published before the scheme existed, or one that reached kickoff unsealed -- named rather than omitted.
     ///
     /// To verify an opened entry: serialize nothing. Take the bytes of the `payload` object exactly as received, append the `commitment_nonce` decoded from hex, and sha256 the result; it equals `commitment_hash`. The payload is canonical JSON -- keys sorted by UTF-8 byte value, no insignificant whitespace, decimals as strings at full stored precision, timestamps whole-second UTC with a literal Z -- and it is served byte for byte as it was hashed.
     ///
-    /// This is a proof contract, not the archive's display contract: nothing here is formatted for rendering, so an entry changes only when the pick does. A commitment is never written after kickoff and never rewritten by an outcome correction; `resolved_at` moving under an unchanged `commitment_hash` is a corrected market re-mapping an already-settled pick.
+    /// This is a proof contract, not the archive's display contract: nothing here is formatted for rendering, so an entry changes only when the pick does. Unresolved ledger entries omit game identity and kickoff; sealed_at remains public commitment provenance. A commitment is never written after kickoff and never rewritten by an outcome correction; `resolved_at` moving under an unchanged `commitment_hash` is a corrected market re-mapping an already-settled pick.
     pub async fn get_pick_of_the_day_ledger(
         &self,
         params: &GetPickOfTheDayLedgerParams,
@@ -5083,7 +5106,7 @@ impl Client {
     ///
     /// `GET /api/v1/trader/{address}/export/status`
     ///
-    /// Returns the job resource for a submitted export: status (queued | running | cancel_requested | reconcile_required | ready | failed | expired | cancelled), terminal, next_action and poll_after_s, the lifecycle timestamps, the retention window (expires_at) and, once the file is written, data_as_of and the artifact identity. A ready job past expires_at reads expired; a queued or reconciling job past expires_at reads failed. A running job its owner cancelled reads cancel_requested until the worker stops, then cancelled. failed, cancelled and expired jobs stay readable for 48 hours, then 404.
+    /// Returns the job resource for a submitted export: status (queued | running | cancel_requested | reconcile_required | ready | failed | expired | cancelled), terminal, next_action and poll_after_s, the lifecycle timestamps, the retention window (expires_at) and, once the file is written, data_as_of and the artifact identity. A ready job past expires_at reads expired; a queued, running or reconciling job past expires_at reads failed. Work stops at retention safe points; completion and reconciliation cannot publish ready after expiry. The failure event carries failure_reason expired_before_completion and next_action resubmit; delivery never extends retention. A running job its owner cancelled reads cancel_requested until the worker stops, then cancelled. failed, cancelled and expired jobs stay readable for 48 hours, then 404.
     pub async fn get_trader_export_status(&self, address: &str, job_id: i64) -> Result<TraderExportJob> {
         let path = format!(
             "/api/v1/trader/{address}/export/status",
@@ -5132,7 +5155,7 @@ impl Client {
     ///
     /// `GET /api/v1/usage`
     ///
-    /// Returns the authenticated caller sliding-window request budget, UTC-day usage and monthly quota. This control-plane endpoint remains available for a valid credential after paid data access lapses and does not increment the primary Redis rate-limit counter, monthly quota or API usage table; it shares a separate 100 reads/minute per-user inspection bucket with GET /api/v1/me. UTC-day totals use finalized quarter-hour rollups plus the disjoint raw interval through request time; unavailable rollup progress returns an error.
+    /// Returns the authenticated caller sliding-window request budget, UTC-day usage and monthly quota. This control-plane endpoint remains available for a valid credential after paid data access lapses and does not increment the primary Redis rate-limit counter, monthly quota or API usage table; it shares a separate 100 reads/minute per-user inspection bucket with GET /api/v1/me. UTC-day totals use finalized quarter-hour rollups plus the disjoint raw interval through request time; unavailable rollup progress returns an error. Late accounting records retain their original UTC day when closed-period usage is read or the monthly budget is rebuilt. Current periods reflect persisted records and remain provisional; quota limits, prices and response fields are unchanged.
     pub async fn get_usage(&self) -> Result<Usage> {
         let path = String::from("/api/v1/usage");
         let call = Call::new(&Operation::GET_USAGE, path);
@@ -5210,6 +5233,62 @@ impl Client {
     pub async fn cancel_whale_dataset(&self, job_id: i64) -> Result<WhaleDatasetJob> {
         let path = format!("/api/v1/datasets/whale-trades/{job_id}/cancel", job_id = job_id);
         let call = Call::new(&Operation::CANCEL_WHALE_DATASET, path);
+        self.send_json(call).await
+    }
+
+    /// Read a pick proof by stable id
+    ///
+    /// `GET /api/v1/pick-of-the-day/ledger/{pick_id}`
+    ///
+    /// Public read of one published pick by its stable decimal-string pick_id. Same proof gating, canonical bytes, ETag and integrity failures as the ledger. Invalid ids return 400; absent or unpublished picks return 404.
+    pub async fn get_pick_of_the_day_ledger_entry(
+        &self,
+        pick_id: &str,
+        params: &GetPickOfTheDayLedgerEntryParams,
+    ) -> Result<GetPickOfTheDayLedgerEntryResponse> {
+        let path = format!(
+            "/api/v1/pick-of-the-day/ledger/{pick_id}",
+            pick_id = encode_path_segment(pick_id)
+        );
+        let mut call = Call::new(&Operation::GET_PICK_OF_THE_DAY_LEDGER_ENTRY, path);
+        call.header("If-None-Match", params.if_none_match.as_deref());
+        self.send_json(call).await
+    }
+
+    /// Admit asynchronous webhook verification
+    ///
+    /// `POST /api/v1/webhooks/{id}/verification-attempts`
+    ///
+    /// Additive asynchronous consent flow; the legacy POST /verify keeps its synchronous 200/422 behavior and retry policy. Commits one durable attempt and returns 202 without awaiting DNS or the receiver. Send the original verification_token. Optional Idempotency-Key replays the original admission response for the same endpoint/token identity; a changed request returns 422 and an in-flight matching key returns 409. Different keys for the same token revision recover the same attempt, including terminal attempts, without new receiver work. Poll status_url for current state; 202 is admission, not activation. A supervised worker sends the existing signed webhook.verification body with an additional verification_attempt_id and x-0xinsider-verification-attempt header, stable across at-least-once retries. Verify the timestamp/raw-body HMAC and answer 2xx. DNS is public-address-pinned; redirects and proxies are refused and response bodies are not read. Timeout/transport/429/5xx failures retry at most 4 attempts, with 5/15/45-second waits, until the earlier token deadline or 15-minute horizon. Other receiver statuses and URL/security refusals are terminal. Activation requires current owner eligibility, endpoint/token/URL/signing identity, unexpired attempt/token and valid lease. Configuration changes or disable/delete cancel obsolete work. Terminal ciphertext is erased; status exposes no token, signing secret, address or receiver body. History is available for 7 days.
+    pub async fn create_webhook_verification_attempt(
+        &self,
+        id: i64,
+        body: &CreateWebhookVerificationAttemptRequest,
+        params: &CreateWebhookVerificationAttemptParams,
+    ) -> Result<CreateWebhookVerificationAttemptResponse> {
+        let path = format!("/api/v1/webhooks/{id}/verification-attempts", id = id);
+        let mut call = Call::new(&Operation::CREATE_WEBHOOK_VERIFICATION_ATTEMPT, path);
+        call.header("Idempotency-Key", params.idempotency_key.as_deref());
+        call.json(body)?;
+        self.send_json(call).await
+    }
+
+    /// Read webhook verification attempt status
+    ///
+    /// `GET /api/v1/webhooks/{id}/verification-attempts/{attempt_id}`
+    ///
+    /// Fresh primary-database status for one attempt owned by the authenticated account and webhook. queued/running means consent is pending; only verified activates the unchanged endpoint after receiver 2xx. failed/cancelled/expired are terminal. Polling never issues a challenge or restarts work. At expiry the read reports expired immediately, even before the worker persists expiry. A missing, deleted or cross-owner endpoint/attempt returns 404. Outcomes and actual HTTP status are sanitized; no token, ciphertext, signing secret, destination address or receiver response body is returned. Terminal history is retained for 7 days.
+    pub async fn get_webhook_verification_attempt(
+        &self,
+        id: i64,
+        attempt_id: &str,
+    ) -> Result<GetWebhookVerificationAttemptResponse> {
+        let path = format!(
+            "/api/v1/webhooks/{id}/verification-attempts/{attempt_id}",
+            id = id,
+            attempt_id = encode_path_segment(attempt_id)
+        );
+        let call = Call::new(&Operation::GET_WEBHOOK_VERIFICATION_ATTEMPT, path);
         self.send_json(call).await
     }
 }

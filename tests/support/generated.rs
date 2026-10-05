@@ -92,6 +92,12 @@ pub fn decode_response(operation: &str, value: serde_json::Value) -> Option<Resu
         "cancelTraderExport" => Some(check::<TraderExportJob>(value)),
         "getUsage" => Some(check::<Usage>(value)),
         "getAccountIdentity" => Some(check::<AccountIdentity>(value)),
+        "submitWhaleDataset" => Some(check::<WhaleDatasetJob>(value)),
+        "getWhaleDatasetStatus" => Some(check::<WhaleDatasetJob>(value)),
+        "cancelWhaleDataset" => Some(check::<WhaleDatasetJob>(value)),
+        "getPickOfTheDayLedgerEntry" => Some(check::<GetPickOfTheDayLedgerEntryResponse>(value)),
+        "createWebhookVerificationAttempt" => Some(check::<CreateWebhookVerificationAttemptResponse>(value)),
+        "getWebhookVerificationAttempt" => Some(check::<GetWebhookVerificationAttemptResponse>(value)),
         _ => None,
     }
 }
@@ -106,6 +112,8 @@ pub fn decode_body(operation: &str, value: serde_json::Value) -> Option<Result<(
         "updateWebhook" => Some(check::<UpdateWebhookRequest>(value)),
         "verifyWebhook" => Some(check::<VerifyWebhookRequest>(value)),
         "createMcpJsonRpcResponse" => Some(check::<CreateMcpJsonRpcResponseBody>(value)),
+        "submitWhaleDataset" => Some(check::<SubmitWhaleDatasetBody>(value)),
+        "createWebhookVerificationAttempt" => Some(check::<CreateWebhookVerificationAttemptRequest>(value)),
         _ => None,
     }
 }
@@ -154,7 +162,6 @@ pub fn decode_component(name: &str, value: serde_json::Value) -> Option<Result<(
         "TrustReconciliation" => Some(check::<TrustReconciliation>(value)),
         "TrustCompleteness" => Some(check::<TrustCompleteness>(value)),
         "TrustMetadata" => Some(check::<TrustMetadata>(value)),
-        "PickTrust" => Some(check::<PickTrust>(value)),
         "DataQualityGroup" => Some(check::<DataQualityGroup>(value)),
         "DataQuality" => Some(check::<DataQuality>(value)),
         "TraderTrust" => Some(check::<TraderTrust>(value)),
@@ -264,6 +271,20 @@ pub fn decode_component(name: &str, value: serde_json::Value) -> Option<Result<(
         "CategorySkillV2" => Some(check::<CategorySkillV2>(value)),
         "CategorySkillModelReadiness" => Some(check::<CategorySkillModelReadiness>(value)),
         "HolderCategoryEvidence" => Some(check::<HolderCategoryEvidence>(value)),
+        "WhaleDatasetFilters" => Some(check::<WhaleDatasetFilters>(value)),
+        "WhaleDatasetContinuation" => Some(check::<WhaleDatasetContinuation>(value)),
+        "WhaleDatasetGeneration" => Some(check::<WhaleDatasetGeneration>(value)),
+        "WhaleDatasetArtifactManifest" => Some(check::<WhaleDatasetArtifactManifest>(value)),
+        "WhaleDatasetJob" => Some(check::<WhaleDatasetJob>(value)),
+        "WhaleDatasetTrade" => Some(check::<WhaleDatasetTrade>(value)),
+        "PickOfTheDayCommitmentPayloadV1" => Some(check::<PickOfTheDayCommitmentPayloadV1>(value)),
+        "PickOfTheDayCommitmentPayloadV2" => Some(check::<PickOfTheDayCommitmentPayloadV2>(value)),
+        "TennisPoints" => Some(check::<TennisPoints>(value)),
+        "WebhookVerificationAttempt" => Some(check::<WebhookVerificationAttempt>(value)),
+        "CreateWebhookVerificationAttemptRequest" => Some(check::<CreateWebhookVerificationAttemptRequest>(value)),
+        "PickOfTheDayNoEntitledPicks" => Some(check::<PickOfTheDayNoEntitledPicks>(value)),
+        "PickLeadBacker" => Some(check::<PickLeadBacker>(value)),
+        "TennisRanking" => Some(check::<TennisRanking>(value)),
         _ => None,
     }
 }

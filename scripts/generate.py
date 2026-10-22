@@ -61,6 +61,22 @@ SKIPPED_OPERATIONS = {
     "openMcpEventStream": "refused",
 }
 
+
+def retired(operation: dict) -> bool:
+    """A retired operation gets no generated method either, with no entry above.
+
+    Retired means all three: `deprecated: true`, a documented 410, and no 2xx
+    or redirect, so there is no success body to type. A live operation always
+    documents a success response, so this cannot drop one; an operation that
+    documents no success without being retired still stops the generator."""
+    responses = operation.get("responses", {})
+    return (
+        operation.get("deprecated") is True
+        and "410" in responses
+        and not any(code.startswith("2") or code in REDIRECT_CODES for code in responses)
+    )
+
+
 # Names for enum value sets whose most common property name is too generic to
 # stand alone, keyed by the set's first value. A key no set starts with is
 # reported and ignored.
@@ -640,8 +656,8 @@ class Generator:
         count = 0
         for op_id, method, path, operation in self.operations():
             count += 1
-            if op_id in SKIPPED_OPERATIONS:
-                table.append(self.operation_const(op_id, method, path, operation, "text/event-stream" if SKIPPED_OPERATIONS[op_id] == "stream" else "application/json"))
+            if op_id in SKIPPED_OPERATIONS or retired(operation):
+                table.append(self.operation_const(op_id, method, path, operation, "text/event-stream" if SKIPPED_OPERATIONS.get(op_id) == "stream" else "application/json"))
                 continue
             kind, accept, schema, may_be_empty = self.success(operation)
             table.append(self.operation_const(op_id, method, path, operation, accept))

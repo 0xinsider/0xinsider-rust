@@ -68,6 +68,7 @@ wrong number.
 - Everything else under `src/` is hand-written and owned outside the generated files: `client.rs` (configuration, retries, error decoding), `policy.rs` (where a credential may go), `stream.rs` (SSE), `pagination.rs`, `download.rs`, `webhooks.rs`, `error.rs`. See `ARCHITECTURE.md`.
 - A bearer credential goes over `https://` only, or `http://` to a loopback host: `policy.rs` owns that check, `ClientBuilder::build` and every credentialed request run it, the default HTTP client follows no redirects, and `Download` fetches the redirect target without `Authorization` or cookies. Regeneration and new code paths must not route credentials around it.
 - Read `GET /api/v1/stream` with `Client::open_stream` (`stream.rs`), which bounds the bytes held for one frame and fails visibly on a malformed one. The generator deliberately emits no method for it; do not add a path that buffers the unbounded stream.
+- A retired operation (`deprecated: true`, a documented 410, no 2xx or redirect) keeps its `Operation` constant and gets no method: its endpoint answers 410 to every caller. `retired()` in the generator recognizes one, so a retirement needs no generator edit.
 - Keep the public API additive: models and params are `#[non_exhaustive]`, enums keep an `Other(String)` arm, so a regenerate that adds fields or values is not a breaking change.
 - No `unwrap` or `expect` outside tests; a panic only for a proven-infallible case, with the reason beside it. Update `ARCHITECTURE.md` when the module layout changes.
 

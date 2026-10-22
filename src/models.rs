@@ -103,6 +103,59 @@ pub struct ActivateWebhookSecretResponse {
     pub meta: ResponseMeta,
 }
 
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum AdmittedBy {
+    /// `most_held`
+    #[serde(rename = "most_held")]
+    MostHeld,
+    /// `soonest_kickoff`
+    #[serde(rename = "soonest_kickoff")]
+    SoonestKickoff,
+    /// `most_held_48h`
+    #[serde(rename = "most_held_48h")]
+    MostHeld48h,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl AdmittedBy {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::MostHeld => "most_held",
+            Self::SoonestKickoff => "soonest_kickoff",
+            Self::MostHeld48h => "most_held_48h",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for AdmittedBy {
+    fn from(value: &str) -> Self {
+        match value {
+            "most_held" => Self::MostHeld,
+            "soonest_kickoff" => Self::SoonestKickoff,
+            "most_held_48h" => Self::MostHeld48h,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for AdmittedBy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for AdmittedBy {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
 /// A sandbox key and the path to live access (#13959). Nothing is stored: the key cannot be listed or revoked and does not expire. Register again for a new one.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -185,12 +238,12 @@ pub struct ApiErrorBody {
     pub doc_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub param: Option<String>,
-    /// The recommended next retry instant (RFC3339). Present on every retryable error (reason=pick_not_released, code=rate_limited including reason=monthly_quota_exceeded, code=rate_limit_unavailable, reason=read_model_warming) and omitted otherwise. Always in the future. For pick_not_released: before the 11:00 UTC operating-window start, before a selected pick's stored release, or after a skipped day, it names the automatic system's next boundary. While no candidate exists in the live window it normally names the persisted next automatic selector attempt. Every value is advisory and can change before release. When the automatic schedule is absent/due or a pick is overdue it degrades to ~60s. Schedule one request and do not poll. Prefer Retry-After for the duration because it is immune to client clock skew.
+    /// The recommended next retry instant (RFC3339). Present on every retryable error (reason=pick_not_released, code=rate_limited including reason=monthly_quota_exceeded, code=rate_limit_unavailable, reason=read_model_warming) and omitted otherwise. Always in the future. For pick_not_released, the recommendation is advisory and can change before a pick becomes available. Schedule the next request from the returned value instead of inferring a release schedule or polling. Prefer Retry-After for the duration because it is immune to client clock skew.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub retry_at: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub freshness: Option<FreshnessFailure>,
-    /// ADDITIVE (#7209). The specific, actionable cause behind `code`, when there is one more specific than the code itself. `code` keeps its published values, so existing clients are unaffected; new clients branch on `reason`. Omitted when the code already says everything we know. pick_not_released: no Pick of the Day is published for the current product day; schedule one request against retry_at instead of polling. unknown_endpoint: the PATH is not a route on this API -- read GET /api/v1, do not retry. trader_not_tracked: the wallet is real and the URL is right, but the trader is outside the HOT/WARM sync tiers -- stop asking for this wallet. cursor_expired: pagination went stale mid-walk -- re-request the first page and continue. read_model_warming: the requested endpoint cannot serve its read model yet; exact causes are endpoint-specific and can include a cold or contended refresh or a dependency that prevented refresh. database_unavailable: the API's database or its connection pool is temporarily unreachable (a connection-class failure, not a query fault); code stays rate_limit_unavailable, nothing is rate-limited, retry after Retry-After / retry_at. idempotency_in_progress: retain the exact Idempotency-Key and request body, then retry shortly. webhook_delivery_in_progress: retry the URL or signing-secret configuration change after the destination's active request completes. request_accounting_unavailable: accounting capacity is unavailable before the handler executes; retry after Retry-After / retry_at. sandbox_api_key: the credential is a sandbox key (oxi_sk_test_) from POST /api/v1/agents/register, which only the sandbox server accepts -- call the sandbox base URL with it, or get a live key or OAuth access token; do not retry it here. api_key_in_query: the key was sent as a ?token= query parameter, which no route reads because URLs land in logs and history; the key itself was not checked -- resend it as Authorization: Bearer. subscription_inactive: the key is valid but the account's Pro subscription has lapsed (402 subscription_required); permanent until a person reactivates at https://0xinsider.com/billing, which the message names -- stop retrying on a schedule and surface the link. The key owner is emailed once per lapse. monthly_quota_exceeded: the account has used the requests Pro includes for the UTC calendar month (429 rate_limited); retry_at and Retry-After name the first of next month, the only retry that can succeed, and the message names https://0xinsider.com/developers, where pay as you go for requests over the quota is turned on. The X-Monthly-Quota-Limit, X-Monthly-Quota-Remaining and X-Monthly-Quota-Reset headers on every authenticated response say how close the account is. invalid_query, invalid_path, invalid_body (400 bad_request, #16146): a query parameter, a path segment or the JSON body did not parse or does not fit the route's schema, so no handler ran; param names the field when the parser named one (a query key, a path segment, a JSON path such as traders[0], or body); fix the request, never retry it as sent. unsupported_media_type (415 bad_request, param content-type): send the body with Content-Type: application/json. payload_too_large (413 bad_request, param body): the body is over 1048576 bytes. method_not_allowed (405 bad_request): the path is a route but not with this method; the Allow header names the methods it serves. ip_rate_limited (429 rate_limited, #16380): the per-address budget every caller behind one IP shares, counted before authentication, is spent; not the key's own window, and the RateLimit-* headers describe that bucket. ip_throttled (429 rate_limited): the address is in a cooldown after sustained over-limit traffic; Retry-After is minutes to days, and a request before it does not shorten the cooldown.
+    /// ADDITIVE (#7209). The specific, actionable cause behind `code`, when there is one more specific than the code itself. `code` keeps its published values, so existing clients are unaffected; new clients branch on `reason`. Omitted when the code already says everything we know. pick_not_released: no Pick of the Day is published for the current product day; schedule one request against retry_at instead of polling. unknown_endpoint: the PATH is not a route on this API -- read GET /api/v1, do not retry. trader_not_tracked: the wallet is real and the URL is right, but the trader is not on the warm sync tier (the wallets we sync most often) -- stop asking for this wallet. market_out_of_scope (404 not_found, #27303): the market or event is real and the URL is right, but 0xinsider serves sports and esports markets only -- stop asking for this market; neither a retry nor another URL for it can succeed. cursor_expired: pagination went stale mid-walk -- re-request the first page and continue. read_model_warming: the requested endpoint cannot serve its read model yet; exact causes are endpoint-specific and can include a cold or contended refresh or a dependency that prevented refresh. database_unavailable: the API's database or its connection pool is temporarily unreachable (a connection-class failure, not a query fault); code stays rate_limit_unavailable, nothing is rate-limited, retry after Retry-After / retry_at. idempotency_in_progress: retain the exact Idempotency-Key and request body, then retry shortly. webhook_delivery_in_progress: retry the URL or signing-secret configuration change after the destination's active request completes. request_accounting_unavailable: accounting capacity is unavailable before the handler executes; retry after Retry-After / retry_at. sandbox_api_key: the credential is a sandbox key (oxi_sk_test_) from POST /api/v1/agents/register, which only the sandbox server accepts -- call the sandbox base URL with it, or get a live key or OAuth access token; do not retry it here. api_key_in_query: the key was sent as a ?token= query parameter, which no route reads because URLs land in logs and history; the key itself was not checked -- resend it as Authorization: Bearer. subscription_inactive: the key is valid but the account's Pro subscription has lapsed (402 subscription_required); permanent until a person reactivates at https://0xinsider.com/billing, which the message names -- stop retrying on a schedule and surface the link. The key owner is emailed once per lapse. monthly_quota_exceeded: the account has used the requests its plan includes for the UTC calendar month (429 rate_limited); retry_at and Retry-After name the first of next month, the only retry that can succeed, and the message names https://0xinsider.com/developers, where pay as you go for requests over the quota is turned on. The X-Monthly-Quota-Limit, X-Monthly-Quota-Remaining and X-Monthly-Quota-Reset headers on every authenticated response say how close the account is. invalid_query, invalid_path, invalid_body (400 bad_request, #16146): a query parameter, a path segment or the JSON body did not parse or does not fit the route's schema, so no handler ran; param names the field when the parser named one (a query key, a path segment, a JSON path such as traders[0], or body); fix the request, never retry it as sent. unsupported_media_type (415 bad_request, param content-type): send the body with Content-Type: application/json. payload_too_large (413 bad_request, param body): the body is over 1048576 bytes. method_not_allowed (405 bad_request): the path is a route but not with this method; the Allow header names the methods it serves. ip_rate_limited (429 rate_limited, #16380): the per-address budget every caller behind one IP shares, counted before authentication, is spent; not the key's own window, and the RateLimit-* headers describe that bucket. ip_throttled (429 rate_limited): the address is in a cooldown after sustained over-limit traffic; Retry-After is minutes to days, and a request before it does not shorten the cooldown. max_plan_required (403 forbidden, #23085): the key is valid and its account is on Pro, but the route is part of Max (GET /api/v1/edge-hunter); every Pro route keeps working with the same key, so do not disable it. The message names https://0xinsider.com/pricing, where the account upgrades; a retry never clears it. endpoint_retired (410): this legacy sports endpoint no longer serves data. Migrate to GET /api/v1/edge-hunter; retrying the retired path cannot succeed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reason: Option<ErrorReason>,
 }
@@ -210,9 +263,57 @@ pub struct ApiErrorError {
     pub retry_at: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub freshness: Option<FreshnessFailure>,
-    /// ADDITIVE (#7209). The specific, actionable cause behind `code`, when there is one more specific than the code itself. `code` keeps its published values, so existing clients are unaffected; new clients branch on `reason`. Omitted when the code already says everything we know. pick_not_released: no Pick of the Day is published for the current product day; schedule one request against retry_at instead of polling. unknown_endpoint: the PATH is not a route on this API -- read GET /api/v1, do not retry. trader_not_tracked: the wallet is real and the URL is right, but the trader is outside the HOT/WARM sync tiers -- stop asking for this wallet. cursor_expired: pagination went stale mid-walk -- re-request the first page and continue. read_model_warming: the requested endpoint cannot serve its read model yet; exact causes are endpoint-specific and can include a cold or contended refresh or a dependency that prevented refresh. database_unavailable: the API's database or its connection pool is temporarily unreachable (a connection-class failure, not a query fault); code stays rate_limit_unavailable, nothing is rate-limited, retry after Retry-After / retry_at. idempotency_in_progress: retain the exact Idempotency-Key and request body, then retry shortly. webhook_delivery_in_progress: retry the URL or signing-secret configuration change after the destination's active request completes. request_accounting_unavailable: accounting capacity is unavailable before the handler executes; retry after Retry-After / retry_at. sandbox_api_key: the credential is a sandbox key (oxi_sk_test_) from POST /api/v1/agents/register, which only the sandbox server accepts -- call the sandbox base URL with it, or get a live key or OAuth access token; do not retry it here. api_key_in_query: the key was sent as a ?token= query parameter, which no route reads because URLs land in logs and history; the key itself was not checked -- resend it as Authorization: Bearer. subscription_inactive: the key is valid but the account's Pro subscription has lapsed (402 subscription_required); permanent until a person reactivates at https://0xinsider.com/billing, which the message names -- stop retrying on a schedule and surface the link. The key owner is emailed once per lapse. monthly_quota_exceeded: the account has used the requests Pro includes for the UTC calendar month (429 rate_limited); retry_at and Retry-After name the first of next month, the only retry that can succeed, and the message names https://0xinsider.com/developers, where pay as you go for requests over the quota is turned on. The X-Monthly-Quota-Limit, X-Monthly-Quota-Remaining and X-Monthly-Quota-Reset headers on every authenticated response say how close the account is. invalid_query, invalid_path, invalid_body (400 bad_request, #16146): a query parameter, a path segment or the JSON body did not parse or does not fit the route's schema, so no handler ran; param names the field when the parser named one (a query key, a path segment, a JSON path such as traders[0], or body); fix the request, never retry it as sent. unsupported_media_type (415 bad_request, param content-type): send the body with Content-Type: application/json. payload_too_large (413 bad_request, param body): the body is over 1048576 bytes. method_not_allowed (405 bad_request): the path is a route but not with this method; the Allow header names the methods it serves. ip_rate_limited (429 rate_limited, #16380): the per-address budget every caller behind one IP shares, counted before authentication, is spent; not the key's own window, and the RateLimit-* headers describe that bucket. ip_throttled (429 rate_limited): the address is in a cooldown after sustained over-limit traffic; Retry-After is minutes to days, and a request before it does not shorten the cooldown.
+    /// ADDITIVE (#7209). The specific, actionable cause behind `code`, when there is one more specific than the code itself. `code` keeps its published values, so existing clients are unaffected; new clients branch on `reason`. Omitted when the code already says everything we know. pick_not_released: no Pick of the Day is published for the current product day; schedule one request against retry_at instead of polling. unknown_endpoint: the PATH is not a route on this API -- read GET /api/v1, do not retry. trader_not_tracked: the wallet is real and the URL is right, but the trader is not on the warm sync tier (the wallets we sync most often) -- stop asking for this wallet. market_out_of_scope (404 not_found, #27303): the market or event is real and the URL is right, but 0xinsider serves sports and esports markets only -- stop asking for this market; neither a retry nor another URL for it can succeed. cursor_expired: pagination went stale mid-walk -- re-request the first page and continue. read_model_warming: the requested endpoint cannot serve its read model yet; exact causes are endpoint-specific and can include a cold or contended refresh or a dependency that prevented refresh. database_unavailable: the API's database or its connection pool is temporarily unreachable (a connection-class failure, not a query fault); code stays rate_limit_unavailable, nothing is rate-limited, retry after Retry-After / retry_at. idempotency_in_progress: retain the exact Idempotency-Key and request body, then retry shortly. webhook_delivery_in_progress: retry the URL or signing-secret configuration change after the destination's active request completes. request_accounting_unavailable: accounting capacity is unavailable before the handler executes; retry after Retry-After / retry_at. sandbox_api_key: the credential is a sandbox key (oxi_sk_test_) from POST /api/v1/agents/register, which only the sandbox server accepts -- call the sandbox base URL with it, or get a live key or OAuth access token; do not retry it here. api_key_in_query: the key was sent as a ?token= query parameter, which no route reads because URLs land in logs and history; the key itself was not checked -- resend it as Authorization: Bearer. subscription_inactive: the key is valid but the account's Pro subscription has lapsed (402 subscription_required); permanent until a person reactivates at https://0xinsider.com/billing, which the message names -- stop retrying on a schedule and surface the link. The key owner is emailed once per lapse. monthly_quota_exceeded: the account has used the requests its plan includes for the UTC calendar month (429 rate_limited); retry_at and Retry-After name the first of next month, the only retry that can succeed, and the message names https://0xinsider.com/developers, where pay as you go for requests over the quota is turned on. The X-Monthly-Quota-Limit, X-Monthly-Quota-Remaining and X-Monthly-Quota-Reset headers on every authenticated response say how close the account is. invalid_query, invalid_path, invalid_body (400 bad_request, #16146): a query parameter, a path segment or the JSON body did not parse or does not fit the route's schema, so no handler ran; param names the field when the parser named one (a query key, a path segment, a JSON path such as traders[0], or body); fix the request, never retry it as sent. unsupported_media_type (415 bad_request, param content-type): send the body with Content-Type: application/json. payload_too_large (413 bad_request, param body): the body is over 1048576 bytes. method_not_allowed (405 bad_request): the path is a route but not with this method; the Allow header names the methods it serves. ip_rate_limited (429 rate_limited, #16380): the per-address budget every caller behind one IP shares, counted before authentication, is spent; not the key's own window, and the RateLimit-* headers describe that bucket. ip_throttled (429 rate_limited): the address is in a cooldown after sustained over-limit traffic; Retry-After is minutes to days, and a request before it does not shorten the cooldown. max_plan_required (403 forbidden, #23085): the key is valid and its account is on Pro, but the route is part of Max (GET /api/v1/edge-hunter); every Pro route keeps working with the same key, so do not disable it. The message names https://0xinsider.com/pricing, where the account upgrades; a retry never clears it. endpoint_retired (410): this legacy sports endpoint no longer serves data. Migrate to GET /api/v1/edge-hunter; retrying the retired path cannot succeed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reason: Option<ErrorReason>,
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum Basis {
+    /// `midpoint`
+    #[serde(rename = "midpoint")]
+    Midpoint,
+    /// `last_trade`
+    #[serde(rename = "last_trade")]
+    LastTrade,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl Basis {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Midpoint => "midpoint",
+            Self::LastTrade => "last_trade",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for Basis {
+    fn from(value: &str) -> Self {
+        match value {
+            "midpoint" => Self::Midpoint,
+            "last_trade" => Self::LastTrade,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for Basis {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for Basis {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -283,6 +384,7 @@ pub struct BatchMarketFlowItem {
 #[non_exhaustive]
 pub struct BatchRateLimitMeta {
     pub basis: String,
+    /// The batch item budget per minute for the caller's plan: 2500 item units on Pro, 5000 on Max. The same number X-Batch-RateLimit-Limit reports.
     pub limit: i64,
     pub remaining: i64,
     /// Unix timestamp when the batch item window resets.
@@ -456,6 +558,9 @@ pub enum BoardUpcomingUnavailableScopes {
     /// `wnba`
     #[serde(rename = "wnba")]
     Wnba,
+    /// `euroleague-basketball`
+    #[serde(rename = "euroleague-basketball")]
+    EuroleagueBasketball,
     /// `nhl`
     #[serde(rename = "nhl")]
     Nhl,
@@ -497,6 +602,7 @@ impl BoardUpcomingUnavailableScopes {
             Self::Cfb => "cfb",
             Self::Nba => "nba",
             Self::Wnba => "wnba",
+            Self::EuroleagueBasketball => "euroleague-basketball",
             Self::Nhl => "nhl",
             Self::Mls => "mls",
             Self::Valorant => "valorant",
@@ -519,6 +625,7 @@ impl From<&str> for BoardUpcomingUnavailableScopes {
             "cfb" => Self::Cfb,
             "nba" => Self::Nba,
             "wnba" => Self::Wnba,
+            "euroleague-basketball" => Self::EuroleagueBasketball,
             "nhl" => Self::Nhl,
             "mls" => Self::Mls,
             "valorant" => Self::Valorant,
@@ -829,6 +936,69 @@ impl AsRef<str> for CategoryWinRateStatus {
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
+pub enum Changed {
+    /// `scores`
+    #[serde(rename = "scores")]
+    Scores,
+    /// `status`
+    #[serde(rename = "status")]
+    Status,
+    /// `period`
+    #[serde(rename = "period")]
+    Period,
+    /// `live`
+    #[serde(rename = "live")]
+    Live,
+    /// `ended`
+    #[serde(rename = "ended")]
+    Ended,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl Changed {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Scores => "scores",
+            Self::Status => "status",
+            Self::Period => "period",
+            Self::Live => "live",
+            Self::Ended => "ended",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for Changed {
+    fn from(value: &str) -> Self {
+        match value {
+            "scores" => Self::Scores,
+            "status" => Self::Status,
+            "period" => Self::Period,
+            "live" => Self::Live,
+            "ended" => Self::Ended,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for Changed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for Changed {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum ClvApplicability {
     /// `applicable`
     #[serde(rename = "applicable")]
@@ -988,6 +1158,566 @@ impl AsRef<str> for Cohort {
     fn as_ref(&self) -> &str {
         self.as_str()
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct Combo {
+    /// Combo identifier: 0x followed by 62 lowercase hex characters. This differs from a binary market condition ID.
+    pub condition_id: String,
+    #[serde(default)]
+    pub leg_count: Option<i64>,
+    #[serde(default)]
+    pub prepared_at: Option<String>,
+    /// Whether the preparation event has been indexed.
+    pub legs_known: bool,
+    pub legs: Vec<ComboLeg>,
+    #[serde(default)]
+    pub window: Option<ComboWindowStats>,
+    #[serde(default)]
+    pub totals: Option<ComboTotals>,
+    /// Result of the YES conjunction, independent of the wallet side or its P&L.
+    pub status: ComboStatus,
+    /// Reason the conjunction result cannot be verified, when unknown.
+    #[serde(default)]
+    pub status_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ComboCoverage {
+    pub state: ComboCoverageState,
+    pub ingest_enabled: bool,
+    pub cursors: Vec<ComboCoverageCursor>,
+    #[serde(default)]
+    pub max_lag_blocks: Option<i64>,
+    #[serde(default)]
+    pub oldest_cursor_update: Option<String>,
+    #[serde(default)]
+    pub lifecycle_lag_blocks: Option<i64>,
+    pub lifecycle_backfilling: bool,
+    /// Time the coverage state was evaluated; not a market-price timestamp.
+    pub computed_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ComboCoverageCursor {
+    /// Indexed contract.
+    pub contract: String,
+    pub last_block: i64,
+    pub seed_block: i64,
+    pub seed_origin: String,
+    #[serde(default)]
+    pub chain_finalized_block: Option<i64>,
+    #[serde(default)]
+    pub lag_blocks: Option<i64>,
+    pub updated_at: String,
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum ComboCoverageState {
+    /// `paused`
+    #[serde(rename = "paused")]
+    Paused,
+    /// `uninitialized`
+    #[serde(rename = "uninitialized")]
+    Uninitialized,
+    /// `stale`
+    #[serde(rename = "stale")]
+    Stale,
+    /// `backfilling`
+    #[serde(rename = "backfilling")]
+    Backfilling,
+    /// `live`
+    #[serde(rename = "live")]
+    Live,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl ComboCoverageState {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Paused => "paused",
+            Self::Uninitialized => "uninitialized",
+            Self::Stale => "stale",
+            Self::Backfilling => "backfilling",
+            Self::Live => "live",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for ComboCoverageState {
+    fn from(value: &str) -> Self {
+        match value {
+            "paused" => Self::Paused,
+            "uninitialized" => Self::Uninitialized,
+            "stale" => Self::Stale,
+            "backfilling" => Self::Backfilling,
+            "live" => Self::Live,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for ComboCoverageState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for ComboCoverageState {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+/// One combo with its newest 100 fills and all-time lifecycle totals. Paid API callers receive full access.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ComboDetail {
+    pub access: String,
+    pub combo: Combo,
+    pub fills: Vec<ComboFill>,
+    #[serde(default)]
+    pub lifecycle: Option<ComboLifecycleStats>,
+    pub coverage: ComboCoverage,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ComboFill {
+    /// Stable fill identity.
+    pub id: String,
+    pub block_number: i64,
+    pub log_index: i64,
+    pub block_timestamp: String,
+    pub tx_hash: String,
+    /// Taker wallet address.
+    #[serde(default)]
+    pub trader: Option<String>,
+    #[serde(default)]
+    pub trader_name: Option<String>,
+    #[serde(default)]
+    pub trader_grade: Option<Grade>,
+    /// Recorded wallet-wide trade time.
+    #[serde(default)]
+    pub last_traded_at: Option<String>,
+    pub action: Action,
+    /// Combo identifier: 0x followed by 62 lowercase hex characters. This differs from a binary market condition ID.
+    pub condition_id: String,
+    /// 0 is YES, 1 is NO.
+    pub outcome_index: i64,
+    /// Exact decimal string from the stored chain or SQL value; preserve precision until display.
+    pub shares: String,
+    /// Exact decimal string from the stored chain or SQL value; preserve precision until display.
+    pub collateral_usdc: String,
+    /// Execution price for the traded outcome; null for a zero-share event.
+    #[serde(default)]
+    pub price: Option<String>,
+    /// Execution price normalized to YES.
+    #[serde(default)]
+    pub price_yes: Option<String>,
+    /// Exact decimal string from the stored chain or SQL value; preserve precision until display.
+    pub fee_usdc: String,
+    #[serde(default)]
+    pub leg_count: Option<i64>,
+    /// Result of the YES conjunction, independent of the wallet side or its P&L.
+    pub status: ComboStatus,
+    #[serde(default)]
+    pub status_reason: Option<String>,
+    pub won_legs: i64,
+    /// Shares per dollar at execution; not a forecast or guaranteed return.
+    #[serde(default)]
+    pub payout_multiplier: Option<String>,
+    pub legs: Vec<ComboLeg>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ComboFillsResponse {
+    pub object: String,
+    pub data: Vec<ComboFill>,
+    pub sort: ComboFillsResponseSort,
+    pub window: Window,
+    pub limit: i64,
+    pub coverage: ComboCoverage,
+    /// A continuation is available based on page fullness. Its next page may be empty.
+    pub has_more: bool,
+    /// Exclusive block_number:log_index continuation for recent ordering.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
+    /// Continuation offset for largest or payout ordering.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_offset: Option<i64>,
+    pub meta: ResponseMeta,
+    /// Not computed for combo fill pages; omitted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total: Option<i64>,
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum ComboFillsResponseSort {
+    /// `recent`
+    #[serde(rename = "recent")]
+    Recent,
+    /// `largest`
+    #[serde(rename = "largest")]
+    Largest,
+    /// `payout`
+    #[serde(rename = "payout")]
+    Payout,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl ComboFillsResponseSort {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Recent => "recent",
+            Self::Largest => "largest",
+            Self::Payout => "payout",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for ComboFillsResponseSort {
+    fn from(value: &str) -> Self {
+        match value {
+            "recent" => Self::Recent,
+            "largest" => Self::Largest,
+            "payout" => Self::Payout,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for ComboFillsResponseSort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for ComboFillsResponseSort {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ComboLeg {
+    pub leg_index: i64,
+    pub outcome_index: i64,
+    pub module_id: i64,
+    pub state: ComboLegState,
+    #[serde(default)]
+    pub market: Option<ComboLegMarket>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ComboLegMarket {
+    /// Source of the leg facts.
+    pub source: ComboLegMarketSource,
+    /// Full binary CTF condition ID for this leg.
+    pub condition_id: String,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub slug: Option<String>,
+    #[serde(default)]
+    pub event_slug: Option<String>,
+    /// Provider-resolved URL including the referral tag.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub polymarket_url: Option<String>,
+    #[serde(default)]
+    pub outcome_label: Option<String>,
+    #[serde(default)]
+    pub image: Option<String>,
+    #[serde(default)]
+    pub category: Option<String>,
+    /// Provider outcome index; negative sentinels describe void or unresolved states.
+    #[serde(default)]
+    pub winning_outcome: Option<i64>,
+    #[serde(default)]
+    pub resolved_at: Option<String>,
+    /// A closed market may still have no terminal outcome.
+    #[serde(default)]
+    pub market_closed: Option<bool>,
+    /// Stored daily price for this leg outcome token; not a live quote.
+    #[serde(default)]
+    pub pick_price_daily: Option<f64>,
+    /// Observation time of the stored daily price.
+    #[serde(default)]
+    pub pick_price_as_of: Option<String>,
+    /// Whole days since the stored daily bucket.
+    #[serde(default)]
+    pub pick_price_age_days: Option<i64>,
+    /// Unmodified provider leg status when available.
+    #[serde(default)]
+    pub provider_leg_status: Option<String>,
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum ComboLegMarketSource {
+    /// `markets`
+    #[serde(rename = "markets")]
+    Markets,
+    /// `provider`
+    #[serde(rename = "provider")]
+    Provider,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl ComboLegMarketSource {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Markets => "markets",
+            Self::Provider => "provider",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for ComboLegMarketSource {
+    fn from(value: &str) -> Self {
+        match value {
+            "markets" => Self::Markets,
+            "provider" => Self::Provider,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for ComboLegMarketSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for ComboLegMarketSource {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum ComboLegState {
+    /// `pending`
+    #[serde(rename = "pending")]
+    Pending,
+    /// `won`
+    #[serde(rename = "won")]
+    Won,
+    /// `lost`
+    #[serde(rename = "lost")]
+    Lost,
+    /// `void`
+    #[serde(rename = "void")]
+    Void,
+    /// `unknown`
+    #[serde(rename = "unknown")]
+    Unknown,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl ComboLegState {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Pending => "pending",
+            Self::Won => "won",
+            Self::Lost => "lost",
+            Self::Void => "void",
+            Self::Unknown => "unknown",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for ComboLegState {
+    fn from(value: &str) -> Self {
+        match value {
+            "pending" => Self::Pending,
+            "won" => Self::Won,
+            "lost" => Self::Lost,
+            "void" => Self::Void,
+            "unknown" => Self::Unknown,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for ComboLegState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for ComboLegState {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ComboLifecycleStats {
+    pub splits: i64,
+    pub merges: i64,
+    pub redeems: i64,
+    pub compresses: i64,
+    /// Exact decimal string from the stored chain or SQL value; preserve precision until display.
+    pub split_usdc: String,
+    /// Exact decimal string from the stored chain or SQL value; preserve precision until display.
+    pub merge_usdc: String,
+    /// Exact decimal string from the stored chain or SQL value; preserve precision until display.
+    pub redeemed_shares: String,
+    /// Exact decimal string from the stored chain or SQL value; preserve precision until display.
+    pub redeemed_usdc: String,
+    /// Exact decimal string from the stored chain or SQL value; preserve precision until display.
+    pub compressed_usdc: String,
+    pub last_event_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ComboLiveCount {
+    /// Traded combos whose YES conjunction remains pending.
+    pub count: i64,
+    /// Time the count was computed; check its age before using it.
+    pub computed_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ComboResponse {
+    pub object: String,
+    pub data: ComboDetail,
+    pub meta: ResponseMeta,
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum ComboStatus {
+    /// `pending`
+    #[serde(rename = "pending")]
+    Pending,
+    /// `won`
+    #[serde(rename = "won")]
+    Won,
+    /// `lost`
+    #[serde(rename = "lost")]
+    Lost,
+    /// `unknown`
+    #[serde(rename = "unknown")]
+    Unknown,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl ComboStatus {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Pending => "pending",
+            Self::Won => "won",
+            Self::Lost => "lost",
+            Self::Unknown => "unknown",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for ComboStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "pending" => Self::Pending,
+            "won" => Self::Won,
+            "lost" => Self::Lost,
+            "unknown" => Self::Unknown,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for ComboStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for ComboStatus {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ComboTotals {
+    pub fills: i64,
+    /// Exact decimal string from the stored chain or SQL value; preserve precision until display.
+    pub volume_usdc: String,
+    /// Exact decimal string from the stored chain or SQL value; preserve precision until display.
+    pub largest_fill_usdc: String,
+    pub first_fill_at: String,
+    pub last_fill_at: String,
+    /// Last taker execution normalized to YES; not a current quote.
+    #[serde(default)]
+    pub last_fill_price_yes: Option<String>,
+    pub last_fill_outcome_index: i64,
+    pub last_fill_action: Action,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ComboWindowStats {
+    pub fills: i64,
+    /// Exact decimal string from the stored chain or SQL value; preserve precision until display.
+    pub volume_usdc: String,
+    pub distinct_traders: i64,
+    /// Exact decimal string from the stored chain or SQL value; preserve precision until display.
+    pub largest_fill_usdc: String,
+}
+
+/// Stored live combo count. Null means the first count is unavailable, never zero.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CombosSummary {
+    #[serde(default)]
+    pub live: Option<ComboLiveCount>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CombosSummaryResponse {
+    pub object: String,
+    pub data: CombosSummary,
+    pub meta: ResponseMeta,
 }
 
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
@@ -1447,6 +2177,9 @@ pub struct CreateMcpJsonRpcResponseResponse {
 pub struct CreateMcpJsonRpcResponseResponseError {
     pub code: i64,
     pub message: String,
+    /// Optional JSON-serializable error data.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1464,6 +2197,20 @@ pub struct CreateWebhookRequest {
 pub struct CreateWebhookResponse {
     pub object: String,
     pub data: WebhookEndpoint,
+    pub meta: ResponseMeta,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CreateWebhookVerificationAttemptRequest {
+    /// The original one-time token returned by webhook creation or a URL change. Sent only in the request body and signed receiver challenge.
+    pub verification_token: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CreateWebhookVerificationAttemptResponse {
+    pub object: String,
+    pub data: WebhookVerificationAttempt,
     pub meta: ResponseMeta,
 }
 
@@ -1771,6 +2518,842 @@ impl AsRef<str> for DirectionalStatus {
     }
 }
 
+/// The full Max-only Edge Hunter board. Defaults cover all sports and esports with B grade floor, 48-hour horizon and at most 30 rows; common selections, legacy category, min_grade and limit narrow that projection. No pagination or ETag. Rows add frozen market_context discovery metadata.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterBoard {
+    /// When the ranked snapshot was computed. Date current quotes with their own ts values.
+    pub as_of: String,
+    pub horizon_hours: i64,
+    /// Requested holder-presence grade floor, S/A/B. A holder at that grade or better admits the row; other holders remain visible.
+    pub min_grade: MarketHolderGrade,
+    /// live uses the current graded holder pile; db_only is a weaker stored-data fallback.
+    pub ranking_source: RankingSource,
+    /// degraded means directional enrichment was unavailable.
+    pub directional_source: DirectionalSource,
+    #[serde(default)]
+    pub cached_age_seconds: Option<i64>,
+    pub viewer: String,
+    /// Always null: Edge Hunter has no free signal slot.
+    #[serde(default)]
+    pub free_rank: Option<i64>,
+    /// Ranked rows after normalized selections and grade filtering, before the view-specific limit cap.
+    pub total: i64,
+    pub rows: Vec<EdgeHunterRow>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterBoardResponse {
+    pub object: String,
+    pub data: EdgeHunterBoard,
+    pub meta: ResponseMeta,
+    /// Normalized axes requested with a selector or category; omitted on an unselected default read.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<EdgeHunterSelection>,
+}
+
+/// Category evidence over the full uncapped piled-side S/A/B holder allocation. It never changes signal membership, ordering, routing, or sizing.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterCategorySkill {
+    pub status: Status,
+    pub model_version: String,
+    #[serde(default)]
+    pub taxonomy_version: Option<String>,
+    pub platform: String,
+    pub scope: String,
+    pub source_coverage: SourceCoverage,
+    pub observation_started_at: String,
+    pub as_of: String,
+    #[serde(default)]
+    pub canonical_category: Option<String>,
+    pub eligible_holders: i64,
+    pub covered_holders: i64,
+    #[serde(default)]
+    pub backed_sharp_usd: Option<f64>,
+    #[serde(default)]
+    pub covered_backed_usd: Option<f64>,
+    #[serde(default)]
+    pub coverage_pct: Option<f64>,
+    #[serde(default)]
+    pub weighted_edge_mean: Option<f64>,
+    #[serde(default)]
+    pub weighted_holder_lower_mean: Option<f64>,
+    #[serde(default)]
+    pub specialist_backed_usd: Option<f64>,
+    #[serde(default)]
+    pub specialist_backed_usd_pct: Option<f64>,
+    #[serde(default)]
+    pub largest_holder_backed_usd_pct: Option<f64>,
+    #[serde(default)]
+    pub minimum_holder_event_count: Option<i64>,
+}
+
+/// Per-sport accountable funnel for the full observation snapshot, returned on every page.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterFunnelReport {
+    pub sports: Vec<EdgeHunterSportFunnelReport>,
+}
+
+/// Metadata frozen with the read generation. Values are nullable when the provider/canonical source has no value; no title-based inference or current-clock fallback.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterMarketContext {
+    /// Normalized machine/provider league identity. Known wire/tag aliases normalize; other provider identities match exact lowercase keys.
+    #[serde(default)]
+    pub league: Option<String>,
+    /// Exact provider series slug, usable in series_slugs selection.
+    #[serde(default)]
+    pub series_slug: Option<String>,
+    /// Exact provider sports_market_type, usable in market_types selection.
+    #[serde(default)]
+    pub market_type: Option<String>,
+    /// Exact local canonical metadata writer market_canonical.updated_at. This is not a provider observation clock; null means unavailable.
+    #[serde(default)]
+    pub metadata_updated_at: Option<String>,
+}
+
+/// One explicitly observation-only holder-pile measurement. It is evidence for cohort evaluation, not an execution instruction, and is isolated from the funded Edge Hunter signals view.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterObservation {
+    /// The side profitable wallets hold, as a provider-backed display label. Canonical spelling of piled_side (#16310), same value: when provider group context is unavailable it may remain a bare Yes/No/Over/Under, so do not use it alone as participant identity.
+    #[serde(default)]
+    pub side: Option<String>,
+    /// Recorded side backing score; higher values indicate stronger backing.
+    pub backing_score: f64,
+    /// Signed share of graded money on the side, in [-1, 1]. Canonical spelling of smart_score (#16309, #16310), same value.
+    pub side_share: f64,
+    /// Raw Polymarket condition id.
+    pub condition_id: String,
+    /// Provider-backed Polymarket CLOB token id for the piled outcome. Rows without a verified token terminate before emission.
+    pub token_id: String,
+    /// Canonical sport bucket.
+    pub category: Category,
+    /// Raw provider category as stored.
+    #[serde(default)]
+    pub raw_category: Option<String>,
+    /// Provider-backed market title.
+    pub title: String,
+    #[serde(default)]
+    pub event_slug: Option<String>,
+    /// Provider event id when available.
+    #[serde(default)]
+    pub event_id: Option<String>,
+    /// Provider parent-event id used as the first event-cap identity when available.
+    #[serde(default)]
+    pub parent_event_id: Option<String>,
+    /// Provider-backed kickoff time in UTC.
+    pub game_start_time: String,
+    /// UTC instant when this row finished provider/holder evaluation.
+    pub observed_at: String,
+    /// Source cohort or additive projection view. emerging_pile is projected from wider_holder after source computation, overlaps its funnel denominator, and uses the source row's directional evidence.
+    pub cohort: Cohort,
+    /// Which evaluation place in its sport the row took this refresh. most_held: a wider_holder place for up to 8 markets per sport kicking off within 24 hours, most graded holders first, kept until kickoff while the holder page still shows a card or could not be read; also every in_play row, whose places go most graded holders first. soonest_kickoff: a wider_holder place among the sport's 8 soonest kickoffs, which is not kept. emerging_pile rows carry their source wider_holder row's value. Filter on most_held to keep the most-held selection. most_held_48h: every row of an admission=most_held_48h response, which is that opt-in selection (up to 8 markets per sport within 48 hours, most graded holders first, recomputed every refresh), including a market a default place also evaluates; it never appears on a default response.
+    pub admitted_by: AdmittedBy,
+    /// Always true. This row must not be routed to an order executor.
+    pub observation_only: bool,
+    /// Nullable provider-backed piled-outcome display label. When provider group context is unavailable, it may remain a bare Yes/No/Over/Under; do not use it alone as participant identity. Deprecated (#16310): `side` is the canonical spelling and carries the same value; this key stays on the wire.
+    #[serde(default)]
+    pub piled_side: Option<String>,
+    /// Provider binary-column selector: 0 selects outcome_yes/token_id_yes; 1 selects outcome_no/token_id_no. It does not identify home/away or a participant. Use piled_side together with title/event context for display.
+    pub piled_outcome_index: i64,
+    /// Aggregate piled-side market midpoint recorded at observed_at. This is an observation price mark, not a wallet entry cost.
+    pub backed_price: f64,
+    /// Piled-side graded-holder dollar concentration.
+    pub sharp_pct: f64,
+    /// Raw graded-holder USD on the piled outcome.
+    pub backed_sharp_usd: f64,
+    pub s_count: i64,
+    pub a_count: i64,
+    pub b_count: i64,
+    /// Piled-side S/A/B holder count.
+    pub graded_holders: i64,
+    pub top_grade: MarketHolderGrade,
+    /// Canonical signed holder-pile score. Deprecated (#16310): `side_share` is the canonical spelling and carries the same value; this key stays on the wire.
+    pub smart_score: f64,
+    /// Cumulative provider taker volume in shares, not cash or dollars.
+    pub volume: f64,
+    /// Recorded conviction score; higher values indicate stronger conviction.
+    pub conviction_score: f64,
+    /// Whether the provider holder page came from the shared cache or a live provider read.
+    pub provider_read_source: ProviderReadSource,
+    /// True only when the provider page read for each outcome token listed every holder of that token. Observation collection reads one 100-row page per token; a token with more holders stays incomplete. False means holder counts and dollar totals measure the observed positive-holder subset. sharp_pct describes that observed subset and is not a lower bound on the full-population percentage. Incomplete scans cannot satisfy a future capital-promotion gate.
+    pub holder_scan_complete: bool,
+    /// Proven provider holder observation time. A warm cache hit uses only the original provider completion time from its companion metadata, never cache-read time. A wider_holder or emerging_pile row whose holder read did not finish in the current pass may reuse that market's last pregame holder page for up to 15 minutes; an in_play row may reuse its last in-play page, read after the provider reported the game live and never before that market's own kickoff, for up to 10 minutes. Both ages are counted when the snapshot is computed. Either reuse carries that page's original time here and provider_read_source cached. A pregame market more than an hour before kickoff reuses its last page the same way until that page is 10 minutes old, and only then is read again. Once that market's own kickoff has passed, an in_play row with provider_read_source cached, a warm hit or a reuse, never carries a page read before it. Null, malformed, future, or stale holder time fails in-play closed.
+    #[serde(default)]
+    pub holder_snapshot_at: Option<String>,
+    /// Truthful state of the directional read, which classifies each graded holder by its fresh synced legs across the game's markets and, when holder_scan_complete is true, by Polymarket's currentValue on both outcomes of this market. A wider_holder row can remain emitted with unavailable and terminal wider_holder_emitted; in_play fails closed instead and terminates as in_play_directional_unavailable.
+    pub directional_status: DirectionalStatus,
+    #[serde(default)]
+    pub one_way_holder_count: Option<i64>,
+    #[serde(default)]
+    pub hedged_holder_count: Option<i64>,
+    #[serde(default)]
+    pub one_way_graded_usd: Option<f64>,
+    #[serde(default)]
+    pub directional_confidence: Option<f64>,
+    /// Recorded side ordering score; higher values sort first.
+    pub directional_rank_score: f64,
+    /// 1-based rank within this observation cohort and snapshot.
+    pub rank: i64,
+    /// Required nullable frozen metadata context. Null only during the legacy-generation transition; selected reads require sidecar readiness and fail closed with 503 instead.
+    #[serde(default)]
+    pub market_context: Option<EdgeHunterMarketContext>,
+}
+
+/// Measured coverage of the frozen canonical observation generation and this requested page. For sports and esports reads, the first four counts remain global through category, cohort and all selectors; with admission=most_held_48h they count that selection's generation, where every wider_holder candidate it did not take is capacity_limited. They are neither a census of all provider markets nor a count of successfully evaluated holders. Selected and returned counts describe the requested projection. An unmappable legacy category synthesizes a zero-work empty generation with all six counts zero and no degradation reasons; it does not read the all-sports cache.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterObservationCoverage {
+    /// Sum of canonical source-generation funnel input across all sports, before category, cohort or selector projection.
+    pub input_markets: i64,
+    /// Canonical source-generation input assigned capacity_limited. These markets were intentionally outside the bounded holder-work admission and are not missing emitted rows.
+    pub capacity_limited_markets: i64,
+    /// All wider_holder and in_play observations emitted in the canonical source generation, before cohort, category or selector projection. Emerging pile is an overlapping projection and does not add source emissions.
+    pub emitted_observations: i64,
+    /// Canonical source-generation markets whose attempted holder scan did not establish complete coverage, including incomplete scans that did not emit an observation. Collection reads one 100-row page per token, so a market with more holders on a token counts here by design; this count does not by itself degrade the generation.
+    pub incomplete_holder_markets: i64,
+    /// Observations matching the requested cohort, category, selectors and applicable pinned projection cutoff before pagination.
+    pub selected_observations: i64,
+    /// Observation rows on this page; equals data.length.
+    pub returned_observations: i64,
+}
+
+/// One observed cause of operational degradation in the canonical all-sports observation generation. Reasons are independent of the one-terminal-per-input funnel and remain unchanged through category, cohort and selector projection. Intentional capacity limits and an unconfigured upcoming source are not degradation reasons.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterObservationDegradationReason {
+    /// Recorded producer cause. holder_scan_incomplete is retired and no longer emitted: the one-page holder read is an intentional bound, disclosed by each row's holder_scan_complete and by coverage.incomplete_holder_markets, and it does not degrade a generation. directional_unavailable can accompany an emitted wider_holder row; live_source_stale means provider live evidence exceeded its freshness bound. Other values identify reconciliation, applicable board-source or terminal failure evidence.
+    pub reason: EdgeHunterObservationDegradationReasonReason,
+    /// Canonical sport for the recorded cause; null only for generation-wide evidence without a sport attribution.
+    #[serde(default)]
+    pub sport: Option<String>,
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum EdgeHunterObservationDegradationReasonReason {
+    /// `holder_scan_incomplete`
+    #[serde(rename = "holder_scan_incomplete")]
+    HolderScanIncomplete,
+    /// `live_source_stale`
+    #[serde(rename = "live_source_stale")]
+    LiveSourceStale,
+    /// `directional_unavailable`
+    #[serde(rename = "directional_unavailable")]
+    DirectionalUnavailable,
+    /// `funnel_unreconciled`
+    #[serde(rename = "funnel_unreconciled")]
+    FunnelUnreconciled,
+    /// `board_live_unavailable`
+    #[serde(rename = "board_live_unavailable")]
+    BoardLiveUnavailable,
+    /// `board_upcoming_unavailable`
+    #[serde(rename = "board_upcoming_unavailable")]
+    BoardUpcomingUnavailable,
+    /// `provider_unavailable`
+    #[serde(rename = "provider_unavailable")]
+    ProviderUnavailable,
+    /// `holder_deadline_unavailable`
+    #[serde(rename = "holder_deadline_unavailable")]
+    HolderDeadlineUnavailable,
+    /// `holder_computation_unavailable`
+    #[serde(rename = "holder_computation_unavailable")]
+    HolderComputationUnavailable,
+    /// `missing_stored_market`
+    #[serde(rename = "missing_stored_market")]
+    MissingStoredMarket,
+    /// `price_unavailable`
+    #[serde(rename = "price_unavailable")]
+    PriceUnavailable,
+    /// `in_play_stale_observed`
+    #[serde(rename = "in_play_stale_observed")]
+    InPlayStaleObserved,
+    /// `in_play_directional_unavailable`
+    #[serde(rename = "in_play_directional_unavailable")]
+    InPlayDirectionalUnavailable,
+    /// `internal_unclassified`
+    #[serde(rename = "internal_unclassified")]
+    InternalUnclassified,
+    /// `board_source_unavailable`
+    #[serde(rename = "board_source_unavailable")]
+    BoardSourceUnavailable,
+    /// `board_deadline_unavailable`
+    #[serde(rename = "board_deadline_unavailable")]
+    BoardDeadlineUnavailable,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl EdgeHunterObservationDegradationReasonReason {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::HolderScanIncomplete => "holder_scan_incomplete",
+            Self::LiveSourceStale => "live_source_stale",
+            Self::DirectionalUnavailable => "directional_unavailable",
+            Self::FunnelUnreconciled => "funnel_unreconciled",
+            Self::BoardLiveUnavailable => "board_live_unavailable",
+            Self::BoardUpcomingUnavailable => "board_upcoming_unavailable",
+            Self::ProviderUnavailable => "provider_unavailable",
+            Self::HolderDeadlineUnavailable => "holder_deadline_unavailable",
+            Self::HolderComputationUnavailable => "holder_computation_unavailable",
+            Self::MissingStoredMarket => "missing_stored_market",
+            Self::PriceUnavailable => "price_unavailable",
+            Self::InPlayStaleObserved => "in_play_stale_observed",
+            Self::InPlayDirectionalUnavailable => "in_play_directional_unavailable",
+            Self::InternalUnclassified => "internal_unclassified",
+            Self::BoardSourceUnavailable => "board_source_unavailable",
+            Self::BoardDeadlineUnavailable => "board_deadline_unavailable",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for EdgeHunterObservationDegradationReasonReason {
+    fn from(value: &str) -> Self {
+        match value {
+            "holder_scan_incomplete" => Self::HolderScanIncomplete,
+            "live_source_stale" => Self::LiveSourceStale,
+            "directional_unavailable" => Self::DirectionalUnavailable,
+            "funnel_unreconciled" => Self::FunnelUnreconciled,
+            "board_live_unavailable" => Self::BoardLiveUnavailable,
+            "board_upcoming_unavailable" => Self::BoardUpcomingUnavailable,
+            "provider_unavailable" => Self::ProviderUnavailable,
+            "holder_deadline_unavailable" => Self::HolderDeadlineUnavailable,
+            "holder_computation_unavailable" => Self::HolderComputationUnavailable,
+            "missing_stored_market" => Self::MissingStoredMarket,
+            "price_unavailable" => Self::PriceUnavailable,
+            "in_play_stale_observed" => Self::InPlayStaleObserved,
+            "in_play_directional_unavailable" => Self::InPlayDirectionalUnavailable,
+            "internal_unclassified" => Self::InternalUnclassified,
+            "board_source_unavailable" => Self::BoardSourceUnavailable,
+            "board_deadline_unavailable" => Self::BoardDeadlineUnavailable,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for EdgeHunterObservationDegradationReasonReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for EdgeHunterObservationDegradationReasonReason {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+/// A market whose wider_holder card left this selection before kickoff, with why it left.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterObservationDeparture {
+    /// Raw Polymarket condition id.
+    pub condition_id: String,
+    #[serde(default)]
+    pub event_slug: Option<String>,
+    /// Canonical sport bucket the departed card carried.
+    pub category: Category,
+    /// The departed card's admitted_by: most_held_48h on an admission=most_held_48h response.
+    pub admitted_by: AdmittedBy,
+    /// Kickoff the departed card carried, in UTC. The entry leaves the list once it passes.
+    pub game_start_time: String,
+    /// The departed card's observed_at: when its last evaluation finished.
+    pub last_observed_at: String,
+    /// snapshot_as_of of the first snapshot of this selection without the card.
+    pub departed_at: String,
+    /// Why the market has no card: its terminal in this selection's funnel in the snapshot it left, and while that terminal reports a read that did not finish (holder_deadline_unavailable, provider_unavailable, holder_computation_unavailable, internal_unclassified), the terminal of each later snapshot until one answers; an answered reason never changes. primary_slate_candidate: the market joined the funded slate, which view=signals covers. capacity_limited: it lost its evaluation place without another outcome. missing_stored_market: the market was no longer in the stored market universe. Any other value means what it means in the funnel, for example split_holder_pile, no_current_graded_holder or resolved.
+    pub reason: EdgeHunterObservationTerminalReason,
+}
+
+/// Closed 25-value terminal-reason vocabulary for the accountable Edge Hunter observation funnel. capacity_limited is intentional bounded provider-work admission and does not itself set the snapshot degraded. board_source_unavailable is a completed board-source failure; board_deadline_unavailable means live-board work missed either an internal configured-scope deadline or the outer fair-wave deadline; both classify only already-started rows, so for the upcoming source read funnel.sports[].board_upcoming_status instead; provider_unavailable is reserved for an attempted holder-provider failure; holder_deadline_unavailable is holder cache/provider absolute-deadline exhaustion.
+///
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum EdgeHunterObservationTerminalReason {
+    /// `outside_horizon`
+    #[serde(rename = "outside_horizon")]
+    OutsideHorizon,
+    /// `resolved`
+    #[serde(rename = "resolved")]
+    Resolved,
+    /// `provider_closed`
+    #[serde(rename = "provider_closed")]
+    ProviderClosed,
+    /// `provider_excluded`
+    #[serde(rename = "provider_excluded")]
+    ProviderExcluded,
+    /// `invalid_market`
+    #[serde(rename = "invalid_market")]
+    InvalidMarket,
+    /// `missing_token`
+    #[serde(rename = "missing_token")]
+    MissingToken,
+    /// `missing_stored_market`
+    #[serde(rename = "missing_stored_market")]
+    MissingStoredMarket,
+    /// `not_provider_live`
+    #[serde(rename = "not_provider_live")]
+    NotProviderLive,
+    /// `board_source_unavailable`
+    #[serde(rename = "board_source_unavailable")]
+    BoardSourceUnavailable,
+    /// `board_deadline_unavailable`
+    #[serde(rename = "board_deadline_unavailable")]
+    BoardDeadlineUnavailable,
+    /// `primary_slate_candidate`
+    #[serde(rename = "primary_slate_candidate")]
+    PrimarySlateCandidate,
+    /// `zero_indexed_holder_research`
+    #[serde(rename = "zero_indexed_holder_research")]
+    ZeroIndexedHolderResearch,
+    /// `capacity_limited`
+    #[serde(rename = "capacity_limited")]
+    CapacityLimited,
+    /// `provider_unavailable`
+    #[serde(rename = "provider_unavailable")]
+    ProviderUnavailable,
+    /// `holder_deadline_unavailable`
+    #[serde(rename = "holder_deadline_unavailable")]
+    HolderDeadlineUnavailable,
+    /// `holder_computation_unavailable`
+    #[serde(rename = "holder_computation_unavailable")]
+    HolderComputationUnavailable,
+    /// `holder_scan_incomplete`
+    #[serde(rename = "holder_scan_incomplete")]
+    HolderScanIncomplete,
+    /// `no_current_graded_holder`
+    #[serde(rename = "no_current_graded_holder")]
+    NoCurrentGradedHolder,
+    /// `split_holder_pile`
+    #[serde(rename = "split_holder_pile")]
+    SplitHolderPile,
+    /// `price_unavailable`
+    #[serde(rename = "price_unavailable")]
+    PriceUnavailable,
+    /// `wider_holder_emitted`
+    #[serde(rename = "wider_holder_emitted")]
+    WiderHolderEmitted,
+    /// `in_play_emitted`
+    #[serde(rename = "in_play_emitted")]
+    InPlayEmitted,
+    /// `in_play_stale_observed`
+    #[serde(rename = "in_play_stale_observed")]
+    InPlayStaleObserved,
+    /// `in_play_directional_unavailable`
+    #[serde(rename = "in_play_directional_unavailable")]
+    InPlayDirectionalUnavailable,
+    /// `internal_unclassified`
+    #[serde(rename = "internal_unclassified")]
+    InternalUnclassified,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl EdgeHunterObservationTerminalReason {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::OutsideHorizon => "outside_horizon",
+            Self::Resolved => "resolved",
+            Self::ProviderClosed => "provider_closed",
+            Self::ProviderExcluded => "provider_excluded",
+            Self::InvalidMarket => "invalid_market",
+            Self::MissingToken => "missing_token",
+            Self::MissingStoredMarket => "missing_stored_market",
+            Self::NotProviderLive => "not_provider_live",
+            Self::BoardSourceUnavailable => "board_source_unavailable",
+            Self::BoardDeadlineUnavailable => "board_deadline_unavailable",
+            Self::PrimarySlateCandidate => "primary_slate_candidate",
+            Self::ZeroIndexedHolderResearch => "zero_indexed_holder_research",
+            Self::CapacityLimited => "capacity_limited",
+            Self::ProviderUnavailable => "provider_unavailable",
+            Self::HolderDeadlineUnavailable => "holder_deadline_unavailable",
+            Self::HolderComputationUnavailable => "holder_computation_unavailable",
+            Self::HolderScanIncomplete => "holder_scan_incomplete",
+            Self::NoCurrentGradedHolder => "no_current_graded_holder",
+            Self::SplitHolderPile => "split_holder_pile",
+            Self::PriceUnavailable => "price_unavailable",
+            Self::WiderHolderEmitted => "wider_holder_emitted",
+            Self::InPlayEmitted => "in_play_emitted",
+            Self::InPlayStaleObserved => "in_play_stale_observed",
+            Self::InPlayDirectionalUnavailable => "in_play_directional_unavailable",
+            Self::InternalUnclassified => "internal_unclassified",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for EdgeHunterObservationTerminalReason {
+    fn from(value: &str) -> Self {
+        match value {
+            "outside_horizon" => Self::OutsideHorizon,
+            "resolved" => Self::Resolved,
+            "provider_closed" => Self::ProviderClosed,
+            "provider_excluded" => Self::ProviderExcluded,
+            "invalid_market" => Self::InvalidMarket,
+            "missing_token" => Self::MissingToken,
+            "missing_stored_market" => Self::MissingStoredMarket,
+            "not_provider_live" => Self::NotProviderLive,
+            "board_source_unavailable" => Self::BoardSourceUnavailable,
+            "board_deadline_unavailable" => Self::BoardDeadlineUnavailable,
+            "primary_slate_candidate" => Self::PrimarySlateCandidate,
+            "zero_indexed_holder_research" => Self::ZeroIndexedHolderResearch,
+            "capacity_limited" => Self::CapacityLimited,
+            "provider_unavailable" => Self::ProviderUnavailable,
+            "holder_deadline_unavailable" => Self::HolderDeadlineUnavailable,
+            "holder_computation_unavailable" => Self::HolderComputationUnavailable,
+            "holder_scan_incomplete" => Self::HolderScanIncomplete,
+            "no_current_graded_holder" => Self::NoCurrentGradedHolder,
+            "split_holder_pile" => Self::SplitHolderPile,
+            "price_unavailable" => Self::PriceUnavailable,
+            "wider_holder_emitted" => Self::WiderHolderEmitted,
+            "in_play_emitted" => Self::InPlayEmitted,
+            "in_play_stale_observed" => Self::InPlayStaleObserved,
+            "in_play_directional_unavailable" => Self::InPlayDirectionalUnavailable,
+            "internal_unclassified" => Self::InternalUnclassified,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for EdgeHunterObservationTerminalReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for EdgeHunterObservationTerminalReason {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+/// Full Edge Hunter observations list envelope. Required degradation_reasons explains the source-generation verdict; required coverage distinguishes source input, intentional capacity exclusions, source emissions, incomplete holder scans, selection and the returned page. The view literal distinguishes advanced collections, including empty pages.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterObservationsResponse {
+    pub object: String,
+    pub view: String,
+    pub data: Vec<EdgeHunterObservation>,
+    pub has_more: bool,
+    /// Pass as cursor for the next page. Always sent; null on the last page.
+    #[serde(default)]
+    pub next_cursor: Option<String>,
+    /// Completion time of the shared observation snapshot pinned by the cursor.
+    pub snapshot_as_of: String,
+    /// True when an operational failure or unknown provider-board, holder, directional, reconciliation, or internal completeness state made this snapshot partial. This is snapshot-wide and can retain degradation that the funnel's one-terminal-per-input accounting cannot represent. Inspect degradation_reasons for every recorded source-generation cause and its nullable canonical sport attribution. Intentional bounds do not by themselves set this field: capacity_limited rows remain fully accounted in the funnel, and a holder scan the one-page read leaves incomplete counts in coverage.incomplete_holder_markets; board_upcoming_status=not_configured is not a failure.
+    pub degraded: bool,
+    /// Sorted, deduplicated causes from the canonical all-sports generation, unchanged by category, cohort or selectors; with admission=most_held_48h, from that selection's generation. Empty exactly when degraded is false. Capacity-limited input, the one-page holder bound (holder_scan_complete=false) and board_upcoming_status=not_configured do not by themselves add a reason.
+    pub degradation_reasons: Vec<EdgeHunterObservationDegradationReason>,
+    pub coverage: EdgeHunterObservationCoverage,
+    pub funnel: EdgeHunterFunnelReport,
+    pub meta: ResponseMeta,
+    /// Normalized axes requested with a selector or category; omitted on an unselected default read.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<EdgeHunterSelection>,
+    /// Echoes the opt-in admission rule a request named; omitted on a default read. When present, data, funnel, coverage, degraded and degradation_reasons describe that selection, not the default one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub admission: Option<String>,
+    /// cohort=wider_holder only, for the default selection and for admission=most_held_48h: markets that had a wider_holder card in an earlier snapshot of the same selection, have none in this one, and have not kicked off. Newest departed_at first. An entry stays until the game_start_time it carries passes, and leaves as soon as the market has a card again; while it stays only a reason that reports an unfinished read changes (see reason), and a later departure of the same market is a new entry. Filtered by the same category and selectors as data, and identical on every page of one snapshot. At most 336 entries; when more are open, the oldest departures leave first. An empty array means no card of this selection is departed. Omitted on in_play and emerging_pile, and on a snapshot that could not establish its departures, never reported as an empty array. Tracking that restarts after its record is lost starts empty.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub departures: Option<Vec<EdgeHunterObservationDeparture>>,
+}
+
+/// One provider outcome in fixed YES/NO order, including its frozen token identity and independently observed quote. Null current_price means no verified current quote is available.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterOutcome {
+    pub index: i64,
+    #[serde(default)]
+    pub label: Option<String>,
+    #[serde(default)]
+    pub provider_id: Option<i64>,
+    /// Frozen provider CLOB token ID for this exact outcome in YES/NO order. Null when unavailable; not a participant identity.
+    #[serde(default)]
+    pub token_id: Option<String>,
+    #[serde(default)]
+    pub current_price: Option<EdgeHunterPrice>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterParticipant {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_id: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logo: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logo_mark_dark: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub headshot: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub headshot_revision: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tour: Option<String>,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterPrice {
+    /// Provider probability as a decimal string. Keep its precision until display.
+    pub price: String,
+    pub basis: Basis,
+    /// Source observation clock in epoch milliseconds, represented as a string.
+    pub ts: String,
+    /// Backend validation clock in epoch milliseconds. Omitted when no current-source validation is available.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub validated_at: Option<String>,
+}
+
+/// One ranked pre-game sports market where graded sharp money is piled on one side, with required-status category evidence from partial forward-observed Polymarket fills.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterRankedSignal {
+    /// The side profitable wallets hold, as a provider-backed display label. Canonical spelling of piled_side (#16310), same value: when provider group context is unavailable it may remain a bare Yes/No/Over/Under, so do not use it alone as participant identity.
+    #[serde(default)]
+    pub side: Option<String>,
+    /// UTC time at which the snapshot that ranked this row was computed. Canonical spelling of signal_created_at (#16310), same value.
+    pub ranked_at: String,
+    /// Recorded side backing score; higher values indicate stronger backing.
+    pub backing_score: f64,
+    /// Signed share of graded money on the side, (yes_usd - no_usd)/(yes_usd + no_usd) in [-1, 1] (side-yes positive, side-no negative). Canonical spelling of smart_score (#16309, #16310), same value.
+    #[serde(default)]
+    pub side_share: Option<f64>,
+    /// Polymarket condition id.
+    pub condition_id: String,
+    /// UTC time at which the immutable signal snapshot was computed. Every row from one snapshot shares this value; it is not provider market creation time and is not rewritten at request time. Deprecated (#16310): `ranked_at` is the canonical spelling and carries the same value; this key stays on the wire.
+    pub signal_created_at: String,
+    /// Polymarket CLOB token id (ERC1155 asset id, decimal string) for the PILED outcome; null when unavailable.
+    #[serde(default)]
+    pub token_id: Option<String>,
+    /// Canonical sport bucket (e.g. Basketball, Tennis); null when the raw category has no canonical mapping.
+    #[serde(default)]
+    pub category: Option<Category>,
+    /// Raw provider category as stored (e.g. NBA, EPL).
+    #[serde(default)]
+    pub raw_category: Option<String>,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub event_slug: Option<String>,
+    /// Kickoff (UTC). In the future at SNAPSHOT time and within the requested horizon; because the response is served from a shared snapshot cached up to the ~180s TTL, a served kickoff can be up to ~180s in the past relative to the response time. Not a live guarantee that the game has not yet started.
+    #[serde(default)]
+    pub game_start_time: Option<String>,
+    /// Nullable provider-backed piled-outcome display label. When provider group context is unavailable, it may remain a bare Yes/No/Over/Under; do not use it alone as participant identity. Deprecated (#16310): `side` is the canonical spelling and carries the same value; this key stays on the wire.
+    #[serde(default)]
+    pub piled_side: Option<String>,
+    /// Provider binary-column selector: 0 selects outcome_yes/token_id_yes; 1 selects outcome_no/token_id_no. It does not identify home/away or a participant. Use piled_side together with title/event context for display.
+    pub piled_outcome_index: i64,
+    /// Piled-side dollar concentration backed_usd / (yes_usd + no_usd), in (0.5, 1] for a real pile; null when there is no sharp USD.
+    #[serde(default)]
+    pub sharp_pct: Option<f64>,
+    /// Raw piled-side sharp-money USD.
+    pub backed_sharp_usd: f64,
+    /// S-grade graded holders on the piled side.
+    pub s_count: i64,
+    /// A-grade graded holders on the piled side.
+    pub a_count: i64,
+    /// B-grade graded holders on the piled side.
+    pub b_count: i64,
+    /// Piled-side graded holder count (s_count + a_count + b_count).
+    pub graded_holders: i64,
+    /// Best grade present on the piled side; null when none.
+    #[serde(default)]
+    pub top_grade: Option<MarketHolderGrade>,
+    /// Canonical sharp-money score (yes_usd - no_usd)/(yes_usd + no_usd) in [-1, 1] (piled-yes positive, piled-no negative). Deprecated (#16310): `side_share` is the canonical spelling and carries the same value; this key stays on the wire.
+    #[serde(default)]
+    pub smart_score: Option<f64>,
+    /// Cumulative provider taker volume in shares, not cash or dollars.
+    #[serde(default)]
+    pub volume: Option<f64>,
+    /// Aggregate recent flow direction on the market; null when unavailable.
+    #[serde(default)]
+    pub net_side: Option<LargeTradeInsertedV2DataSide>,
+    /// Recorded conviction score; higher values indicate stronger conviction.
+    pub conviction_score: f64,
+    /// Piled-side graded holders read one-way: their fresh open legs across the signal game's markets (cross-market within the one game; moneyline+spread family only) all back the same team, or, when the market's holder scan was complete, Polymarket's currentValue shows no opposite leg on this market worth 10% of the backed leg and no fresh leg opposes it. Null when the directional read was not computed (no groupable game, no holder-level data on this ranking path, or the enrichment read failed) or classified nobody.
+    #[serde(default)]
+    pub one_way_holder_count: Option<i64>,
+    /// Piled-side graded holders classified HEDGED across the game by fresh legs (they back two or more distinct teams). A wallet long both outcomes of this market is not one-way and not counted here. Null when the directional read was not computed or classified nobody.
+    #[serde(default)]
+    pub hedged_holder_count: Option<i64>,
+    /// Piled-side graded USD held by one-way wallets (share-weighted allocation of backed_sharp_usd). Null when the directional read was not computed or classified nobody.
+    #[serde(default)]
+    pub one_way_graded_usd: Option<f64>,
+    /// One-way fraction of the piled graded dollars, in [0, 1] -- the metric orthogonal to sharp_pct. Stale, unknown, hedged, and two-sided dollars dilute it toward zero (conservative). Null when the directional read was not computed or classified nobody.
+    #[serde(default)]
+    pub directional_confidence: Option<f64>,
+    /// Recorded side ordering score; higher values sort first.
+    pub directional_rank_score: f64,
+    pub category_skill: EdgeHunterCategorySkill,
+    /// 1-based rank within the (min_grade-filtered) ranked result.
+    pub rank: i64,
+    /// Required nullable frozen metadata context. Null only during the legacy-generation transition; selected reads require sidecar readiness and fail closed with 503 instead.
+    #[serde(default)]
+    pub market_context: Option<EdgeHunterMarketContext>,
+}
+
+/// One full Max row from Edge Hunter. signal is populated on every row this endpoint returns. Identity and quotes preserve provider values; unknown values stay null.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterRow {
+    pub rank: i64,
+    pub state: String,
+    pub free: bool,
+    pub condition_id: String,
+    #[serde(default)]
+    pub event_slug: Option<String>,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub category: Option<Category>,
+    #[serde(default)]
+    pub raw_category: Option<String>,
+    #[serde(default)]
+    pub game_start_time: Option<String>,
+    /// Cumulative provider taker volume in shares, not cash in USD. Null when unavailable.
+    #[serde(default)]
+    pub volume: Option<f64>,
+    pub participants: Vec<EdgeHunterParticipant>,
+    #[serde(default)]
+    pub image: Option<String>,
+    pub outcomes: Vec<EdgeHunterOutcome>,
+    #[serde(default)]
+    pub signal: Option<EdgeHunterSignal>,
+    /// Required nullable frozen metadata context. Null only during the legacy-generation transition; selected reads require sidecar readiness and fail closed with 503 instead.
+    #[serde(default)]
+    pub market_context: Option<EdgeHunterMarketContext>,
+}
+
+/// Normalized requested selection axes. Only requested axes appear; omitted for unselected defaults. Arrays are nonempty, sorted and deduplicated. OR within an axis, AND across axes.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterSelection {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<Kind>,
+    /// Resolved legacy canonical bucket or non_sport for an unmappable category.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    /// Canonical sport buckets, including Esports and Table Tennis, matched case-insensitively. Unknown names and league aliases such as NFL are rejected in sports; use category for legacy bucket aliases or leagues for exact league selection. Omission covers every sport admitted by the selected view.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sports: Option<Vec<String>>,
+    /// Normalized machine/provider league identities, such as nfl, cfb, nba, epl, cs2, lol, dota2 or valorant. Known wire/tag aliases normalize; other provider keys match exact lowercase identity. This is separate from category: category=NFL selects Football, while leagues=nfl selects NFL only. Read market_context.league for authoritative values.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub leagues: Option<Vec<String>>,
+    /// Exact provider sports_market_type values. This is an open provider taxonomy, distinct from exact market IDs. Read market_context.market_type; missing selected metadata excludes the row.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub market_types: Option<Vec<String>>,
+    /// Exact market selections. Raw provider condition IDs and the existing mkt_-prefixed aliases normalize to raw IDs. Unknown well-formed IDs return an empty result.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub condition_ids: Option<Vec<String>>,
+    /// Exact provider event slugs. Use event_slug returned on the row; no title or slug-prefix guessing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub event_slugs: Option<Vec<String>>,
+    /// Exact provider series slugs. Read market_context.series_slug; a missing selected series excludes the row.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub series_slugs: Option<Vec<String>>,
+}
+
+/// Backed-side analytics, token identity, frozen ranked_at and aggregate category evidence from the ranked snapshot, plus a separately dated current quote. Scores rank attention; they are not probabilities or order instructions.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterSignal {
+    #[serde(default)]
+    pub piled_side: Option<String>,
+    pub piled_outcome_index: i64,
+    /// Fraction of graded money on the backed side, not a percentage from 0 to 100.
+    #[serde(default)]
+    pub sharp_pct: Option<f64>,
+    pub backed_sharp_usd: f64,
+    pub s_count: i64,
+    pub a_count: i64,
+    pub b_count: i64,
+    pub graded_holders: i64,
+    #[serde(default)]
+    pub top_grade: Option<MarketHolderGrade>,
+    #[serde(default)]
+    pub smart_score: Option<f64>,
+    #[serde(default)]
+    pub net_side: Option<String>,
+    pub conviction_score: f64,
+    #[serde(default)]
+    pub one_way_holder_count: Option<i64>,
+    #[serde(default)]
+    pub hedged_holder_count: Option<i64>,
+    #[serde(default)]
+    pub one_way_graded_usd: Option<f64>,
+    #[serde(default)]
+    pub directional_confidence: Option<f64>,
+    pub directional_rank_score: f64,
+    #[serde(default)]
+    pub current_price: Option<EdgeHunterPrice>,
+    /// Frozen provider CLOB token ID for the backed outcome. Null when unavailable; matches outcomes[piled_outcome_index].token_id when the shared provider context is available.
+    #[serde(default)]
+    pub token_id: Option<String>,
+    /// UTC computation time copied from this ranked row's frozen signal_created_at. It dates the ranking, not the separately observed quote, metadata writer, or wallet entry.
+    pub ranked_at: String,
+    /// Existing aggregate category evidence copied from the same ranked snapshot. Read its status, coverage and own clocks; it never changes admission or ordering and is not a predicted return.
+    pub category_skill: EdgeHunterCategorySkill,
+}
+
+/// Full Edge Hunter signals list envelope. The view literal distinguishes advanced collections, including empty pages.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterSignalsResponse {
+    pub object: String,
+    pub view: String,
+    pub data: Vec<EdgeHunterRankedSignal>,
+    pub has_more: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total: Option<i64>,
+    pub meta: ResponseMeta,
+    /// Normalized axes requested with a selector or category; omitted on an unselected default read.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<EdgeHunterSelection>,
+}
+
+/// Independent sports-board supply plus stored-universe terminal accounting for one canonical sport.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct EdgeHunterSportFunnelReport {
+    pub sport: Category,
+    /// Unique condition ids independently visible on the provider-first sports board.
+    pub board_input: i64,
+    /// Whether the always-applicable live-board source completed as available. False can mean a completed source failure (board_source_unavailable) or live-board work missing an internal configured-scope deadline or the outer fair-wave deadline (board_deadline_unavailable); inspect terminals to distinguish them.
+    pub board_live_available: bool,
+    /// Whether a provider-backed upcoming-board source is configured and applicable for this sport. False means not applicable, not provider failure.
+    pub board_upcoming_configured: bool,
+    /// Whether every configured upcoming-board scope completed as available. False with board_upcoming_configured=false means not applicable. When board_upcoming_configured is true and this flag is false, read board_upcoming_status for the cause (it reads unknown, i.e. no recorded cause, only on a snapshot cached before that field existed, which self-clears within one TTL): the board_source_unavailable and board_deadline_unavailable terminals are assigned only to already-started rows (the live half) and are structurally 0 for the upcoming source, so they never explain this flag.
+    pub board_upcoming_available: bool,
+    /// Why the upcoming-board source is (un)available. Board supply is one canonical-sport union: the bare category owns live truth and every configured composed league scope contributes upcoming rows; folded leagues without a configured board (currently NCAAB and CFL) are not in the upcoming union. available: every configured scope completed truthfully (a successful empty schedule still counts). capacity_limited: provider pagination or a configured upcoming cache published an intentionally bounded complete-event prefix; those rows are excluded from diagnostic-universe input and must not be treated as a complete upcoming universe. Cache-bound prefixes are limited to an exact 5,000,000-byte final envelope. source_unavailable: composition failed before a truthful union; resolved scope readers turn half failures into cold_unavailable, so fresh producers are whole-union identity reconciliation or a registry contract failure and carry zero rows. cold_unavailable: every scope completed but at least one reported its upcoming half unavailable because no servable entry was inside the stale-serve bound and the background warm did not land in time; it is not by itself proof of a provider outage. deadline_unavailable: an internal configured-scope deadline or the outer bounded fair wave expired. An internal deadline may retain healthy bare-category or sibling-scope rows; the outer wave records zero rows. These upcoming fields do not describe league live-membership availability. If the bare-category live scope fails, all live rows are dropped even when a league scope completed, because the bare category is the sole live-truth owner. not_configured: no upcoming scope applies to the sport. unknown: exactly one cause -- a snapshot cached before this field existed whose legacy flags recorded an unavailable-but-configured half without saying why. Every freshly computed snapshot reports a concrete status, and a legacy available or not-configured row is reconstructed exactly, so unknown self-clears within one TTL. board_upcoming_available is exactly board_upcoming_status == available.
+    pub board_upcoming_status: BoardUpcomingStatus,
+    /// Configured upcoming scopes that did not complete as available. Values are category, a provider league tag slug (nfl, cfb, nba, wnba, euroleague-basketball, nhl, mls, valorant, league-of-legends, counter-strike-2, or dota-2), registry when the compiled scope/projection contract drifted, union when cross-scope identity reconciliation failed, or wave when the outer fair-wave deadline expired before scope-level evidence returned. Empty means no unavailable upcoming scope was identified; this includes healthy/not-configured rows and a legacy cached row. Observation league scopes are upcoming-only and perform no live-membership read.
+    pub board_upcoming_unavailable_scopes: Vec<BoardUpcomingUnavailableScopes>,
+    /// Stored-universe rows plus provider-board rows missing from storage.
+    pub input: i64,
+    /// Sparse counts over the closed 25-value terminal vocabulary: outside_horizon, resolved, provider_closed, provider_excluded, invalid_market, missing_token, missing_stored_market, not_provider_live, board_source_unavailable, board_deadline_unavailable, primary_slate_candidate, zero_indexed_holder_research, capacity_limited, provider_unavailable, holder_deadline_unavailable, holder_computation_unavailable, holder_scan_incomplete, no_current_graded_holder, split_holder_pile, price_unavailable, wider_holder_emitted, in_play_emitted, in_play_stale_observed, in_play_directional_unavailable, or internal_unclassified. primary_slate_candidate means exact admission by the funded route's raw shared signals query before provider/holder enrichment; recent-flow rows rejected by its event, bucket, or total caps remain eligible for wider_holder measurement. capacity_limited is intentional bounded provider-work admission, is fully accounted here, and does not itself set degraded=true. board_source_unavailable means a completed board source was unavailable; board_deadline_unavailable means live-board work missed either an internal configured-scope deadline or the outer fair-wave deadline; provider_unavailable means an attempted holder-provider read failed; holder_deadline_unavailable means holder cache/provider work missed the absolute request deadline; holder_computation_unavailable means post-holder provider or DB-backed price/metadata evaluation was unavailable.
+    pub terminals: std::collections::BTreeMap<String, i64>,
+    /// Sum of every sparse terminal count.
+    pub terminal_total: i64,
+    /// True exactly when input equals terminal_total.
+    pub reconciled: bool,
+}
+
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -1856,6 +3439,9 @@ pub enum ErrorCode {
     /// `request_timeout`
     #[serde(rename = "request_timeout")]
     RequestTimeout,
+    /// `endpoint_retired`
+    #[serde(rename = "endpoint_retired")]
+    EndpointRetired,
     /// A value this release does not know, kept as sent.
     #[serde(untagged)]
     Other(String),
@@ -1876,6 +3462,7 @@ impl ErrorCode {
             Self::RateLimitUnavailable => "rate_limit_unavailable",
             Self::InternalError => "internal_error",
             Self::RequestTimeout => "request_timeout",
+            Self::EndpointRetired => "endpoint_retired",
             Self::Other(value) => value,
         }
     }
@@ -1895,6 +3482,7 @@ impl From<&str> for ErrorCode {
             "rate_limit_unavailable" => Self::RateLimitUnavailable,
             "internal_error" => Self::InternalError,
             "request_timeout" => Self::RequestTimeout,
+            "endpoint_retired" => Self::EndpointRetired,
             other => Self::Other(other.to_owned()),
         }
     }
@@ -1928,6 +3516,9 @@ pub enum ErrorReason {
     /// `trader_not_tracked`
     #[serde(rename = "trader_not_tracked")]
     TraderNotTracked,
+    /// `market_out_of_scope`
+    #[serde(rename = "market_out_of_scope")]
+    MarketOutOfScope,
     /// `read_model_warming`
     #[serde(rename = "read_model_warming")]
     ReadModelWarming,
@@ -1994,6 +3585,12 @@ pub enum ErrorReason {
     /// `freshness_ceiling_unsatisfied`
     #[serde(rename = "freshness_ceiling_unsatisfied")]
     FreshnessCeilingUnsatisfied,
+    /// `max_plan_required`
+    #[serde(rename = "max_plan_required")]
+    MaxPlanRequired,
+    /// `endpoint_retired`
+    #[serde(rename = "endpoint_retired")]
+    EndpointRetired,
     /// A value this release does not know, kept as sent.
     #[serde(untagged)]
     Other(String),
@@ -2007,6 +3604,7 @@ impl ErrorReason {
             Self::UnknownEndpoint => "unknown_endpoint",
             Self::PickNotReleased => "pick_not_released",
             Self::TraderNotTracked => "trader_not_tracked",
+            Self::MarketOutOfScope => "market_out_of_scope",
             Self::ReadModelWarming => "read_model_warming",
             Self::DatabaseUnavailable => "database_unavailable",
             Self::RequestAccountingUnavailable => "request_accounting_unavailable",
@@ -2029,6 +3627,8 @@ impl ErrorReason {
             Self::IpThrottled => "ip_throttled",
             Self::ExportExpired => "export_expired",
             Self::FreshnessCeilingUnsatisfied => "freshness_ceiling_unsatisfied",
+            Self::MaxPlanRequired => "max_plan_required",
+            Self::EndpointRetired => "endpoint_retired",
             Self::Other(value) => value,
         }
     }
@@ -2041,6 +3641,7 @@ impl From<&str> for ErrorReason {
             "unknown_endpoint" => Self::UnknownEndpoint,
             "pick_not_released" => Self::PickNotReleased,
             "trader_not_tracked" => Self::TraderNotTracked,
+            "market_out_of_scope" => Self::MarketOutOfScope,
             "read_model_warming" => Self::ReadModelWarming,
             "database_unavailable" => Self::DatabaseUnavailable,
             "request_accounting_unavailable" => Self::RequestAccountingUnavailable,
@@ -2063,6 +3664,8 @@ impl From<&str> for ErrorReason {
             "ip_throttled" => Self::IpThrottled,
             "export_expired" => Self::ExportExpired,
             "freshness_ceiling_unsatisfied" => Self::FreshnessCeilingUnsatisfied,
+            "max_plan_required" => Self::MaxPlanRequired,
+            "endpoint_retired" => Self::EndpointRetired,
             other => Self::Other(other.to_owned()),
         }
     }
@@ -2440,6 +4043,7 @@ pub struct ExploreGroup {
     pub category: Option<String>,
     /// Markets in the event cluster, ranked by volume with condition_id as the tie-breaker. The selected representative is retained within the 12-market cap.
     pub markets: Vec<ExploreMarket>,
+    /// The volume of the group's highest-volume market, which is markets[0]: the same figure as that market's volume, Polymarket's cumulative taker volume in shares rather than cash. Null when unavailable.
     #[serde(default)]
     pub rep_volume: Option<f64>,
     /// Canonical key since #16304; rep_whales is its deprecated spelling, emitted beside it with the same value.
@@ -2473,6 +4077,7 @@ pub struct ExploreMarket {
     pub platform: Option<String>,
     /// closed once Polymarket has closed trading or the market has resolved; active otherwise. The same rule labels a market on markets/search, markets/explore and market/{condition_id}/snapshot.
     pub status: MarketSearchResultStatus,
+    /// Polymarket's traded-volume figure for the market, as last stored: cumulative taker volume in shares, each counted at its $1 settlement value, not the cash that changed hands (100 shares bought at $0.40 add 100, not 40). It can lag Polymarket's current figure. sort=volume orders by it. Null when unavailable.
     #[serde(default)]
     pub volume: Option<f64>,
     #[serde(default)]
@@ -2520,6 +4125,9 @@ pub struct ExploreMarket {
     /// The outcome graded money leans toward RELATIVE TO THE PRICE: named only when the graded money's share of a side diverges from that side's price-implied share by at least 10 points, with at least $500 on the leaning side and outside the crowded-side guard. Null when the money sits with the price (no lean), when there is no graded money, or when the price is unavailable. The same rule as the market page.
     #[serde(default)]
     pub smart_label: Option<String>,
+    /// When the oldest stored smart-money wallet behind this split (smart_score, smart_count and smart_label) last finished syncing. Graded wallets sync on different schedules, so this is often hours or days ago. Some holdings in the split can come from a Polymarket holder read cached for up to 3 minutes, which this time does not describe. Null when there is no split or a wallet's sync time is unknown.
+    #[serde(default)]
+    pub sharp_money_as_of: Option<String>,
     /// Display label for the YES/outcome_index=0 side, enriched from provider outcome metadata when available.
     #[serde(default)]
     pub outcome_yes_label: Option<String>,
@@ -2551,10 +4159,8 @@ pub struct ExploreMarket {
     /// Backend-owned deterministic market discovery score used by the hot sort.
     #[serde(default)]
     pub discover_score: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub score_components: Option<ExploreMarketScoreComponents>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub freshness: Option<ExploreMarketFreshness>,
+    pub score_components: ExploreMarketScoreComponents,
+    pub freshness: ExploreMarketFreshness,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -2701,10 +4307,64 @@ pub struct ExportCompleteness {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct ExportCounts {
+    /// Daily P&L rows. The daily P&L covers every market of the wallet.
     pub pnl_days: i64,
+    /// The wallet's sports and esports markets: the rows of the export's markets section, before its 50,000-row cap.
     pub exported_markets: i64,
+    /// Estimated trades in the wallet's sports and esports markets: the summed trade counts of those markets. The file counts its own rows in generation.source_watermarks.trades.rows.
     pub estimated_trade_rows: i64,
+    /// Estimated file size from estimated_trade_rows and exported_markets.
     pub estimated_size_mb: f64,
+}
+
+/// `export_job_cancelled` data: the owner's export stopped because its owner cancelled it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ExportJobCancelledData {
+    pub job_id: i64,
+    pub status: String,
+    pub format: String,
+    pub next_action: String,
+}
+
+/// `export_job_expired` data: the owner's ready export passed retention.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ExportJobExpiredData {
+    pub job_id: i64,
+    pub status: String,
+    pub format: String,
+    pub next_action: String,
+}
+
+/// `export_job_failed` data: the owner's asynchronous export reached a terminal failure.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ExportJobFailedData {
+    pub job_id: i64,
+    pub status: String,
+    pub format: String,
+    pub next_action: String,
+    pub failure_reason: String,
+}
+
+/// `export_job_ready` data: the owner's asynchronous export can be downloaded. Download authorization stays on the status and download routes.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ExportJobReadyData {
+    pub job_id: i64,
+    pub status: String,
+    pub format: String,
+    pub next_action: String,
+    #[serde(default)]
+    pub total_trades: Option<i64>,
+    #[serde(default)]
+    pub processed_trades: Option<i64>,
+    /// Artifact size in bytes.
+    #[serde(default)]
+    pub file_size: Option<i64>,
+    #[serde(default)]
+    pub data_as_of: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -2714,8 +4374,10 @@ pub struct ExportSourceRange {
     pub first_pnl_date: Option<String>,
     #[serde(default)]
     pub last_pnl_date: Option<String>,
+    /// The latest trade in the wallet's sports and esports markets. Null when it has none.
     #[serde(default)]
     pub latest_trade_at: Option<String>,
+    /// Same instant as latest_trade_at: the latest activity of the markets the export holds.
     #[serde(default)]
     pub latest_market_activity_at: Option<String>,
 }
@@ -2726,10 +4388,14 @@ pub struct ExportVolumeReconciliation {
     /// Verified full-history both-sides USD cash volume. Null without coverage; the local activity numerator may cover only a subset of history.
     #[serde(default)]
     pub provider_lifetime_volume: Option<f64>,
+    /// Cash in USD, buys and sells, summed over the daily P&L rows this export carries, from the fills 0xinsider has stored for the wallet. It can cover less history than provider_lifetime_volume; never Polymarket's share count.
     pub exported_activity_volume: f64,
+    /// Cost basis in USD summed over the wallet's sports and esports markets, the markets section of the export.
     pub exported_market_cost_basis: f64,
+    /// provider_lifetime_volume minus exported_activity_volume, in USD, rounded to cents. Null when provider_lifetime_volume is null.
     #[serde(default)]
     pub provider_activity_volume_gap: Option<f64>,
+    /// exported_activity_volume divided by provider_lifetime_volume, a fraction of the cash, not a percent. Null when provider_lifetime_volume is null or zero.
     #[serde(default)]
     pub activity_volume_coverage: Option<f64>,
 }
@@ -2888,7 +4554,7 @@ pub struct Game {
     /// The esports series length, for example Bo3. Omitted for everything else.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub series_format: Option<String>,
-    /// Whether one of this game's markets pays on a draw. Read this instead of assuming a two-outcome moneyline.
+    /// Whether this read includes a market classified as paying on a draw, including soccer's independent 1X2 draw leg. Read this instead of assuming a two-outcome moneyline.
     pub draw_offered: bool,
     /// Every market this read linked to the game, ordered by condition_id.
     pub markets: Vec<GameMarket>,
@@ -2974,7 +4640,7 @@ pub struct GameMarket {
     /// The provider's own market type, for example moneyline or spread. Omitted when the provider sent none. Not an enum: the provider owns this vocabulary and adds to it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sports_market_type: Option<String>,
-    /// Which side of the game this market's YES leg pays. draw is a real value: a 1X2 market's third leg is not a competitor. Omitted when the provider ids do not classify the leg, which is not the same as other.
+    /// Which side of the game this market's YES leg pays. Soccer 1X2 legs are explicitly classified as home, draw or away by the provider projection. draw is a real value, not a competitor. Omitted when the provider projection cannot classify the leg, which is not the same as other.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub side: Option<GameMarketSide>,
     /// The provider's label for the YES outcome. Omitted when the provider sent none.
@@ -3326,7 +4992,7 @@ pub struct GameStatus {
     /// The game clock as the provider spells it, never reformatted. Omitted when the provider sent none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub clock: Option<String>,
-    /// The provider's own in-play flag. Omitted when no live-score frame exists, which is not the same as false.
+    /// Whether the game is in play. It is the provider's own in-play flag, except that a game the provider reports suspended (period SUS) or rescheduled to a later kickoff reads false. Omitted when no live-score frame exists, which is not the same as false.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub live: Option<bool>,
     /// Whether the game is over. Always present.
@@ -3339,7 +5005,7 @@ pub struct GameStatus {
 pub struct GamesCoverage {
     /// Canonical sport buckets served, sorted.
     pub sports: Vec<String>,
-    /// League tags served, sorted.
+    /// League tags served, sorted. EuroLeague is euroleague under the Basketball sport bucket.
     pub leagues: Vec<String>,
     /// Scopes whose source half was unavailable for this read, as <sport>:<half>. Empty means every scope answered.
     pub sources_unavailable: Vec<String>,
@@ -3434,14 +5100,10 @@ pub struct GetHealthResponse {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct GetHealthResponseData {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub status: Option<GetHealthResponseDataStatus>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub db: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub cache: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub subsystems: Option<GetHealthResponseDataSubsystems>,
+    pub status: GetHealthResponseDataStatus,
+    pub db: bool,
+    pub cache: bool,
+    pub subsystems: GetHealthResponseDataSubsystems,
 }
 
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
@@ -3680,8 +5342,7 @@ pub struct GetMarketHoldersResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
     /// Holders matching the request's `outcome` and `min_grade` filters across every page.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub total: Option<i64>,
+    pub total: i64,
     pub market: MarketHoldersMarket,
     pub scan: MarketHoldersScan,
     pub totals: MarketHoldersTotals,
@@ -3740,7 +5401,7 @@ pub struct GetPickOfTheDayLedgerResponse {
 #[non_exhaustive]
 pub struct GetPickOfTheDayResponse {
     pub object: String,
-    pub data: PickOfTheDay,
+    pub data: serde_json::Value,
     pub meta: ResponseMeta,
 }
 
@@ -3849,6 +5510,14 @@ pub struct GetTraderResponse {
 pub struct GetWebhookResponse {
     pub object: String,
     pub data: WebhookEndpoint,
+    pub meta: ResponseMeta,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct GetWebhookVerificationAttemptResponse {
+    pub object: String,
+    pub data: WebhookVerificationAttempt,
     pub meta: ResponseMeta,
 }
 
@@ -4106,6 +5775,54 @@ impl AsRef<str> for IdentityStatus {
     }
 }
 
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum Kind {
+    /// `sports`
+    #[serde(rename = "sports")]
+    Sports,
+    /// `esports`
+    #[serde(rename = "esports")]
+    Esports,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl Kind {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Sports => "sports",
+            Self::Esports => "esports",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for Kind {
+    fn from(value: &str) -> Self {
+        match value {
+            "sports" => Self::Sports,
+            "esports" => Self::Esports,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for Kind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for Kind {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct LargeExportPolicy {
@@ -4123,26 +5840,19 @@ pub struct LargeExportPolicy {
 #[non_exhaustive]
 pub struct LargeExportPolicyV1Async {
     /// POST route template to submit an export job. fresh=true asks for a snapshot read after the submit instead of reusing a finished one.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub submit_route: Option<String>,
+    pub submit_route: String,
     /// GET route template to poll job status.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub status_route: Option<String>,
+    pub status_route: String,
     /// GET route template that 302-redirects to the file.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub download_route: Option<String>,
+    pub download_route: String,
     /// POST route template to cancel a queued or running job.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub cancel_route: Option<String>,
+    pub cancel_route: String,
     /// Supported ?format= values.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub formats: Option<Vec<Format>>,
+    pub formats: Vec<Format>,
     /// Possible job status values.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub status_values: Option<Vec<TraderExportJobDataStatus>>,
+    pub status_values: Vec<TraderExportJobDataStatus>,
     /// How long a finished export is retained before expiry.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub retention: Option<String>,
+    pub retention: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -4248,11 +5958,19 @@ pub struct LargePositionTrader {
     pub grade: Option<Grade>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub win_rate: Option<f64>,
-    /// Trader lifetime realized P&L across all markets.
+    /// Polymarket's net total P&L for the wallet in USD: native Polymarket position P&L across all markets, fees included, plus credited maker and taker rebates. The 0xinsider profile's Total P&L is this figure unless the wallet has a published correction for neg-risk conversions, which GET /api/v1/trader/{address} serves as pnl.correction; the profile then shows pnl.correction.net_total. Distinct from this position's position_unrealized_pnl. Omitted when the wallet has no native accounting snapshot.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pnl: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub markets_traded: Option<i64>,
+}
+
+/// `large_positions_updated` data: one large-positions refresh finished.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LargePositionsUpdatedData {
+    /// Positions the refresh published.
+    pub count: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -4262,11 +5980,11 @@ pub struct LargeTrade {
     pub id: String,
     pub traded_at: String,
     pub size_usd: f64,
-    pub side: LargeTradeSide,
-    /// Traded outcome label (e.g. "Yes"/"No"/team name), resolved provider-first from the trade's outcome_index against market_canonical (index 0 -> yes, 1 -> no). Distinct axis from side (BUY/SELL): side is the trade direction, outcome is which leg was traded. null for multi-outcome (outcome_index >= 2) or unsynced markets, and for a Polymarket trade recorded before 2026-04-02T00:00:00Z, whose stored outcome_index is not trusted (a defaulted 0 for about a third of those rows; the side is unknown, not defaulted).
+    pub side: LargeTradeInsertedV2DataSide,
+    /// Traded outcome label (e.g. "Yes"/"No"/team name), resolved provider-first from the trade's outcome_index against market_canonical (index 0 -> yes, 1 -> no). Distinct axis from side (BUY/SELL): side is the trade direction, outcome is which leg was traded. null for multi-outcome (outcome_index >= 2) or unsynced markets, and for a Polymarket trade recorded before 2026-04-02T00:00:00Z unless its stored outcome_index was verified against the fill's own trade records (before that date the stored index was wrong for a large share of trades; an unverified side is unknown, not defaulted).
     #[serde(default)]
     pub outcome: Option<String>,
-    /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for the traded outcome; null when unavailable (e.g. unsynced markets) and for a Polymarket trade recorded before 2026-04-02T00:00:00Z, where the traded side is unknown.
+    /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for the traded outcome; null when unavailable (e.g. unsynced markets) and for a Polymarket trade recorded before 2026-04-02T00:00:00Z whose traded side is not verified (the same rule as outcome).
     #[serde(default)]
     pub token_id: Option<String>,
     pub price: f64,
@@ -4286,7 +6004,7 @@ pub struct LargeTrade {
     /// Persisted scorer track. Null when a legacy row has no stored track label.
     #[serde(default)]
     pub suspicion_track: Option<SuspicionTrack>,
-    /// This fill's size relative to its market: size_usd divided by a market volume figure recorded at or after the trade, so the value always falls between 0 and 1 inclusive. A $10,000 fill is 0.00005 of a $200M market and 0.125 of an $80,000 one, which size_usd alone cannot distinguish. Absent when no volume figure recorded at or after the trade is available; never 0 as a stand-in and never capped at 1, because a denominator we cannot trust publishes nothing rather than a trimmed number. A market's volume keeps growing, so the same trade reports a smaller share as the market trades on.
+    /// This fill's size relative to its market: its share count (size_usd / price) divided by the shares the market has traded, Polymarket's recorded volume, which counts shares rather than dollars, as observed at or after the trade, so the value always falls between 0 and 1 inclusive. A 20,000-share fill is 0.00005 of a market that has traded 400M shares and 0.125 of one that has traded 160,000, which size_usd alone cannot distinguish. Absent when no volume figure recorded at or after the trade is available, or when that figure is smaller than the fill; never 0 as a stand-in and never capped at 1, because a denominator we cannot trust publishes nothing rather than a trimmed number. A market's volume keeps growing, so the same trade reports a smaller share as the market trades on.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub market_volume_share: Option<f64>,
     pub trader: LargeTradeTrader,
@@ -4330,23 +6048,41 @@ pub struct LargeTradeHistoryMetaSource {
     pub provider_fetch_at_request_time: bool,
 }
 
+/// `large_trade_inserted_v2` data (Pro and Max): one large trade, with the trade itself. The three amounts are decimal strings that keep the stored precision: parse them with a decimal library when the exact value matters. The endpoint's `trade_filters` decide which trades it receives.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct LargeTradeMarket {
-    pub id: String,
+pub struct LargeTradeInsertedV2Data {
+    /// Stable identity of this trade's event. It equals the envelope `id`, and the `id` of the same event on `GET /api/v1/events/feed/since`.
+    pub event_id: String,
+    /// Numeric id of the trade. `GET /api/v1/large-trades/{id}` accepts it.
+    pub whale_alert_id: i64,
+    /// Polymarket condition id of the market.
     pub condition_id: String,
-    pub title: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub slug: Option<String>,
-    /// Provider-backed market_canonical category.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub category: Option<String>,
+    /// 0xinsider's numeric id for the wallet.
+    pub trader_id: i64,
+    /// Address of the wallet that made the trade.
+    pub wallet: String,
+    /// The wallet's grade when the event was published; `null` when it has none.
+    #[serde(default)]
+    pub grade: Option<Grade>,
+    /// USD notional of the trade; decimal string.
+    pub size_usd: String,
+    /// Shares traded; decimal string.
+    pub shares: String,
+    /// Price paid per share; decimal string.
+    pub price: String,
+    pub side: LargeTradeInsertedV2DataSide,
+    /// Polymarket's index of the outcome traded.
+    pub outcome_index: i64,
+    /// When the trade filled on Polymarket. The envelope's `created_at` is this instant.
+    pub traded_at: String,
+    pub platform: String,
 }
 
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
-pub enum LargeTradeSide {
+pub enum LargeTradeInsertedV2DataSide {
     /// `BUY`
     #[serde(rename = "BUY")]
     Buy,
@@ -4358,7 +6094,7 @@ pub enum LargeTradeSide {
     Other(String),
 }
 
-impl LargeTradeSide {
+impl LargeTradeInsertedV2DataSide {
     /// The value as the API spells it.
     pub fn as_str(&self) -> &str {
         match self {
@@ -4369,7 +6105,7 @@ impl LargeTradeSide {
     }
 }
 
-impl From<&str> for LargeTradeSide {
+impl From<&str> for LargeTradeInsertedV2DataSide {
     fn from(value: &str) -> Self {
         match value {
             "BUY" => Self::Buy,
@@ -4379,16 +6115,29 @@ impl From<&str> for LargeTradeSide {
     }
 }
 
-impl std::fmt::Display for LargeTradeSide {
+impl std::fmt::Display for LargeTradeInsertedV2DataSide {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
     }
 }
 
-impl AsRef<str> for LargeTradeSide {
+impl AsRef<str> for LargeTradeInsertedV2DataSide {
     fn as_ref(&self) -> &str {
         self.as_str()
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LargeTradeMarket {
+    pub id: String,
+    pub condition_id: String,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub slug: Option<String>,
+    /// Provider-backed market_canonical category.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
 }
 
 /// All present fields narrow large_trade_inserted_v2 delivery. Grade is observed at publication; ungraded trades do not match min_grade. An empty object matches every large trade.
@@ -4425,6 +6174,14 @@ pub struct LargeTradeTrader {
     pub grade_at_trade_status: GradeAtTradeStatus,
 }
 
+/// `large_trades_inserted` data (Pro and Max): new large trades were ingested. It carries a count and no trade; subscribe to `large_trade_inserted_v2` for the trade itself. The deprecated spelling `whale_trades_inserted` delivers the same object.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LargeTradesInsertedData {
+    /// Large trades the producing batch admitted.
+    pub count: i64,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct LeaderboardEntry {
@@ -4439,12 +6196,15 @@ pub struct LeaderboardEntry {
     pub streak_tier: Option<StreakTier>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub score: Option<f64>,
-    /// All-time P&L in USD (total_pnl), including unrealized open positions. Kept for back-compat; prefer realized_pnl for the banked figure.
+    /// Polymarket's all-time leaderboard P&L in USD, from Polymarket's latest observation of this wallet on its all-time leaderboard (dated by the leaderboard_pnl data_quality group). Omitted when that leaderboard has no current observation ranking the wallet; 0xinsider requests one, and never serves an older stored figure in its place. Includes unrealized open positions. Kept for back-compat. Not the profile's Total P&L, which GET /api/v1/trader/{address} serves as pnl.net_total; the two can differ by a wide margin. Prefer realized_pnl for the banked figure.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pnl: Option<f64>,
-    /// Native realized P&L plus credited maker and taker rebates in USD, with fees already included. The exact numeric value is truncated toward zero to cents before JSON conversion. Wallets without a native snapshot retain their historical stored realized P&L. Omitted when the native snapshot has no net realized value.
+    /// Native realized P&L plus credited maker and taker rebates in USD, with fees already included. The exact numeric value is truncated toward zero to cents before JSON conversion. Omitted when the wallet has no native snapshot or the snapshot has no net realized value; never filled from another P&L basis.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub realized_pnl: Option<f64>,
+    /// The 0xinsider correction to Polymarket's P&L for neg-risk conversions. Present only when one is published; realized_pnl keeps Polymarket's own figure and pnl_correction.realized adds the amount to it. The grade and the ranking use the corrected figure. net_total is omitted here.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pnl_correction: Option<PnlCorrection>,
     /// Full-history both-sides USD cash volume from a verified Polymarket user-volume observation. Omitted without coverage.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub volume: Option<f64>,
@@ -4453,6 +6213,7 @@ pub struct LeaderboardEntry {
     /// The wallet's win rate across ALL categories, not the filtered one. ?category= decides WHICH wallets are listed (the wallet must be ranked in that category); it does not rescope this field, so a soccer-filtered list still reports each wallet's overall rate. For a per-category record use GET /api/v1/trader/{address}/categories.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub win_rate: Option<f64>,
+    /// Observed trading style identifier. New rows use two_sided, category_focused, high_activity, diversified, mixed, or unclassified, counted over the wallet's sports and esports markets only. Historical identifiers remain readable during normal reclassification; style does not predict skill or intent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub strategy_type: Option<String>,
     /// Provider platform. Always polymarket.
@@ -4597,36 +6358,6 @@ pub struct ListPositionsResponseSnapshot {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct ListPreGameSideObservationsResponse {
-    pub object: String,
-    pub data: Vec<PreGameSideObservation>,
-    pub has_more: bool,
-    /// Pass as cursor for the next page. Always sent; null on the last page.
-    #[serde(default)]
-    pub next_cursor: Option<String>,
-    /// Completion time of the shared observation snapshot pinned by the cursor.
-    pub snapshot_as_of: String,
-    /// True when an operational failure or unknown provider-board, holder, directional, reconciliation, or internal completeness state made this snapshot partial. This is snapshot-wide and can retain degradation that the funnel's one-terminal-per-input accounting cannot represent. Intentional bounded capacity_limited rows remain fully accounted in the funnel and do not by themselves set this field.
-    pub degraded: bool,
-    pub funnel: PreGameSideFunnelReport,
-    pub meta: ResponseMeta,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct ListPreGameSidesResponse {
-    pub object: String,
-    pub data: Vec<PreGameSide>,
-    pub has_more: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub next_cursor: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub total: Option<i64>,
-    pub meta: ResponseMeta,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
 pub struct ListSharpMoneyFlowsResponse {
     pub object: String,
     pub data: Vec<SmartMoneyFlowMarket>,
@@ -4643,36 +6374,6 @@ pub struct ListSharpMoneyFlowsResponse {
 pub struct ListSmartMoneyFlowsResponse {
     pub object: String,
     pub data: Vec<SmartMoneyFlowMarket>,
-    pub has_more: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub next_cursor: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub total: Option<i64>,
-    pub meta: ResponseMeta,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct ListSportsEdgeObservationsResponse {
-    pub object: String,
-    pub data: Vec<PreGameSideObservation>,
-    pub has_more: bool,
-    /// Pass as cursor for the next page. Always sent; null on the last page.
-    #[serde(default)]
-    pub next_cursor: Option<String>,
-    /// Completion time of the shared observation snapshot pinned by the cursor.
-    pub snapshot_as_of: String,
-    /// True when an operational failure or unknown provider-board, holder, directional, reconciliation, or internal completeness state made this snapshot partial. This is snapshot-wide and can retain degradation that the funnel's one-terminal-per-input accounting cannot represent. Intentional bounded capacity_limited rows remain fully accounted in the funnel and do not by themselves set this field.
-    pub degraded: bool,
-    pub funnel: PreGameSideFunnelReport,
-    pub meta: ResponseMeta,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct ListSportsEdgeSignalsResponse {
-    pub object: String,
-    pub data: Vec<PreGameSide>,
     pub has_more: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
@@ -4708,6 +6409,54 @@ pub struct ListTrendingWalletsResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub total: Option<i64>,
     pub meta: ResponseMeta,
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum ListTrendingWalletsWindow {
+    /// `7d`
+    #[serde(rename = "7d")]
+    V7d,
+    /// `30d`
+    #[serde(rename = "30d")]
+    V30d,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl ListTrendingWalletsWindow {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::V7d => "7d",
+            Self::V30d => "30d",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for ListTrendingWalletsWindow {
+    fn from(value: &str) -> Self {
+        match value {
+            "7d" => Self::V7d,
+            "30d" => Self::V30d,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for ListTrendingWalletsWindow {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for ListTrendingWalletsWindow {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -4797,7 +6546,64 @@ pub struct ListWhaleTradesResponse {
     pub meta: ResponseMeta,
 }
 
-/// Provider-first bucketed OHLC price candles for a market's outcome tokens, derived from the stored token_price_snapshots series (covers open and resolved markets).
+/// One side's score line inside a `live_sports_updated` pulse.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LiveSportsScoreEntry {
+    /// Team name, ordered for the league (away first where the league reads that way).
+    pub team: String,
+    /// This side's score as the provider sends it.
+    pub score: String,
+    /// Esports series only: this side's current-map score. Absent on other sports.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub map_score: Option<String>,
+}
+
+/// `live_sports_updated` data: one bounded pulse for one live game. A pulse fires when a material field moved since this game's previous delivered pulse (`scores`, `status`, `period`, `live`, `ended`), at most once per game per 20 seconds. A `live` or `ended` transition is exempt from that interval, and the game clock alone never fires a pulse. Suppressed frames are folded into the next pulse's `changed`, and its body carries the current state.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LiveSportsUpdatedData {
+    /// The Polymarket event slug this game trades under.
+    pub event_slug: String,
+    /// Provider game id, or `null` when the frame carried none.
+    #[serde(default)]
+    pub game_id: Option<String>,
+    /// League abbreviation, or `null`.
+    #[serde(default)]
+    pub league: Option<String>,
+    /// Durable per-game pulse ordinal, increasing by one per delivered pulse. Deliveries are not ordered, so drop a pulse whose version you already saw.
+    pub version: i64,
+    /// Material fields that moved since this game's previous delivered pulse.
+    pub changed: Vec<Changed>,
+    /// Provider frame time, or `null` when the frame carried none. Never replaced with a local clock.
+    #[serde(default)]
+    pub observed_at: Option<String>,
+    /// When the pulse was admitted.
+    pub published_at: String,
+    /// Provider status text, or `null`.
+    #[serde(default)]
+    pub status: Option<String>,
+    /// Provider period text ("Q3", "Map 2/3"), or `null`.
+    #[serde(default)]
+    pub period: Option<String>,
+    /// Game clock, or `null`. Not a material field: it never fires a pulse on its own.
+    #[serde(default)]
+    pub clock: Option<String>,
+    /// Provider live flag, or `null` when the frame carried none.
+    #[serde(default)]
+    pub live: Option<bool>,
+    /// Whether the provider has marked this game final.
+    pub ended: bool,
+    /// Per-side scores, one line per team.
+    pub scores: Vec<LiveSportsScoreEntry>,
+    /// Esports `BoN` series token, or `null` on every other sport.
+    #[serde(default)]
+    pub series_format: Option<String>,
+    /// Public game page. Re-read it after a gap instead of replaying pulses.
+    pub snapshot_url: String,
+}
+
+/// Provider-first bucketed OHLC price candles for a market's outcome tokens, derived from our stored copy of the Polymarket CLOB prices-history series (covers open and resolved markets).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct MarketCandles {
@@ -4845,8 +6651,7 @@ pub struct MarketFlowSharpMoney {
     #[serde(default)]
     pub token_id: Option<String>,
     /// Canonical key since #16304 (Polymarket's noun is large trade); whale_trade_count is its deprecated spelling, emitted beside it with the same value.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub large_trade_count: Option<i64>,
+    pub large_trade_count: i64,
     pub whale_trade_count: i64,
     pub buy_volume_usd: f64,
     pub sell_volume_usd: f64,
@@ -4882,8 +6687,7 @@ pub struct MarketFlowSmartMoney {
     #[serde(default)]
     pub token_id: Option<String>,
     /// Canonical key since #16304 (Polymarket's noun is large trade); whale_trade_count is its deprecated spelling, emitted beside it with the same value.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub large_trade_count: Option<i64>,
+    pub large_trade_count: i64,
     pub whale_trade_count: i64,
     pub buy_volume_usd: f64,
     pub sell_volume_usd: f64,
@@ -4946,6 +6750,9 @@ pub struct MarketHolder {
     /// The two counts `category_win_rate` is the ratio of, from the same row: `wins / decided` equals the rate. Every resolved Polymarket market the wallet traded in the market's canonical category, at any position size, rebuilt daily. Present only with `category_win_rate_status` = `measured`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_win_record: Option<MarketHolderCategoryWinRecord>,
+    /// The wallet's average entry price in the market's canonical category, as a 0..1 fraction of $1 (0.98 is 98 cents). Its sample is the wallet's settled markets in that category of $20 or more where it bought one side at a known price, so it can differ from the `category_win_record` sample. A wallet that buys near-certain outcomes wins almost every time, so read the win rate beside this price. Present only with `category_win_rate_status` = `measured`, and only when that sample has at least 5 markets. When `category_win_rate_game` is present the price is still the `Esports` category's: there is no per-game price. Absent otherwise and on payloads predating the field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category_avg_price: Option<f64>,
     /// For an esports market, the game `category_win_rate` and `category_win_record` were measured in: `LoL`, `CS2`, `Dota 2`, `Valorant`, `Call of Duty`, `Honor of Kings`, `Mobile Legends: Bang Bang`, `Overwatch`, `Rainbow Six Siege`, `Rocket League` or `StarCraft II`. Present only when the wallet's record in that game clears the 5-resolved-market floor, in which case the rate and record are the game's rather than the `Esports` bucket's. Absent when the rate is the bucket's (the wallet's game history is under the floor), on every non-esports market, and beside every non-measured status. Label the rate with this when present and with the market's `category` otherwise.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_win_rate_game: Option<String>,
@@ -5155,6 +6962,54 @@ pub struct MarketHoldersTotals {
     pub no_grades: MarketHoldersSideGrades,
 }
 
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum MarketScope {
+    /// `all_markets`
+    #[serde(rename = "all_markets")]
+    AllMarkets,
+    /// `sports_and_esports`
+    #[serde(rename = "sports_and_esports")]
+    SportsAndEsports,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl MarketScope {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::AllMarkets => "all_markets",
+            Self::SportsAndEsports => "sports_and_esports",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for MarketScope {
+    fn from(value: &str) -> Self {
+        match value {
+            "all_markets" => Self::AllMarkets,
+            "sports_and_esports" => Self::SportsAndEsports,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for MarketScope {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for MarketScope {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct MarketSearchResult {
@@ -5323,12 +7178,17 @@ impl AsRef<str> for MarketSnapshotFreshnessStatus {
 #[non_exhaustive]
 pub struct MarketSnapshotLiquidity {
     pub source: String,
+    /// Polymarket's traded-volume figure for the market, as last stored: cumulative taker volume in shares, each counted at its $1 settlement value, not the cash that changed hands (100 shares bought at $0.40 add 100, not 40). It can lag Polymarket's current figure. The name ends in _usd because Polymarket prints this figure with a dollar sign; it is a share count. Null when unavailable.
     #[serde(default)]
     pub volume_usd: Option<f64>,
     #[serde(default)]
     pub liquidity_usd: Option<f64>,
+    /// Polymarket's taker volume over the 24 hours before volume_24h_as_of, in shares, each counted at its $1 settlement value, not the cash that changed hands (100 shares bought at $0.40 add 100, not 40). The name ends in _usd because Polymarket prints volume with a dollar sign; it is a share count. Null when Polymarket does not report one: it omits the figure on closed markets and on open markets with no trades in the last 24 hours.
     #[serde(default)]
     pub volume_24h_usd: Option<f64>,
+    /// When 0xinsider read volume_24h_usd from Polymarket; the figure covers the 24 hours before this time. Null exactly when volume_24h_usd is null.
+    #[serde(default)]
+    pub volume_24h_as_of: Option<String>,
     /// Always null. Polymarket snapshot prices come from outcome top-of-book midpoints.
     #[serde(default)]
     pub last_price: Option<f64>,
@@ -5359,8 +7219,10 @@ pub struct MarketSnapshotMarket {
     /// Polymarket series slug from the canonical identity row, null when unavailable. A sports series identifies a league and must not be used as a per-matchup grouping key.
     #[serde(default)]
     pub series_slug: Option<String>,
+    /// Always null. Deprecated (#24169): 0xinsider has never stored a value for this field. The key stays on the wire so existing clients keep parsing; do not read it.
     #[serde(default)]
     pub market_type: Option<String>,
+    /// Always null. Deprecated (#24169): 0xinsider stores no value for this field on a Polymarket market. The key stays on the wire so existing clients keep parsing; do not read it. market.status and market.resolved_at say whether the market has closed or resolved.
     #[serde(default)]
     pub market_result: Option<String>,
     #[serde(default)]
@@ -5378,6 +7240,7 @@ pub struct MarketSnapshotOutcomesItem {
     pub label: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_id: Option<String>,
+    /// The outcome's display price, the probability Polymarket shows for it: the midpoint of the cached top of book when the spread is at most 0.10, otherwise the token's last trade price. Omitted when neither is known, including a book wider than 0.10 with no last trade on record; top_of_book still carries that book's best_bid and best_ask. expand=trust explains a missing value in trust.current_price.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub current_price: Option<f64>,
     pub top_of_book: MarketSnapshotTopOfBook,
@@ -5392,11 +7255,19 @@ pub struct MarketSnapshotSports {
     pub live_match_key: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub live_league_key: Option<String>,
-    /// Live-score period and elapsed may be omitted when unavailable (older responses use null). A score entry may omit full_name when it equals team; fall back to team. Distinct aliases and score admission markers are preserved.
+    /// Live-score period and elapsed may be omitted when unavailable (older responses use null). A score entry may omit full_name when it equals team; fall back to team. Distinct aliases and score admission markers are preserved. For live esports, scores[].map_score retains an available pair through an update omitting both sides only within the same live map, series format and series totals. Map changes and final state follow current provider updates; absent detail remains unavailable. Optional tennis_points supplies independently sourced current-game points and serving side; absence means unavailable. Compatible unexpired tennis_points survives temporary supplemental snapshot unavailability or contention; expiry and set/game mismatch still clear it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub live_score: Option<serde_json::Map<String, serde_json::Value>>,
+    pub live_score: Option<MarketSnapshotSportsLiveScore>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
+}
+
+/// Live-score period and elapsed may be omitted when unavailable (older responses use null). A score entry may omit full_name when it equals team; fall back to team. Distinct aliases and score admission markers are preserved. For live esports, scores[].map_score retains an available pair through an update omitting both sides only within the same live map, series format and series totals. Map changes and final state follow current provider updates; absent detail remains unavailable. Optional tennis_points supplies independently sourced current-game points and serving side; absence means unavailable. Compatible unexpired tennis_points survives temporary supplemental snapshot unavailability or contention; expiry and set/game mismatch still clear it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct MarketSnapshotSportsLiveScore {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tennis_points: Option<TennisPoints>,
 }
 
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
@@ -5654,7 +7525,7 @@ impl AsRef<str> for MatchType {
 #[non_exhaustive]
 pub struct McpJsonRpcError {
     pub jsonrpc: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub id: Option<serde_json::Value>,
     pub error: McpJsonRpcErrorError,
 }
@@ -6029,6 +7900,9 @@ pub struct PickHolder {
     /// The two counts `category_win_rate` is the ratio of, read from the same row: `wins / decided` equals the rate. Counts every resolved Polymarket market the wallet traded in the pick's canonical category (or in its game, when `category_win_rate_game` is present), at any position size; the counts are rebuilt daily. Present only with `category_win_rate_status` = `measured`; absent otherwise and on payloads predating the field.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_win_record: Option<PickHolderCategoryWinRecord>,
+    /// The wallet's average entry price in the pick's canonical category, as a 0..1 fraction of $1 (0.98 is 98 cents). Its sample is the wallet's settled markets in that category of $20 or more where it bought one side at a known price, so it can differ from the `category_win_record` sample. A wallet that buys near-certain outcomes wins almost every time, so read the win rate beside this price. Present only with `category_win_rate_status` = `measured`, and only when that sample has at least 5 markets. When `category_win_rate_game` is present the price is still the `Esports` category's: there is no per-game price. Absent otherwise and on payloads predating the field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category_avg_price: Option<f64>,
     /// For an esports pick, the game `category_win_rate` and `category_win_record` were measured in, by the same name the pick's `display_category` uses for it: `LoL`, `CS2`, `Dota 2`, `Valorant`, `Call of Duty`, `Honor of Kings`, `Mobile Legends: Bang Bang`, `Overwatch`, `Rainbow Six Siege`, `Rocket League` or `StarCraft II`. Present only when the wallet's record in that game clears the 5-resolved-market floor, in which case the rate and record are the game's rather than the `Esports` bucket's. Absent when the rate is the bucket's (the wallet's game history is under the floor), on every non-esports pick, beside every non-measured status, and on payloads predating the field. Label the rate with this when present and with `category` otherwise.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_win_rate_game: Option<String>,
@@ -6062,10 +7936,46 @@ pub struct PickHolderCategoryWinRecord {
     pub decided: i64,
 }
 
+/// Recorded lead wallet facts on a full response when available. Position and category history are frozen at publication; they are not live balances or pick win probabilities.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PickLeadBacker {
+    /// Lead trader wallet address.
+    pub address: String,
+    /// Recorded provider display name.
+    #[serde(default)]
+    pub name: Option<String>,
+    /// Trader grade recorded at publication.
+    pub grade: String,
+    /// Canonical sport of the recorded directional history.
+    pub category: String,
+    /// Provider-reported position value on the backed outcome at publication, in USD. It is the gross value on that outcome and does not subtract shares the wallet held on the other outcome; see net_position_usd. It is not the entry cost or a live balance.
+    pub position_usd: f64,
+    /// Net value of the lead's position toward the backed outcome at publication, in USD: shares held on the backed outcome minus shares held on the other outcome of the same market, valued at the backed outcome's provider price at publication. Present only when the wallet also held the other outcome; absent for a one-sided position, whose net equals position_usd. It is not a live balance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub net_position_usd: Option<f64>,
+    /// Start time of the provider position fetch used at publication. This conservative observation clock precedes completion; the position is not a live balance.
+    pub position_observed_at: String,
+    /// Distinct directional events in the recorded category history.
+    pub directional_event_count: i64,
+    /// Events with strictly positive native terminal P&L in the same frozen category sample as directional_event_count, realized_pnl_usd and roi. Multiple market positions in one event contribute one combined event result. Zero-profit events remain in directional_event_count but do not increase this count. This is a recorded wallet result, not a market win rate or the pick's win probability.
+    pub profitable_event_count: i64,
+    /// Realized P&L over the recorded directional category sample, in USD. Excludes open positions and later changes.
+    pub realized_pnl_usd: f64,
+    /// Recorded entry basis of that directional sample, in USD; not a claim of complete trading costs or fees.
+    pub entry_basis_usd: f64,
+    /// Realized P&L divided by recorded entry basis, as a fraction: 0.10 means 10%. This is a wallet statistic, not a pick win probability.
+    pub roi: f64,
+    /// Peak-to-trough realized P&L drawdown after each event result in the recorded sample, in USD. Excludes intragame, unrealized, and account equity drawdown.
+    pub max_realized_drawdown_usd: f64,
+    /// Timestamp when the directional history evidence was recorded, separate from the provider position snapshot clock.
+    pub recorded_at: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct PickOfTheDay {
-    /// Always 'full' for an authenticated Pro key.
+    /// Full success containing entitled proof-readable picks.
     pub state: String,
     /// The pick's local publication date (YYYY-MM-DD).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -6079,7 +7989,7 @@ pub struct PickOfTheDay {
     /// Number of items in `picks`: the proof-readable picks. Picks held in `proof_pending_picks` are not counted.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pick_count: Option<i64>,
-    /// Same-day picks selected but not yet released, ordered by pick_rank. Additive and optional: present only while at least one unreleased slot exists. Each slot exposes only its rank and schedule -- no market identity before release. Schedule the next read from the earliest release_at instead of polling.
+    /// Rank-ordered entitled selections that have not released. Every row retains release_at and kickoff; unauthorized scheduled ranks appear only in identity-free locked_picks.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scheduled_picks: Option<Vec<ScheduledPickSlot>>,
     /// Human-readable matchup (e.g. "Portugal vs. Uzbekistan").
@@ -6088,13 +7998,13 @@ pub struct PickOfTheDay {
     /// Recorded canonical sport category. Prefer display_category for the public competition label.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category: Option<String>,
-    /// Frozen public presentation category: the competition the Polymarket event belongs to. A curated label comes first -- an official league (e.g. "WNBA" or "UFC"), the esports title (e.g. "CS2", "LoL", "Dota 2" or "Valorant"), or a soccer competition (e.g. "LaLiga", "Premier League", "Serie A" or "UEFA Champions League"); any other competition carries the provider's own competition name without its season year (e.g. "UEFA Nations League", "ATP" or "Wimbledon"). It equals category only when the provider names no competition. An esports pick keeps the pooled "Esports" bucket in category, so a per-title label never implies a per-title measured cohort. Additive and optional for mixed-version client compatibility.
+    /// Frozen public presentation category. Tennis uses the provider-verified ATP or WTA tour, including Wimbledon and doubles; unknown tours retain Tennis. Every men's and women's cricket competition uses Cricket. Other sports use the curated league, esports title or soccer competition label, then the provider series name without its season year, then category when no competition is known. The canonical category and measured cohort are unchanged: an esports title still uses the pooled Esports category. Optional for mixed-version client compatibility.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub display_category: Option<String>,
     /// Provider platform. Always polymarket.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub platform: Option<String>,
-    /// The pick's stored release instant. Normally the current provider kickoff minus one hour; an operator may override it. The actual publish instant can trail it because of worker or claim delay.
+    /// The pick's stored release instant. Use the returned timestamp; published_at records when publication occurred.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub release_at: Option<String>,
     /// True only before the pick's stored release instant (a pre-release embargo flag); effectively always false on a served, already-published pick. To detect that the backed game has kicked off, use `game_started`.
@@ -6190,28 +8100,25 @@ pub struct PickOfTheDay {
     /// Recorded market-implied probability as a 0..1 fraction when available.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub market_pct: Option<f64>,
-    /// Optional recorded specialist facts. These describe the trader and do not disclose selection decisions. Present only on a full response when available.
+    /// Optional recorded specialist facts on a full response. These describe the trader, not the pick's win probability. Omitted when no recorded specialist is available.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub qualifying_expert: Option<PickOfTheDayQualifyingExpert>,
     /// Public V1 S/A wallet count on the backed side, equal to sharp_wallet_count.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub traders: Option<i64>,
-    /// Recorded backed-side sharp-money value in USD when available.
+    /// Recorded aggregate backed-side position value in USD when available, not a live balance or entry cost. The display_holders roster can include additional wallets; use the returned aggregate rather than summing that roster.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub backed_sharp_usd: Option<f64>,
-    /// Bounded S/A holder display projection. Historical rows retain their recorded display shape.
+    /// Bounded S/A holder display projection from the recorded snapshot. Historical rows retain their recorded display shape.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub holders: Option<Vec<PickHolder>>,
-    /// Optional complete holder display roster. Each entry carries ordinary trader and recorded position facts.
+    /// Optional recorded holder roster in display order, with lead_backer first when present. Preserve the returned order. The roster can include wallets outside the recorded count and aggregate fields; do not derive holder_count, wallet counts or backed_sharp_usd from its length or a sum. Position values are gross holdings on the backed outcome and can coexist with holdings on the other outcome. Historical rows retain their recorded display shape.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub display_holders: Option<Vec<PickHolder>>,
     /// S/A holder count for the public V1 compatibility projection. display_holders can include additional grades.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub holder_count: Option<i64>,
-    /// Optional editorial note attached to the pick.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub editorial_note: Option<String>,
-    /// Required truthful thesis. With at least one profitable-wallet holder: Profitable wallets hold {pick_outcome_label}[, led by a grade-{top_grade} trader]. Without holder backing: 0xInsider's Pick of the Day is {pick_outcome_label}. Wallet counts are not appended.
+    /// Display-ready explanation of the recorded pick. Render the returned text rather than reconstructing it from holder counts or grades.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub thesis: Option<String>,
     /// Canonical web market URL.
@@ -6232,12 +8139,18 @@ pub struct PickOfTheDay {
     /// Risk disclaimer shown with every pick.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub disclaimer: Option<String>,
-    /// Published same-day picks whose holder proof is not readable yet, ordered by pick_rank. Additive and optional: present only while at least one such pick exists. While present, `picks` carries only the proof-readable picks and `pick_count` counts them. Schedule the next read from the earliest retry_at instead of polling. The route returns 503 read_model_warming only when no published pick has readable proof.
+    /// Entitled published picks whose holder proof is unreadable, ordered by rank. Unauthorized ranks appear only in locked_picks and cannot trigger proof warming. Read retry_at for the next read.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub proof_pending_picks: Option<Vec<ProofPendingPickSlot>>,
     /// Optional full-response entry authorization. Missing or expired authorization cannot authorize an automated entry.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub entry_authorization: Option<PotdEntryAuthorization>,
+    /// Unauthorized unresolved published or scheduled ranks. Contains no game, provider identity, price, or identifying clock. Pro may upgrade to Max to open these ranks.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub locked_picks: Option<Vec<PickOfTheDayLockedPicksItem>>,
+    /// Actionable status, including Upgrade to Max when only locked ranks are published.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
     /// Stable pick row identity as decimal text. Never use a quality rank as identity.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pick_id: Option<String>,
@@ -6247,17 +8160,20 @@ pub struct PickOfTheDay {
     /// Viewer-independent free selection designation. New rows store it explicitly; historic null storage uses the original free slot.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_free_selection: Option<bool>,
-    /// Replacement predecessor stable id; null when no lineage is recorded.
+    /// Deprecated (#24157): always null. No replacement lineage was ever recorded in this field; the key stays so existing V1 clients keep parsing. Identify a pick by pick_id.
     #[serde(default)]
     pub supersedes_pick_id: Option<String>,
+    /// Optional full-only lead wallet publication facts. Omitted on legacy picks or when the recorded evidence is unavailable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lead_backer: Option<PickLeadBacker>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct PickOfTheDayArchive {
-    /// Every published Pick of the Day, newest first by pick_date and then pick_rank within each product day.
+    /// Published Pick of the Day selections that have not been withdrawn, newest first by pick_date and then pick_rank within each product day. Withdrawn rows stay excluded after settlement.
     pub picks: Vec<PickOfTheDayArchiveEntry>,
-    /// One entry per product day that has a published pick, newest first, in the same order as picks. Each carries that day's net units, accumulated in the same backend pass and behind the same visibility gate as hit_rate.unit_score, so both cover the same population of picks. Re-adding the day totals reproduces hit_rate.unit_score to display precision rather than bit-for-bit, since that re-associates the floating-point sum.
+    /// One entry per product day that has a published pick included in the archive, newest first, in the same order as picks. Each carries that day's net units, accumulated in the same backend pass and behind the same visibility gate as hit_rate.unit_score, so both cover the same population of picks. Re-adding the day totals reproduces hit_rate.unit_score to display precision rather than bit-for-bit, since that re-associates the floating-point sum.
     pub days: Vec<PickOfTheDayArchiveDay>,
     pub hit_rate: PickOfTheDayHitRate,
 }
@@ -6273,11 +8189,11 @@ pub struct PickOfTheDayArchiveDay {
     pub wins: i64,
     /// Picks on the day that resolved as a loss, counted by the same pass as hit_rate.losses.
     pub losses: i64,
-    /// Picks on the day that resolved void (stake refunded).
+    /// Picks on the day that resolved void: the market settled with no winner, or the game was suspended or postponed and not completed within 72 hours of kickoff. A void is neither a win nor a loss and is not staked, so it enters no money figure.
     pub void: i64,
     /// Picks on the day not yet resolved. A day whose picks are all pending is a real 0-0 day with pending > 0, not a missing record.
     pub pending: i64,
-    /// Net units over the day's visible, valued, decided (win/loss) picks: the same population staked_usd runs over. Omitted when the day has not scored -- every pick still pending, every pick void, or a price-gated current row -- which is not the same as a real 0.0 day.
+    /// Net units over the day's visible, valued, staked (win or loss) picks: the same population staked_usd runs over. Omitted when the day has not scored -- every pick still pending or void, or a price-gated current row -- which is not the same as a real 0.0 day.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unit_score: Option<f64>,
     /// unit_score pre-formatted as signed units to two decimals (for example +1.24u or -2.00u), by the same formatter the per-pick unit_score_display and hit_rate.unit_score_display use. Present exactly when unit_score is; unit_score is the source value.
@@ -6294,16 +8210,17 @@ pub struct PickOfTheDayArchiveEntry {
     /// The pick's local publication date (YYYY-MM-DD).
     pub pick_date: String,
     /// Deprecated compatibility daily release slot; use pick_id for identity and publication_order for scheduling.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub pick_rank: Option<i64>,
-    /// When this pick became public (RFC3339 UTC). pick_date above is the America/New_York product day, not an instant, so read this whenever you need a real time: reading the bare date as UTC midnight places it hours before the earliest instant a pick can drop (11:00 UTC on that date). A day's last pick can drop at 23:00 ET, which is the following UTC date. Omitted (not null) when the instant is unknown; additive and optional for mixed-version client compatibility.
+    pub pick_rank: i64,
+    /// When this selection was published, as RFC3339 UTC. Use this instant for publication feeds and timelines; pick_date is the America/New_York product day, not a publication timestamp. Absent only for historical rows whose publication instant is unknown.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub published_at: Option<String>,
     /// Human-readable matchup (e.g. "Portugal vs. Uzbekistan").
-    pub matchup: String,
-    /// Frozen canonical calibration/report bucket (e.g. "Basketball", "MMA", or "Soccer"). Existing semantics are unchanged; presentation consumers should prefer display_category when present.
-    pub category: String,
-    /// Frozen public presentation category: the competition the Polymarket event belongs to. A curated label comes first -- an official league (e.g. "WNBA" or "UFC"), the esports title (e.g. "CS2", "LoL", "Dota 2" or "Valorant"), or a soccer competition (e.g. "LaLiga", "Premier League", "Serie A" or "UEFA Champions League"); any other competition carries the provider's own competition name without its season year (e.g. "UEFA Nations League", "ATP" or "Wimbledon"). It equals category only when the provider names no competition. An esports pick keeps the pooled "Esports" bucket in category, so a per-title label never implies a per-title measured cohort. Additive and optional for mixed-version client compatibility.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub matchup: Option<String>,
+    /// Frozen canonical sport bucket (e.g. "Basketball", "MMA", or "Soccer"). Existing semantics are unchanged; presentation consumers should prefer display_category when present.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    /// Frozen public presentation category. Tennis uses the provider-verified ATP or WTA tour, including Wimbledon and doubles; unknown tours retain Tennis. Every men's and women's cricket competition uses Cricket. Other sports use the curated league, esports title or soccer competition label, then the provider series name without its season year, then category when no competition is known. The canonical category and measured cohort are unchanged: an esports title still uses the pooled Esports category. Optional for mixed-version client compatibility.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub display_category: Option<String>,
     /// Provider (Polymarket Gamma) market thumbnail URL (markets.image); omitted (not null) when the market has no image. Public regardless of the backed-side gate, so present for pending rows too.
@@ -6312,7 +8229,7 @@ pub struct PickOfTheDayArchiveEntry {
     /// The backed side's outcome label. Omitted for a still-pending pick when the request is not from an authenticated Pro key.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pick_outcome_label: Option<String>,
-    /// Best public V1-compatible S/A sharp-money grade on the backed side; a current B-only grade is omitted by the stable V1 adapter, while historical rows retain their frozen policy's grade. Omitted when no sharp-money wallet backs the pick, when a pending legacy proof has not yet upgraded, or when the stored holder policy is unknown-future or structurally invalid. Resolved legacy history remains supported.
+    /// Recorded top grade on the backed side in the public V1 compatibility projection. Omitted when unavailable. Historical values remain recorded snapshots.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub top_grade: Option<String>,
     /// Settlement outcome of the backed side; 'pending' until the market resolves.
@@ -6326,16 +8243,16 @@ pub struct PickOfTheDayArchiveEntry {
     /// The flat stake this row was valued at, in USD: 1000 since 2026-09-22 (100 before). Every row of the record is valued at the current stake, including picks published before the change. Present exactly when return_usd is.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stake_usd: Option<f64>,
-    /// Gross return of stake_usd on this resolved pick: a win returns stake_usd / backed_price, a loss returns 0, a void refunds stake_usd. A loss always returns 0 (the whole stake is lost regardless of price). The operand is published beside it as backed_price on exactly the same rows, so the entry never has to be recovered by inverting this number. Omitted (not null) only for a still-pending pick or a resolved WIN with no frozen price (a win's payout needs the price); mirrors the backend skip-when-absent behavior and the route-client optional (non-nullable) schema.
+    /// Gross return of stake_usd on this resolved pick: a win returns stake_usd / backed_price and a loss returns 0. A loss always returns 0 (the whole stake is lost regardless of price). The operand is published beside it as backed_price on every row that carries a return, so the entry never has to be recovered by inverting this number. Omitted (not null) for a still-pending pick, for a void (the market settled with no winner, or the game was suspended or postponed and not completed within 72 hours of kickoff, so the pick is not staked) and for a resolved WIN with no frozen price (a win's payout needs the price); mirrors the backend skip-when-absent behavior and the route-client optional (non-nullable) schema.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub return_usd: Option<f64>,
-    /// The same return on a literal $100 (a win returns 100 / backed_price, a loss 0, a void 100), kept for compatibility: the field predates stake_usd and its name promises the $100 basis. Present exactly when return_usd is.
+    /// The same return on a literal $100 (a win returns 100 / backed_price, a loss 0), kept for compatibility: the field predates stake_usd and its name promises the $100 basis. Present exactly when return_usd is.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub return_per_100: Option<f64>,
-    /// Pre-formatted return_usd as USD with cents: "$2,000.00". Present exactly when return_usd is -- it is formatted from that already-gated value -- so it is omitted for a still-pending pick, an unpriced win, and any pick whose backed side is withheld. Convenience only; return_usd is the source value.
+    /// Pre-formatted return_usd as USD with cents: "$2,000.00". Present exactly when return_usd is -- it is formatted from that already-gated value -- so it is omitted for a still-pending pick, a void, an unpriced win, and any pick whose backed side is withheld. Convenience only; return_usd is the source value.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub payout_display: Option<String>,
-    /// Frozen price of the backed side (0..1) that return_usd and return_per_100 were computed from: on a win, stake_usd / backed_price equals return_usd. It is the Polymarket CLOB order book midpoint at release, frozen write-once at publication, not an executed fill: a buyer lifts the ask, so a subscriber's own entry is usually a little worse than this price. Present exactly when return_usd is, so it is omitted for a still-pending pick, an unpriced win, and any pick whose backed side is withheld.
+    /// Frozen price of the backed side (0..1) that return_usd and return_per_100 were computed from: on a win, stake_usd / backed_price equals return_usd. It is the Polymarket CLOB order book midpoint at release, frozen write-once at publication, not an executed fill: a buyer lifts the ask, so a subscriber's own entry is usually a little worse than this price. Present exactly when return_usd is, and on a void, which carries no return: so it is omitted for a still-pending pick, an unpriced win, and any pick whose backed side is withheld.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub backed_price: Option<f64>,
     /// Closing-line value toward the backed side, computed as (close / entry - 1) * 100. Omitted when the row is gated, ineligible, or not measured.
@@ -6368,13 +8285,19 @@ pub struct PickOfTheDayArchiveEntry {
     /// Backend-formatted signed unit score, present exactly when unit_score is present.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unit_score_display: Option<String>,
+    /// The account or paid tier needed to open this unresolved rank.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required_tier: Option<RequiredTier>,
+    /// True for an unauthorized unresolved row. Game identity, category, image, publication clock and all backed facts are omitted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub backed_side_locked: Option<bool>,
     /// Stable pick row identity as decimal text. Never use a quality rank as identity.
     pub pick_id: String,
     /// Compatibility release slot. No quality claim; historic scheduling order is retained.
     pub publication_order: i64,
     /// Viewer-independent free selection designation. New rows store it explicitly; historic null storage uses the original free slot.
     pub is_free_selection: bool,
-    /// Replacement predecessor stable id; null when no lineage is recorded.
+    /// Deprecated (#24157): always null. No replacement lineage was ever recorded in this field; the key stays so existing V1 clients keep parsing. Identify a pick by pick_id.
     #[serde(default)]
     pub supersedes_pick_id: Option<String>,
 }
@@ -6443,11 +8366,10 @@ pub struct PickOfTheDayHitRate {
     /// Number of picks still pending resolution (excluded from the hit rate).
     pub pending: i64,
     /// The flat stake every money figure here assumes, in USD: 1000 since 2026-09-22 (100 before). Always present.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub stake_usd: Option<f64>,
-    /// Cumulative profit (USD) of a stake_usd-per-pick strategy over visible valued decided picks: a priced win pays stake_usd/backed_price - stake_usd, every visible loss pays -stake_usd independent of price, and a void pays 0. An unpriced visible win and a current non-Insider row whose price is gated remain in wins/losses but are excluded from price-derived totals.
+    pub stake_usd: f64,
+    /// Cumulative profit (USD) of a stake_usd-per-pick strategy over visible valued settled picks: a priced win pays stake_usd/backed_price - stake_usd, every visible loss pays -stake_usd independent of price. A void is not staked and adds nothing. An unpriced visible win and a current non-Insider row whose price is gated remain in wins/losses but are excluded from price-derived totals.
     pub net_profit_usd: f64,
-    /// Total staked (USD) = stake_usd * count of visible valued decided picks: every visible loss plus every priced win. Void, unpriced wins, and current non-Insider rows whose price is gated are excluded.
+    /// Total staked (USD) = stake_usd * count of visible valued settled picks: every visible loss and every priced win. Voids, unpriced wins and current non-Insider rows whose price is gated are excluded.
     pub staked_usd: f64,
     /// Return on the staked amount as a percentage (net_profit_usd / staked_usd * 100, to 1 decimal); 0 when nothing is staked.
     pub roi_pct: f64,
@@ -6504,9 +8426,8 @@ pub struct PickOfTheDayHitRate {
     pub clv_beats_close: i64,
     /// Measured public rows where close exactly equals entry.
     pub clv_ties: i64,
-    /// Cumulative track-record series, one point per decided (win/loss) pick in ascending pick_date order (void and pending add no point). A non-valued decided row carries cumulative profit forward while advancing hit rate. The last point's net_profit_usd and hit_rate_pct equal the headline net_profit_usd and pct by construction. Empty when nothing is decided.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub series: Option<Vec<PickOfTheDayHitRateSeriesItem>>,
+    /// Cumulative track-record series, one point per decided (win/loss) pick in ascending pick_date order (pending and void picks add no point). A non-valued decided row carries cumulative profit forward while advancing hit rate. The last point's net_profit_usd and hit_rate_pct equal the headline net_profit_usd and pct by construction. Empty when nothing is decided.
+    pub series: Vec<PickOfTheDayHitRateSeriesItem>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -6607,9 +8528,12 @@ pub struct PickOfTheDayLedgerOpenedEntry {
     pub payload: PickOfTheDayCommitmentPayload,
     /// How the pick settled. Never pending: a pending pick is a sealed entry.
     pub outcome: PickOfTheDayLedgerOpenedEntryOutcome,
+    /// Why the site withdrew this pick from its track record, or null when the pick counts. provider_game_cancelled: Polymarket marked the game Cancelled while the pick was pending. published_after_kickoff: the pick was published at or after its game started, including a suspended match that resumed later, so it was never a pre-game pick; this can be set after the pick settled. A withdrawn pick keeps its commitment and its real outcome here, but the site's record leaves it out of every count and money figure. Not part of the hashed payload, so it never moves commitment_hash.
+    #[serde(default)]
+    pub withdrawal_reason: Option<WithdrawalReason>,
     /// Frozen matchup, for a reader.
     pub matchup: String,
-    /// Frozen canonical sport bucket used for selection calibration (Basketball, MMA), not the exact public league identity; the archive owns that.
+    /// Frozen canonical sport bucket (for example Basketball or MMA), not the exact public league identity; the archive owns that.
     pub category: String,
     /// The pick's public page.
     pub permalink: String,
@@ -6619,7 +8543,7 @@ pub struct PickOfTheDayLedgerOpenedEntry {
     pub publication_order: i64,
     /// Viewer-independent free selection designation. New rows store it explicitly; historic null storage uses the original free slot.
     pub is_free_selection: bool,
-    /// Replacement predecessor stable id; null when no lineage is recorded.
+    /// Deprecated (#24157): always null. No replacement lineage was ever recorded in this field; the key stays so existing V1 clients keep parsing. Identify a pick by pick_id.
     #[serde(default)]
     pub supersedes_pick_id: Option<String>,
     /// Explicit proof provenance: 1 retains historic eight-field canonical JSON; 2 binds stable pick_id and version without pick_rank.
@@ -6679,7 +8603,7 @@ impl AsRef<str> for PickOfTheDayLedgerOpenedEntryOutcome {
     }
 }
 
-/// A published pick that has not settled. Carries the commitment and nothing that states a side or a price: no nonce, no payload, no outcome. Publishable the instant the pick releases.
+/// An unresolved published pick. Carries only date, rank, hash, algorithm, seal instant and permalink. Kickoff and game identity are withheld; seal time remains public commitment provenance.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct PickOfTheDayLedgerSealedEntry {
@@ -6694,8 +8618,6 @@ pub struct PickOfTheDayLedgerSealedEntry {
     pub commitment_algo: String,
     /// When the hash was frozen. Always strictly before kickoff: a pick that reaches kickoff unsealed stays unsealed forever, because a seal written after the game started would be a backdated proof.
     pub sealed_at: String,
-    /// The frozen provider kickoff in the canonical payload form: whole seconds, UTC, literal Z. This exact string reappears inside payload.kickoff when the pick opens.
-    pub kickoff: String,
     /// The pick's public page.
     pub permalink: String,
     /// Stable pick row identity as decimal text. Never use a quality rank as identity.
@@ -6704,14 +8626,14 @@ pub struct PickOfTheDayLedgerSealedEntry {
     pub publication_order: i64,
     /// Viewer-independent free selection designation. New rows store it explicitly; historic null storage uses the original free slot.
     pub is_free_selection: bool,
-    /// Replacement predecessor stable id; null when no lineage is recorded.
+    /// Deprecated (#24157): always null. No replacement lineage was ever recorded in this field; the key stays so existing V1 clients keep parsing. Identify a pick by pick_id.
     #[serde(default)]
     pub supersedes_pick_id: Option<String>,
     /// Explicit proof provenance: 1 retains historic eight-field canonical JSON; 2 binds stable pick_id and version without pick_rank.
     pub commitment_version: i64,
 }
 
-/// A published pick with no commitment: it predates the scheme, or it reached kickoff unsealed. Nothing here is evidence of WHEN the pick was made. It is emitted rather than skipped, because a ledger with holes where the unprovable picks were would silently flatter the record. Once the pick settles, payload names its market, side and price, so the outcome can still be checked against the market's own resolution.
+/// A pick without a commitment, retained so the record cannot omit unprovable entries. Unresolved entries omit game identity; once resolved, matchup, category and payload become public. Existing opened canonical payload bytes and hashes are unchanged.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct PickOfTheDayLedgerUncommittedEntry {
@@ -6724,10 +8646,15 @@ pub struct PickOfTheDayLedgerUncommittedEntry {
     pub pre_commitment: bool,
     /// How the pick settled, or pending.
     pub outcome: Outcome,
+    /// Omitted while the pick is pending; once it settles, why the site withdrew it from its track record, or null when the pick counts. provider_game_cancelled: Polymarket marked the game Cancelled while the pick was pending. published_after_kickoff: the pick was published at or after its game started, including a suspended match that resumed later, so it was never a pre-game pick; this can be set after the pick settled. A withdrawn pick stays here with its real outcome, but the site's record leaves it out of every count and money figure.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub withdrawal_reason: Option<WithdrawalReason>,
     /// Frozen matchup, for a reader.
-    pub matchup: String,
-    /// Frozen canonical sport bucket used for selection calibration (Basketball, MMA), not the exact public league identity; the archive owns that.
-    pub category: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub matchup: Option<String>,
+    /// Frozen canonical sport bucket (for example Basketball or MMA), not the exact public league identity; the archive owns that.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
     /// When outcome was LAST written to a settled value, or null when that instant is unknown. It moves with a corrected market re-mapping an already-settled pick, while commitment_hash stays untouched -- which is how a mirror that keeps history sees a correction.
     #[serde(default)]
     pub resolved_at: Option<String>,
@@ -6742,12 +8669,53 @@ pub struct PickOfTheDayLedgerUncommittedEntry {
     pub publication_order: i64,
     /// Viewer-independent free selection designation. New rows store it explicitly; historic null storage uses the original free slot.
     pub is_free_selection: bool,
-    /// Replacement predecessor stable id; null when no lineage is recorded.
+    /// Deprecated (#24157): always null. No replacement lineage was ever recorded in this field; the key stays so existing V1 clients keep parsing. Identify a pick by pick_id.
     #[serde(default)]
     pub supersedes_pick_id: Option<String>,
 }
 
-/// Optional recorded specialist facts. These describe the trader and do not disclose selection decisions. Present only on a full response when available.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PickOfTheDayLockedPicksItem {
+    pub pick_rank: i64,
+    pub required_tier: String,
+}
+
+/// A successful current-day entitlement response when only unauthorized ranks have published. It carries an empty pick set, identity-free locked ranks and an upgrade message. Selection IDs, game identity, prices and unauthorized clocks are absent. Any scheduled or proof-pending rows are entitled rows.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PickOfTheDayNoEntitledPicks {
+    /// Only locked ranks are published for this account.
+    pub state: String,
+    /// Current product date in America/New_York (YYYY-MM-DD).
+    pub pick_date: String,
+    /// Empty: no entitled proof-readable picks are returned.
+    pub picks: Vec<PickOfTheDay>,
+    /// Zero entitled proof-readable picks.
+    pub pick_count: i64,
+    /// Unauthorized unresolved published or scheduled ranks. Contains no game, provider identity, price, or identifying clock. Pro may upgrade to Max to open these ranks.
+    pub locked_picks: Vec<PickOfTheDayNoEntitledPicksLockedPicksItem>,
+    /// Actionable status, including Upgrade to Max when only locked ranks are published.
+    pub message: String,
+    /// Rank-ordered entitled selections that have not released. Every row retains release_at and kickoff; unauthorized scheduled ranks appear only in identity-free locked_picks.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scheduled_picks: Option<Vec<ScheduledPickSlot>>,
+    /// Entitled published picks whose holder proof is unreadable, ordered by rank. Unauthorized ranks appear only in locked_picks and cannot trigger proof warming. Read retry_at for the next read.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proof_pending_picks: Option<Vec<ProofPendingPickSlot>>,
+    /// Deprecated (#24157): always null. No replacement lineage was ever recorded in this field; the key stays so existing V1 clients keep parsing. Identify a pick by pick_id.
+    #[serde(default)]
+    pub supersedes_pick_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PickOfTheDayNoEntitledPicksLockedPicksItem {
+    pub pick_rank: i64,
+    pub required_tier: String,
+}
+
+/// Optional recorded specialist facts on a full response. These describe the trader, not the pick's win probability. Omitted when no recorded specialist is available.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct PickOfTheDayQualifyingExpert {
@@ -6831,7 +8799,7 @@ pub struct PickSportsContext {
     pub matchup_title: Option<String>,
 }
 
-/// A single sports team or competitor in a Pick of the Day market's sports context. Identity and score fields are provider-owned and nullable. The structured score fields (`sets`, `format`, `sets_won`) and the tennis fields (`headshot`, `tour`) are backend-owned and are OMITTED rather than null when they do not apply, so a consumer must treat an absent key and a null the same way.
+/// A single sports team or competitor in a Pick of the Day market's sports context. Identity and score fields are provider-owned and nullable. The structured score fields (`sets`, `format`, `sets_won`) and the tennis fields (`headshot`, `headshot_revision`, `tour`) are backend-owned and are OMITTED rather than null when they do not apply, so a consumer must treat an absent key and a null the same way.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct PickSportsTeam {
@@ -6847,10 +8815,10 @@ pub struct PickSportsTeam {
     /// Provider team identifier (Polymarket /teams id).
     #[serde(default)]
     pub provider_id: Option<i64>,
-    /// Team crest or flag URL. Provider-owned for most teams (Polymarket /teams crest for clubs, country flag for national teams and tennis players). A club with a vendored crest carries it instead, served same-origin as a relative path (`/api/sports/team-logos/{league}/{abbr}.svg?v=<content hash>` or `.png`, resolve it against this server): every NFL and WNBA team, whose provider asset is a text tile, and the soccer clubs whose provider asset is an empty object.
+    /// Team crest or flag URL. Official NFL (32), WNBA (15), NBA (30), NHL (32), and MLB (30) club crests use same-origin relative paths (`/api/sports/team-logos/{league}/{abbr}.svg?v=<content hash>`); resolve relative URLs against the API origin. Vendored soccer club crests use the same path with `.png`. Other teams use provider artwork, including country flags for national teams and tennis players. Novelty and national-team rows outside the vendored club sets retain provider artwork.
     #[serde(default)]
     pub logo: Option<String>,
-    /// True when the team mark is dark enough to disappear on a dark background, measured from the artwork by the teams sync. Render a dark mark on a light plate. Always sent; false until the artwork has been measured.
+    /// True when artwork measurements show that the team mark needs a light plate on a dark background. Vendored crest verdicts are tied to the exact asset bytes; provider artwork is measured by the teams sync. Always sent; false when no current measurement marks the logo dark.
     pub logo_mark_dark: bool,
     /// Team brand color as a hex string (provider-owned).
     #[serde(default)]
@@ -6875,6 +8843,12 @@ pub struct PickSportsTeam {
     /// Completed sets won by this side. Present only when both sides expose the same set columns, so a partially parsed scoreline reports no tally rather than a misleading one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sets_won: Option<i64>,
+    /// Optional monotonic photo revision for this tennis player, independent of the sports score revision. Legacy stored photos start at zero. Successful new or changed image bytes advance it; source checks and attribution changes do not. Compare only for the same tour and provider_id: a higher revision replaces the portrait, an equal revision may fill a missing portrait, and a lower revision must not replace a newer one. Absent when no photo resolved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub headshot_revision: Option<i64>,
+    /// Optional latest retrieved ATP/WTA singles rank for this player. Absent for unranked, ambiguous, doubles, expired, or unavailable identities. This is not rank at match time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ranking: Option<TennisRanking>,
 }
 
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
@@ -6953,6 +8927,29 @@ pub struct Platforms {
 #[non_exhaustive]
 pub struct PlatformsPlatforms {
     pub polymarket: PlatformCapabilities,
+}
+
+/// A derived 0xinsider correction to Polymarket's P&L, never a Polymarket value. Polymarket misbooks neg-risk conversions, in both directions: it puts cost on placeholder YES outcomes minted by a conversion and never books it as a loss (negative amount), and its position records leave out shares the wallet really got, such as YES minted by a conversion, so it books no P&L on them (positive amount). Per neg-risk market the wallet converted in, 0xinsider measures Polymarket's own activity cash against the sum of its position P&L, and sums the difference over every measured market whose shares did not move by direct transfer: transferred shares have no activity row, so such a market keeps Polymarket's figure and is counted in markets_excluded. It is published once every neg-risk market the wallet converted in is measured and checked for transfers, and stays as last published until then (on the trader body, pnl.correction_pending says so); a sum under $1 either way publishes nothing. The body's own P&L fields keep Polymarket's figures; this object adds the amount and the corrected figures. Money is truncated toward zero to cents.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PnlCorrection {
+    /// The correction method.
+    pub basis: String,
+    /// The correction in USD. Negative when Polymarket overstates the wallet.
+    pub amount: f64,
+    /// Polymarket's net realized P&L plus amount: the figure 0xinsider grades on. Omitted when Polymarket's figure is.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub realized: Option<f64>,
+    /// Polymarket's net total P&L plus amount: the 0xinsider profile's Total P&L. Omitted when Polymarket's figure is, and on leaderboard entries.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub net_total: Option<f64>,
+    /// The newest measurement among the measured markets.
+    pub as_of: String,
+    /// Neg-risk markets whose measurement amount sums.
+    pub markets_measured: i64,
+    /// Measured neg-risk markets left out because shares moved in or out of the wallet by direct transfer; they keep Polymarket's figure. Omitted when none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub markets_excluded: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -7043,7 +9040,7 @@ pub struct PositionTimelineEvent {
     pub id: String,
     /// ISO 8601 timestamp of the on-chain fill.
     pub event_timestamp: String,
-    /// From the taker's perspective.
+    /// The wallet's own side of this fill: buy or sell.
     pub action: Action,
     pub outcome_side: Side,
     /// The Polymarket CLOB token id (ERC1155 asset id, decimal string) for this outcome; null when unavailable (e.g. unsynced markets).
@@ -7073,25 +9070,28 @@ pub struct PositionTrader {
     pub username: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub grade: Option<Grade>,
-    /// Percentage 0-100.
+    /// Win rate as a ratio from 0 to 1 (0.62 means 62%), the same scale as stats.win_rate on GET /api/v1/trader/{address}. Absent when unknown.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub win_rate: Option<f64>,
+    /// Polymarket's net total P&L for the wallet in USD: native Polymarket position P&L across all markets, fees included, plus credited maker and taker rebates (trader_trading_pnl.net_total_pnl). The 0xinsider profile's Total P&L is this figure unless the wallet has a published correction for neg-risk conversions, which GET /api/v1/trader/{address} serves as pnl.correction; the profile then shows pnl.correction.net_total. Not the Polymarket leaderboard figure, which GET /api/v1/trader/{address} still serves as pnl.total. Omitted when the wallet has no native accounting snapshot; the leaderboard figure is never substituted.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pnl: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub markets: Option<i64>,
+    /// Days since the wallet's first-seen time. For a wallet 0xinsider first recorded on or after March 21, 2026, that is when 0xinsider recorded it. For a wallet recorded earlier, it is usually the wallet's first Polymarket activity, so the age can run to years. It is not the wallet's on-chain age or the time of its first trade. Absent when the first-seen time is unknown.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wallet_age_days: Option<f64>,
-    /// True when 0xinsider first recorded the wallet within the new-wallet threshold (30 days). This public V1 field is first-seen recency, not the wallet's on-chain age.
+    /// True when wallet_age_days is under the new-wallet threshold (30 days), which means 0xinsider first recorded the wallet in the last 30 days. False when wallet_age_days is absent. This public V1 field is first-seen recency, not the wallet's on-chain age.
     pub is_new_wallet: bool,
 }
 
-/// Returned entry permission bound to the named market, token and outcome. Honor max_entry_price and expires_at, and check a current executable order book for the actual stake. This snapshot does not guarantee current liquidity, execution or positive expected value.
+/// Returned entry permission bound to the named market, token and outcome. Honor the immutable max_entry_price and expires_at, and quote a current executable book for the actual stake. The submitted order price must remain within the returned limit; fills may be lower. Fees are separate, and this grant does not guarantee liquidity, execution or positive expected value.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct PotdEntryAuthorization {
     pub version: i64,
     pub authorization_id: String,
+    /// Identifier for the policy recorded with this authorization. It does not replace the returned max_entry_price or expires_at. Existing grants retain their recorded values.
     pub policy_version: i64,
     pub condition_id: String,
     pub token_id: String,
@@ -7100,419 +9100,15 @@ pub struct PotdEntryAuthorization {
     pub category: String,
     /// Exact provider parent event ID, or provider event ID when no parent exists.
     pub canonical_event_id: String,
-    /// Returned maximum entry price as an exact decimal string. Honor this bound; fees are excluded. This is not a fair probability.
+    /// Maximum authorized order price as an exact decimal string, excluding fees. Quote a current executable book for the actual stake and keep the submitted order price at or below this bound. Actual fills may be lower; this limit does not guarantee a fill or define fair probability.
     pub max_entry_price: String,
+    /// Selected-token best ask from the recorded reference book at issuance. This is a reference quote, not the authorized order-price limit; use max_entry_price for that limit.
     pub reference_best_ask: String,
     pub reference_book_hash: String,
     pub reference_book_at: String,
     pub issued_at: String,
-    /// Authorization expiry. An expired authorization cannot authorize a new automated entry.
+    /// Authorization expiry timestamp. Existing grants do not extend; an expired authorization cannot authorize a new automated entry.
     pub expires_at: String,
-}
-
-/// One ranked pre-game sports market where graded sharp money is piled on one side, with required-status shadow category evidence from partial forward-observed Polymarket fills.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct PreGameSide {
-    /// The side profitable wallets hold, as a provider-backed display label. Canonical spelling of piled_side (#16310), same value: when provider group context is unavailable it may remain a bare Yes/No/Over/Under, so do not use it alone as participant identity.
-    #[serde(default)]
-    pub side: Option<String>,
-    /// UTC time at which the snapshot that ranked this row was computed. Canonical spelling of signal_created_at (#16310), same value.
-    pub ranked_at: String,
-    /// Recorded side backing score; higher values indicate stronger backing.
-    pub backing_score: f64,
-    /// Signed share of graded money on the side, (yes_usd - no_usd)/(yes_usd + no_usd) in [-1, 1] (side-yes positive, side-no negative). Canonical spelling of smart_score (#16309, #16310), same value.
-    #[serde(default)]
-    pub side_share: Option<f64>,
-    /// Polymarket condition id.
-    pub condition_id: String,
-    /// UTC time at which the immutable signal snapshot was computed. Every row from one snapshot shares this value; it is not provider market creation time and is not rewritten at request time. Deprecated (#16310): `ranked_at` is the canonical spelling and carries the same value; this key stays on the wire.
-    pub signal_created_at: String,
-    /// Polymarket CLOB token id (ERC1155 asset id, decimal string) for the PILED outcome; null when unavailable.
-    #[serde(default)]
-    pub token_id: Option<String>,
-    /// Canonical sport bucket (e.g. Basketball, Tennis); null when the raw category has no canonical mapping.
-    #[serde(default)]
-    pub category: Option<String>,
-    /// Raw provider category as stored (e.g. NBA, EPL).
-    #[serde(default)]
-    pub raw_category: Option<String>,
-    #[serde(default)]
-    pub title: Option<String>,
-    #[serde(default)]
-    pub event_slug: Option<String>,
-    /// Kickoff (UTC). In the future at SNAPSHOT time and within the requested horizon; because the response is served from a shared snapshot cached up to the ~180s TTL, a served kickoff can be up to ~180s in the past relative to the response time. Not a live guarantee that the game has not yet started.
-    #[serde(default)]
-    pub game_start_time: Option<String>,
-    /// Nullable provider-backed piled-outcome display label. When provider group context is unavailable, it may remain a bare Yes/No/Over/Under; do not use it alone as participant identity. Deprecated (#16310): `side` is the canonical spelling and carries the same value; this key stays on the wire.
-    #[serde(default)]
-    pub piled_side: Option<String>,
-    /// Provider binary-column selector: 0 selects outcome_yes/token_id_yes; 1 selects outcome_no/token_id_no. It does not identify home/away or a participant. Use piled_side together with title/event context for display.
-    pub piled_outcome_index: i64,
-    /// Piled-side dollar concentration backed_usd / (yes_usd + no_usd), in (0.5, 1] for a real pile; null when there is no sharp USD.
-    #[serde(default)]
-    pub sharp_pct: Option<f64>,
-    /// Raw piled-side sharp-money USD.
-    pub backed_sharp_usd: f64,
-    /// S-grade graded holders on the piled side.
-    pub s_count: i64,
-    /// A-grade graded holders on the piled side.
-    pub a_count: i64,
-    /// B-grade graded holders on the piled side.
-    pub b_count: i64,
-    /// Piled-side graded holder count (s_count + a_count + b_count).
-    pub graded_holders: i64,
-    /// Best grade present on the piled side; null when none.
-    #[serde(default)]
-    pub top_grade: Option<MarketHolderGrade>,
-    /// Canonical sharp-money score (yes_usd - no_usd)/(yes_usd + no_usd) in [-1, 1] (piled-yes positive, piled-no negative). Deprecated (#16310): `side_share` is the canonical spelling and carries the same value; this key stays on the wire.
-    #[serde(default)]
-    pub smart_score: Option<f64>,
-    /// Market volume (USD).
-    #[serde(default)]
-    pub volume: Option<f64>,
-    /// Aggregate recent flow direction on the market; null when unavailable.
-    #[serde(default)]
-    pub net_side: Option<LargeTradeSide>,
-    /// Recorded conviction score; higher values indicate stronger conviction.
-    pub conviction_score: f64,
-    /// Piled-side graded holders read one-way: their fresh open legs across the signal game's markets (cross-market within the one game; moneyline+spread family only) all back the same team, or, when the market's holder scan was complete, Polymarket's currentValue shows no opposite leg on this market worth 10% of the backed leg and no fresh leg opposes it. Null when the directional read was not computed (no groupable game, no holder-level data on this ranking path, or the enrichment read failed) or classified nobody.
-    #[serde(default)]
-    pub one_way_holder_count: Option<i64>,
-    /// Piled-side graded holders classified HEDGED across the game by fresh legs (they back two or more distinct teams). A wallet long both outcomes of this market is not one-way and not counted here. Null when the directional read was not computed or classified nobody.
-    #[serde(default)]
-    pub hedged_holder_count: Option<i64>,
-    /// Piled-side graded USD held by one-way wallets (share-weighted allocation of backed_sharp_usd). Null when the directional read was not computed or classified nobody.
-    #[serde(default)]
-    pub one_way_graded_usd: Option<f64>,
-    /// One-way fraction of the piled graded dollars, in [0, 1] -- the metric orthogonal to sharp_pct. Stale, unknown, hedged, and two-sided dollars dilute it toward zero (conservative). Null when the directional read was not computed or classified nobody.
-    #[serde(default)]
-    pub directional_confidence: Option<f64>,
-    /// Recorded side ordering score; higher values sort first.
-    pub directional_rank_score: f64,
-    pub category_skill: PreGameSideCategorySkill,
-    /// 1-based rank within the (min_grade-filtered) ranked result.
-    pub rank: i64,
-}
-
-/// Shadow-only category evidence over the full uncapped piled-side S/A/B holder allocation. It never changes signal membership, ordering, routing, or sizing.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct PreGameSideCategorySkill {
-    pub status: Status,
-    pub model_version: String,
-    #[serde(default)]
-    pub taxonomy_version: Option<String>,
-    pub platform: String,
-    pub scope: String,
-    pub source_coverage: SourceCoverage,
-    pub observation_started_at: String,
-    pub as_of: String,
-    #[serde(default)]
-    pub canonical_category: Option<String>,
-    pub eligible_holders: i64,
-    pub covered_holders: i64,
-    #[serde(default)]
-    pub backed_sharp_usd: Option<f64>,
-    #[serde(default)]
-    pub covered_backed_usd: Option<f64>,
-    #[serde(default)]
-    pub coverage_pct: Option<f64>,
-    #[serde(default)]
-    pub weighted_edge_mean: Option<f64>,
-    #[serde(default)]
-    pub weighted_holder_lower_mean: Option<f64>,
-    #[serde(default)]
-    pub specialist_backed_usd: Option<f64>,
-    #[serde(default)]
-    pub specialist_backed_usd_pct: Option<f64>,
-    #[serde(default)]
-    pub largest_holder_backed_usd_pct: Option<f64>,
-    #[serde(default)]
-    pub minimum_holder_event_count: Option<i64>,
-}
-
-/// Per-sport accountable funnel for the full observation snapshot, returned on every page.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct PreGameSideFunnelReport {
-    pub sports: Vec<PreGameSideSportFunnelReport>,
-}
-
-/// One explicitly observation-only holder-pile measurement. It is evidence for cohort evaluation, not an execution instruction, and is isolated from the funded sports-edge-signals route.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct PreGameSideObservation {
-    /// The side profitable wallets hold, as a provider-backed display label. Canonical spelling of piled_side (#16310), same value: when provider group context is unavailable it may remain a bare Yes/No/Over/Under, so do not use it alone as participant identity.
-    #[serde(default)]
-    pub side: Option<String>,
-    /// Recorded side backing score; higher values indicate stronger backing.
-    pub backing_score: f64,
-    /// Signed share of graded money on the side, in [-1, 1]. Canonical spelling of smart_score (#16309, #16310), same value.
-    pub side_share: f64,
-    /// Raw Polymarket condition id.
-    pub condition_id: String,
-    /// Provider-backed Polymarket CLOB token id for the piled outcome. Rows without a verified token terminate before emission.
-    pub token_id: String,
-    /// Canonical sport bucket.
-    pub category: Category,
-    /// Raw provider category as stored.
-    #[serde(default)]
-    pub raw_category: Option<String>,
-    /// Provider-backed market title.
-    pub title: String,
-    #[serde(default)]
-    pub event_slug: Option<String>,
-    /// Provider event id when available.
-    #[serde(default)]
-    pub event_id: Option<String>,
-    /// Provider parent-event id used as the first event-cap identity when available.
-    #[serde(default)]
-    pub parent_event_id: Option<String>,
-    /// Provider-backed kickoff time in UTC.
-    pub game_start_time: String,
-    /// UTC instant when this row finished provider/holder evaluation.
-    pub observed_at: String,
-    /// Source cohort or additive projection view. emerging_pile is projected from wider_holder after source computation, overlaps its funnel denominator, and uses the source row's directional evidence.
-    pub cohort: Cohort,
-    /// Always true. This row must not be routed to an order executor.
-    pub observation_only: bool,
-    /// Nullable provider-backed piled-outcome display label. When provider group context is unavailable, it may remain a bare Yes/No/Over/Under; do not use it alone as participant identity. Deprecated (#16310): `side` is the canonical spelling and carries the same value; this key stays on the wire.
-    #[serde(default)]
-    pub piled_side: Option<String>,
-    /// Provider binary-column selector: 0 selects outcome_yes/token_id_yes; 1 selects outcome_no/token_id_no. It does not identify home/away or a participant. Use piled_side together with title/event context for display.
-    pub piled_outcome_index: i64,
-    /// Provider-backed implied price for the piled outcome at observation time.
-    pub backed_price: f64,
-    /// Piled-side graded-holder dollar concentration.
-    pub sharp_pct: f64,
-    /// Raw graded-holder USD on the piled outcome.
-    pub backed_sharp_usd: f64,
-    pub s_count: i64,
-    pub a_count: i64,
-    pub b_count: i64,
-    /// Piled-side S/A/B holder count.
-    pub graded_holders: i64,
-    pub top_grade: MarketHolderGrade,
-    /// Canonical signed holder-pile score. Deprecated (#16310): `side_share` is the canonical spelling and carries the same value; this key stays on the wire.
-    pub smart_score: f64,
-    /// Strictly positive stored market volume in USD. Missing, zero, or non-finite volume terminates as invalid_market and is never emitted as an observation.
-    pub volume: f64,
-    /// Recorded conviction score; higher values indicate stronger conviction.
-    pub conviction_score: f64,
-    /// Whether the provider holder page came from the shared cache or a live provider read.
-    pub provider_read_source: ProviderReadSource,
-    /// True only when neither provider outcome holder page hit the top-100 scan bound. False means the pile is a positive lower bound and cannot satisfy a future capital-promotion gate.
-    pub holder_scan_complete: bool,
-    /// Proven provider holder observation time. A warm cache hit uses only the original provider completion time from its companion metadata, never cache-read time. Null, malformed, future, or stale holder time fails in-play closed.
-    #[serde(default)]
-    pub holder_snapshot_at: Option<String>,
-    /// Truthful state of the directional read, which classifies each graded holder by its fresh synced legs across the game's markets and, when holder_scan_complete is true, by Polymarket's currentValue on both outcomes of this market. A wider_holder row can remain emitted with unavailable and terminal wider_holder_emitted; in_play fails closed instead and terminates as in_play_directional_unavailable.
-    pub directional_status: DirectionalStatus,
-    #[serde(default)]
-    pub one_way_holder_count: Option<i64>,
-    #[serde(default)]
-    pub hedged_holder_count: Option<i64>,
-    #[serde(default)]
-    pub one_way_graded_usd: Option<f64>,
-    #[serde(default)]
-    pub directional_confidence: Option<f64>,
-    /// Recorded side ordering score; higher values sort first.
-    pub directional_rank_score: f64,
-    /// 1-based rank within this observation cohort and snapshot.
-    pub rank: i64,
-}
-
-/// Closed 25-value terminal-reason vocabulary for the accountable sports-edge observation funnel. capacity_limited is intentional bounded provider-work admission and does not itself set the snapshot degraded. board_source_unavailable is a completed board-source failure; board_deadline_unavailable means live-board work missed either an internal configured-scope deadline or the outer fair-wave deadline; both classify only already-started rows, so for the upcoming source read funnel.sports[].board_upcoming_status instead; provider_unavailable is reserved for an attempted holder-provider failure; holder_deadline_unavailable is holder cache/provider absolute-deadline exhaustion.
-///
-/// A value this release does not know is kept in `Other`, so a new value never fails a response.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum PreGameSideObservationTerminalReason {
-    /// `outside_horizon`
-    #[serde(rename = "outside_horizon")]
-    OutsideHorizon,
-    /// `resolved`
-    #[serde(rename = "resolved")]
-    Resolved,
-    /// `provider_closed`
-    #[serde(rename = "provider_closed")]
-    ProviderClosed,
-    /// `provider_excluded`
-    #[serde(rename = "provider_excluded")]
-    ProviderExcluded,
-    /// `invalid_market`
-    #[serde(rename = "invalid_market")]
-    InvalidMarket,
-    /// `missing_token`
-    #[serde(rename = "missing_token")]
-    MissingToken,
-    /// `missing_stored_market`
-    #[serde(rename = "missing_stored_market")]
-    MissingStoredMarket,
-    /// `not_provider_live`
-    #[serde(rename = "not_provider_live")]
-    NotProviderLive,
-    /// `board_source_unavailable`
-    #[serde(rename = "board_source_unavailable")]
-    BoardSourceUnavailable,
-    /// `board_deadline_unavailable`
-    #[serde(rename = "board_deadline_unavailable")]
-    BoardDeadlineUnavailable,
-    /// `primary_slate_candidate`
-    #[serde(rename = "primary_slate_candidate")]
-    PrimarySlateCandidate,
-    /// `zero_indexed_holder_research`
-    #[serde(rename = "zero_indexed_holder_research")]
-    ZeroIndexedHolderResearch,
-    /// `capacity_limited`
-    #[serde(rename = "capacity_limited")]
-    CapacityLimited,
-    /// `provider_unavailable`
-    #[serde(rename = "provider_unavailable")]
-    ProviderUnavailable,
-    /// `holder_deadline_unavailable`
-    #[serde(rename = "holder_deadline_unavailable")]
-    HolderDeadlineUnavailable,
-    /// `holder_computation_unavailable`
-    #[serde(rename = "holder_computation_unavailable")]
-    HolderComputationUnavailable,
-    /// `holder_scan_incomplete`
-    #[serde(rename = "holder_scan_incomplete")]
-    HolderScanIncomplete,
-    /// `no_current_graded_holder`
-    #[serde(rename = "no_current_graded_holder")]
-    NoCurrentGradedHolder,
-    /// `split_holder_pile`
-    #[serde(rename = "split_holder_pile")]
-    SplitHolderPile,
-    /// `price_unavailable`
-    #[serde(rename = "price_unavailable")]
-    PriceUnavailable,
-    /// `wider_holder_emitted`
-    #[serde(rename = "wider_holder_emitted")]
-    WiderHolderEmitted,
-    /// `in_play_emitted`
-    #[serde(rename = "in_play_emitted")]
-    InPlayEmitted,
-    /// `in_play_stale_observed`
-    #[serde(rename = "in_play_stale_observed")]
-    InPlayStaleObserved,
-    /// `in_play_directional_unavailable`
-    #[serde(rename = "in_play_directional_unavailable")]
-    InPlayDirectionalUnavailable,
-    /// `internal_unclassified`
-    #[serde(rename = "internal_unclassified")]
-    InternalUnclassified,
-    /// A value this release does not know, kept as sent.
-    #[serde(untagged)]
-    Other(String),
-}
-
-impl PreGameSideObservationTerminalReason {
-    /// The value as the API spells it.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::OutsideHorizon => "outside_horizon",
-            Self::Resolved => "resolved",
-            Self::ProviderClosed => "provider_closed",
-            Self::ProviderExcluded => "provider_excluded",
-            Self::InvalidMarket => "invalid_market",
-            Self::MissingToken => "missing_token",
-            Self::MissingStoredMarket => "missing_stored_market",
-            Self::NotProviderLive => "not_provider_live",
-            Self::BoardSourceUnavailable => "board_source_unavailable",
-            Self::BoardDeadlineUnavailable => "board_deadline_unavailable",
-            Self::PrimarySlateCandidate => "primary_slate_candidate",
-            Self::ZeroIndexedHolderResearch => "zero_indexed_holder_research",
-            Self::CapacityLimited => "capacity_limited",
-            Self::ProviderUnavailable => "provider_unavailable",
-            Self::HolderDeadlineUnavailable => "holder_deadline_unavailable",
-            Self::HolderComputationUnavailable => "holder_computation_unavailable",
-            Self::HolderScanIncomplete => "holder_scan_incomplete",
-            Self::NoCurrentGradedHolder => "no_current_graded_holder",
-            Self::SplitHolderPile => "split_holder_pile",
-            Self::PriceUnavailable => "price_unavailable",
-            Self::WiderHolderEmitted => "wider_holder_emitted",
-            Self::InPlayEmitted => "in_play_emitted",
-            Self::InPlayStaleObserved => "in_play_stale_observed",
-            Self::InPlayDirectionalUnavailable => "in_play_directional_unavailable",
-            Self::InternalUnclassified => "internal_unclassified",
-            Self::Other(value) => value,
-        }
-    }
-}
-
-impl From<&str> for PreGameSideObservationTerminalReason {
-    fn from(value: &str) -> Self {
-        match value {
-            "outside_horizon" => Self::OutsideHorizon,
-            "resolved" => Self::Resolved,
-            "provider_closed" => Self::ProviderClosed,
-            "provider_excluded" => Self::ProviderExcluded,
-            "invalid_market" => Self::InvalidMarket,
-            "missing_token" => Self::MissingToken,
-            "missing_stored_market" => Self::MissingStoredMarket,
-            "not_provider_live" => Self::NotProviderLive,
-            "board_source_unavailable" => Self::BoardSourceUnavailable,
-            "board_deadline_unavailable" => Self::BoardDeadlineUnavailable,
-            "primary_slate_candidate" => Self::PrimarySlateCandidate,
-            "zero_indexed_holder_research" => Self::ZeroIndexedHolderResearch,
-            "capacity_limited" => Self::CapacityLimited,
-            "provider_unavailable" => Self::ProviderUnavailable,
-            "holder_deadline_unavailable" => Self::HolderDeadlineUnavailable,
-            "holder_computation_unavailable" => Self::HolderComputationUnavailable,
-            "holder_scan_incomplete" => Self::HolderScanIncomplete,
-            "no_current_graded_holder" => Self::NoCurrentGradedHolder,
-            "split_holder_pile" => Self::SplitHolderPile,
-            "price_unavailable" => Self::PriceUnavailable,
-            "wider_holder_emitted" => Self::WiderHolderEmitted,
-            "in_play_emitted" => Self::InPlayEmitted,
-            "in_play_stale_observed" => Self::InPlayStaleObserved,
-            "in_play_directional_unavailable" => Self::InPlayDirectionalUnavailable,
-            "internal_unclassified" => Self::InternalUnclassified,
-            other => Self::Other(other.to_owned()),
-        }
-    }
-}
-
-impl std::fmt::Display for PreGameSideObservationTerminalReason {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-impl AsRef<str> for PreGameSideObservationTerminalReason {
-    fn as_ref(&self) -> &str {
-        self.as_str()
-    }
-}
-
-/// Independent sports-board supply plus stored-universe terminal accounting for one canonical sport.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct PreGameSideSportFunnelReport {
-    pub sport: Category,
-    /// Unique condition ids independently visible on the provider-first sports board.
-    pub board_input: i64,
-    /// Whether the always-applicable live-board source completed as available. False can mean a completed source failure (board_source_unavailable) or live-board work missing an internal configured-scope deadline or the outer fair-wave deadline (board_deadline_unavailable); inspect terminals to distinguish them.
-    pub board_live_available: bool,
-    /// Whether a provider-backed upcoming-board source is configured and applicable for this sport. False means not applicable, not provider failure.
-    pub board_upcoming_configured: bool,
-    /// Whether every configured upcoming-board scope completed as available. False with board_upcoming_configured=false means not applicable. When board_upcoming_configured is true and this flag is false, read board_upcoming_status for the cause (it reads unknown, i.e. no recorded cause, only on a snapshot cached before that field existed, which self-clears within one TTL): the board_source_unavailable and board_deadline_unavailable terminals are assigned only to already-started rows (the live half) and are structurally 0 for the upcoming source, so they never explain this flag.
-    pub board_upcoming_available: bool,
-    /// Why the upcoming-board source is (un)available. Board supply is one canonical-sport union: the bare category owns live truth and every configured composed league scope contributes upcoming rows; folded leagues without a configured board (currently NCAAB and CFL) are not in the upcoming union. available: every configured scope completed truthfully (a successful empty schedule still counts). capacity_limited: provider pagination or a configured upcoming cache published an intentionally bounded complete-event prefix; those rows are excluded from diagnostic-universe input and must not be treated as a complete upcoming universe. Cache-bound prefixes are limited to 3,000 rows or an exact 5,000,000-byte final envelope. source_unavailable: composition failed before a truthful union; resolved scope readers turn half failures into cold_unavailable, so fresh producers are whole-union identity reconciliation or a registry contract failure and carry zero rows. cold_unavailable: every scope completed but at least one reported its upcoming half unavailable because no servable entry was inside the stale-serve bound and the background warm did not land in time; it is not by itself proof of a provider outage. deadline_unavailable: an internal configured-scope deadline or the outer bounded fair wave expired. An internal deadline may retain healthy bare-category or sibling-scope rows; the outer wave records zero rows. These upcoming fields do not describe league live-membership availability. If the bare-category live scope fails, all live rows are dropped even when a league scope completed, because the bare category is the sole live-truth owner. not_configured: no upcoming scope applies to the sport. unknown: exactly one cause -- a snapshot cached before this field existed whose legacy flags recorded an unavailable-but-configured half without saying why. Every freshly computed snapshot reports a concrete status, and a legacy available or not-configured row is reconstructed exactly, so unknown self-clears within one TTL. board_upcoming_available is exactly board_upcoming_status == available.
-    pub board_upcoming_status: BoardUpcomingStatus,
-    /// Configured upcoming scopes that did not complete as available. Values are category, a provider league tag slug (nfl, cfb, nba, wnba, nhl, mls, valorant, league-of-legends, counter-strike-2, or dota-2), registry when the compiled scope/projection contract drifted, union when cross-scope identity reconciliation failed, or wave when the outer fair-wave deadline expired before scope-level evidence returned. Empty means no unavailable upcoming scope was identified; this includes healthy/not-configured rows and a legacy cached row. Observation league scopes are upcoming-only and perform no live-membership read.
-    pub board_upcoming_unavailable_scopes: Vec<BoardUpcomingUnavailableScopes>,
-    /// Stored-universe rows plus provider-board rows missing from storage.
-    pub input: i64,
-    /// Sparse counts over the closed 25-value terminal vocabulary: outside_horizon, resolved, provider_closed, provider_excluded, invalid_market, missing_token, missing_stored_market, not_provider_live, board_source_unavailable, board_deadline_unavailable, primary_slate_candidate, zero_indexed_holder_research, capacity_limited, provider_unavailable, holder_deadline_unavailable, holder_computation_unavailable, holder_scan_incomplete, no_current_graded_holder, split_holder_pile, price_unavailable, wider_holder_emitted, in_play_emitted, in_play_stale_observed, in_play_directional_unavailable, or internal_unclassified. primary_slate_candidate means exact admission by the funded route's raw shared signals query before provider/holder enrichment; recent-flow rows rejected by its event, bucket, or total caps remain eligible for wider_holder measurement. capacity_limited is intentional bounded provider-work admission, is fully accounted here, and does not itself set degraded=true. board_source_unavailable means a completed board source was unavailable; board_deadline_unavailable means live-board work missed either an internal configured-scope deadline or the outer fair-wave deadline; provider_unavailable means an attempted holder-provider read failed; holder_deadline_unavailable means holder cache/provider work missed the absolute request deadline; holder_computation_unavailable means post-holder provider or DB-backed price/metadata evaluation was unavailable.
-    pub terminals: std::collections::BTreeMap<String, i64>,
-    /// Sum of every sparse terminal count.
-    pub terminal_total: i64,
-    /// True exactly when input equals terminal_total.
-    pub reconciled: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -7590,7 +9186,7 @@ pub struct ProofPendingPickSlot {
     pub publication_order: i64,
     /// Viewer-independent free selection designation. New rows store it explicitly; historic null storage uses the original free slot.
     pub is_free_selection: bool,
-    /// Replacement predecessor stable id; null when no lineage is recorded.
+    /// Deprecated (#24157): always null. No replacement lineage was ever recorded in this field; the key stays so existing V1 clients keep parsing. Identify a pick by pick_id.
     #[serde(default)]
     pub supersedes_pick_id: Option<String>,
 }
@@ -7802,6 +9398,8 @@ pub struct ReportPayload {
     /// Counts of current grades for distinct Polymarket traders with at least one whale alert in the report's source date range. The grade is the current projection at snapshot materialization time, not a historical grade at trade time. Traders without a current ranking projection are omitted; a null grade entry means the active trader's current grade is unavailable.
     #[serde(default)]
     pub grade_distribution: Option<Vec<serde_json::Map<String, serde_json::Value>>>,
+    /// Which markets the report counts. sports_and_esports for a period that ends on or after 2026-10-21: totals, categories, top trades and the grade cohort cover sports and esports markets only. all_markets for an earlier period, whose stored report keeps every Polymarket market it published.
+    pub market_scope: MarketScope,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -7924,6 +9522,59 @@ pub struct ReportSourceRange {
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
+pub enum RequiredTier {
+    /// `account`
+    #[serde(rename = "account")]
+    Account,
+    /// `insider`
+    #[serde(rename = "insider")]
+    Insider,
+    /// `max`
+    #[serde(rename = "max")]
+    Max,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl RequiredTier {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Account => "account",
+            Self::Insider => "insider",
+            Self::Max => "max",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for RequiredTier {
+    fn from(value: &str) -> Self {
+        match value {
+            "account" => Self::Account,
+            "insider" => Self::Insider,
+            "max" => Self::Max,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for RequiredTier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for RequiredTier {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Resolution {
     /// `1d`
     #[serde(rename = "1d")]
@@ -7986,10 +9637,10 @@ pub struct ResponseMeta {
     /// Authoritative RFC3339 timestamp from cache_generations.updated_at for ranking_generation. It is read in the same repeatable-read snapshot as the leaderboard rows and is not request time, cache write time, or row insertion order.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ranking_as_of: Option<String>,
-    /// Which path produced the team-directional read on this response. Only present on endpoints that compute one (today: GET /api/v1/sports-edge-signals). "live" means the read RAN. "degraded" means it FAILED, so nothing was measured and the ranking fell back to raw conviction. The flag describes the READ, not its consequence: a read that ran and found nothing groupable also leaves the directional fields null, and that is honestly "live" -- the per-signal nulls already say "nothing to enrich here", so this snapshot-level flag carries only what they cannot, namely whether the read ran at all. A degraded response is cached on the shorter degraded TTL so it self-heals. Reported SEPARATELY from ranking_source because the two degradations are independent -- a sharp-money DB miss weakens the ranking DATA, a directional failure removes a ranking WEIGHT -- and a consumer down-weighting a degraded response needs to know which input it lost. Omitted on endpoints that compute no directional read.
+    /// Directional evidence provenance for Edge Hunter signals collections. The default board carries this provenance in data.directional_source and omits this optional meta field.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub directional_source: Option<DirectionalSource>,
-    /// Which ranking-data path produced this response. Only present on endpoints that can degrade a ranking (today: GET /api/v1/sports-edge-signals). "live" is the normal path (the current holder pile from the provider batch); "db_only" is the degraded fallback (a truthful but weaker trader_markets ranking) served when the live sharp-money ranking batch is unavailable (a sharp-money DB read failure, not a Polymarket outage) and cached on a shorter TTL, so a consumer can down-weight or skip it. Omitted on endpoints that never degrade.
+    /// Ranking evidence provenance for Edge Hunter signals collections. The default board carries this clock/provenance in data.ranking_source and omits this optional meta field.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ranking_source: Option<RankingSource>,
     /// Whole filtered snapshot category-evidence status before pagination. Operational live always remains partial source coverage.
@@ -8007,15 +9658,15 @@ pub struct ResponseMeta {
     pub category_skill_source_coverage: Option<SourceCoverage>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_skill_observation_started_at: Option<String>,
-    /// Whole-model operational readiness captured with the category model snapshot. Present on category-enriched responses even when the filtered signal list is empty. When true, category_skill_source is degraded and sports-edge-signals uses the shorter degraded cache TTL.
+    /// Whole-model operational readiness captured with the category model snapshot. Present on category-enriched responses even when the filtered signal list is empty. When true, category_skill_source is degraded and Edge Hunter signals uses the shorter degraded cache TTL.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_skill_model_operationally_degraded: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_skill_status_counts: Option<ResponseMetaCategorySkillStatusCounts>,
-    /// SHA-256 of the funded signal membership/order/rank/cursor vector immediately before category-skill enrichment. Sports-edge-signals only.
+    /// SHA-256 of the funded signal membership/order/rank/cursor vector immediately before category-skill enrichment. Edge Hunter signals view only.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_skill_base_payload_hash: Option<String>,
-    /// Independent SHA-256 recomputation over the same base fields immediately after category-skill enrichment. Equality with category_skill_base_payload_hash proves shadow enrichment did not change funded inputs. Sports-edge-signals only.
+    /// Independent SHA-256 recomputation over the same base fields immediately after category-skill enrichment. Equality with category_skill_base_payload_hash proves category-skill enrichment did not change funded inputs. Edge Hunter signals view only.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_skill_enriched_base_payload_hash: Option<String>,
 }
@@ -8109,13 +9760,13 @@ pub struct RotateWebhookSecretResponse {
     pub meta: ResponseMeta,
 }
 
-/// One same-day pick that is selected but not yet released: its stable slot rank plus the backend-owned release and kickoff instants. Deliberately minimal -- no matchup, category, platform, side, price, or holder fields exist on this shape before release.
+/// An entitled same-day slot with a future scheduled release: stable identity and backend-owned release/kickoff instants. It leaves this list at its release instant; an unpublished slot is never a delayed recommendation. No matchup, category, platform, side, price, or holder fields appear before release. Unauthorized scheduled ranks appear only in locked_picks.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct ScheduledPickSlot {
     /// Deprecated compatibility daily release slot; use pick_id for identity and publication_order for scheduling.
     pub pick_rank: i64,
-    /// The slot's scheduled release instant, normally the current provider kickoff minus one hour. The actual publish can trail it by bounded worker delay.
+    /// The slot's future release instant. Remove this preview at that instant and read again for published picks; a scheduled slot does not guarantee publication.
     pub release_at: String,
     /// The backed game's current kickoff instant.
     pub kickoff: String,
@@ -8125,7 +9776,7 @@ pub struct ScheduledPickSlot {
     pub publication_order: i64,
     /// Viewer-independent free selection designation. New rows store it explicitly; historic null storage uses the original free slot.
     pub is_free_selection: bool,
-    /// Replacement predecessor stable id; null when no lineage is recorded.
+    /// Deprecated (#24157): always null. No replacement lineage was ever recorded in this field; the key stays so existing V1 clients keep parsing. Identify a pick by pick_id.
     #[serde(default)]
     pub supersedes_pick_id: Option<String>,
 }
@@ -8397,6 +10048,54 @@ impl AsRef<str> for Sections {
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
+pub enum ServingSide {
+    /// `first`
+    #[serde(rename = "first")]
+    First,
+    /// `second`
+    #[serde(rename = "second")]
+    Second,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl ServingSide {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::First => "first",
+            Self::Second => "second",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for ServingSide {
+    fn from(value: &str) -> Self {
+        match value {
+            "first" => Self::First,
+            "second" => Self::Second,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for ServingSide {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for ServingSide {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Severity {
     /// `flag`
     #[serde(rename = "flag")]
@@ -8440,6 +10139,26 @@ impl AsRef<str> for Severity {
     fn as_ref(&self) -> &str {
         self.as_str()
     }
+}
+
+/// `sharp_money_flow_detected` data (Pro and Max): ranked-trader net flow on a market crossed the threshold. The deprecated spelling `smart_money_flow_detected` delivers the same object.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct SharpMoneyFlowDetectedData {
+    /// Polymarket condition id of the market.
+    pub condition_id: String,
+    /// Signed ranked-trader net flow in USD over `window`: positive is net into YES, negative net into NO.
+    pub net_flow_usd: f64,
+    /// Absolute value of `net_flow_usd`, the magnitude compared with the threshold.
+    pub abs_net_flow_usd: f64,
+    /// `yes` when `net_flow_usd` is 0 or more, else `no`.
+    pub dominant_side: Side,
+    /// Minimum trader grade included in the flow.
+    pub grade_floor: Grade,
+    /// Ranked-trader large fills that make up the flow.
+    pub whale_trade_count: i64,
+    /// Window the flow was aggregated over, for example `24h`.
+    pub window: String,
 }
 
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
@@ -8527,8 +10246,7 @@ pub struct SmartMoneyFlowMarketSharpMoney {
     #[serde(default)]
     pub token_id: Option<String>,
     /// Canonical key since #16304 (Polymarket's noun is large trade); whale_trade_count is its deprecated spelling, emitted beside it with the same value.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub large_trade_count: Option<i64>,
+    pub large_trade_count: i64,
     pub whale_trade_count: i64,
     pub buy_volume_usd: f64,
     pub sell_volume_usd: f64,
@@ -8544,8 +10262,7 @@ pub struct SmartMoneyFlowMarketSmartMoney {
     #[serde(default)]
     pub token_id: Option<String>,
     /// Canonical key since #16304 (Polymarket's noun is large trade); whale_trade_count is its deprecated spelling, emitted beside it with the same value.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub large_trade_count: Option<i64>,
+    pub large_trade_count: i64,
     pub whale_trade_count: i64,
     pub buy_volume_usd: f64,
     pub sell_volume_usd: f64,
@@ -8559,8 +10276,7 @@ pub struct SnapshotCompleteness {
     pub reason: String,
     pub expected_days: i64,
     /// Canonical key since #16304; covered_days_with_whale_activity is its deprecated spelling, emitted beside it with the same value.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub covered_days_with_large_trade_activity: Option<i64>,
+    pub covered_days_with_large_trade_activity: i64,
     pub covered_days_with_whale_activity: i64,
 }
 
@@ -9197,15 +10913,27 @@ pub enum Strategy {
     /// `arbitrageur`
     #[serde(rename = "arbitrageur")]
     Arbitrageur,
+    /// `category_focused`
+    #[serde(rename = "category_focused")]
+    CategoryFocused,
     /// `directional`
     #[serde(rename = "directional")]
     Directional,
+    /// `diversified`
+    #[serde(rename = "diversified")]
+    Diversified,
     /// `event_driven`
     #[serde(rename = "event_driven")]
     EventDriven,
+    /// `high_activity`
+    #[serde(rename = "high_activity")]
+    HighActivity,
     /// `market_maker`
     #[serde(rename = "market_maker")]
     MarketMaker,
+    /// `mixed`
+    #[serde(rename = "mixed")]
+    Mixed,
     /// `momentum`
     #[serde(rename = "momentum")]
     Momentum,
@@ -9218,6 +10946,12 @@ pub enum Strategy {
     /// `swing_trader`
     #[serde(rename = "swing_trader")]
     SwingTrader,
+    /// `two_sided`
+    #[serde(rename = "two_sided")]
+    TwoSided,
+    /// `unclassified`
+    #[serde(rename = "unclassified")]
+    Unclassified,
     /// A value this release does not know, kept as sent.
     #[serde(untagged)]
     Other(String),
@@ -9230,13 +10964,19 @@ impl Strategy {
             Self::Accumulator => "accumulator",
             Self::AlgoTrader => "algo_trader",
             Self::Arbitrageur => "arbitrageur",
+            Self::CategoryFocused => "category_focused",
             Self::Directional => "directional",
+            Self::Diversified => "diversified",
             Self::EventDriven => "event_driven",
+            Self::HighActivity => "high_activity",
             Self::MarketMaker => "market_maker",
+            Self::Mixed => "mixed",
             Self::Momentum => "momentum",
             Self::Scalper => "scalper",
             Self::Speculator => "speculator",
             Self::SwingTrader => "swing_trader",
+            Self::TwoSided => "two_sided",
+            Self::Unclassified => "unclassified",
             Self::Other(value) => value,
         }
     }
@@ -9248,13 +10988,19 @@ impl From<&str> for Strategy {
             "accumulator" => Self::Accumulator,
             "algo_trader" => Self::AlgoTrader,
             "arbitrageur" => Self::Arbitrageur,
+            "category_focused" => Self::CategoryFocused,
             "directional" => Self::Directional,
+            "diversified" => Self::Diversified,
             "event_driven" => Self::EventDriven,
+            "high_activity" => Self::HighActivity,
             "market_maker" => Self::MarketMaker,
+            "mixed" => Self::Mixed,
             "momentum" => Self::Momentum,
             "scalper" => Self::Scalper,
             "speculator" => Self::Speculator,
             "swing_trader" => Self::SwingTrader,
+            "two_sided" => Self::TwoSided,
+            "unclassified" => Self::Unclassified,
             other => Self::Other(other.to_owned()),
         }
     }
@@ -9418,6 +11164,30 @@ pub struct SuspiciousTrade {
     pub created_at: String,
 }
 
+/// `suspicious_trade_flagged` data (Pro and Max): a trade's suspicion score crossed the flag threshold for the first time. The deprecated spelling `insider_radar_flag_raised` delivers the same object.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct SuspiciousTradeFlaggedData {
+    /// Numeric id of the flagged trade, a JSON number. It is the `id` that `GET /api/v1/large-trades/{id}` accepts.
+    pub trade_id: i64,
+    /// Address of the wallet that made the trade.
+    pub wallet: String,
+    /// 0xinsider's numeric id for the wallet.
+    pub trader_id: i64,
+    /// Polymarket condition id of the market.
+    pub condition_id: String,
+    /// The suspicion score, 0 to 100, that crossed the threshold.
+    pub suspicion_score: f64,
+    /// The scoring track that raised the flag.
+    pub track: SuspicionTrack,
+    /// Outcome side the flagged fill took.
+    pub side: Side,
+    /// Share count of the flagged fill.
+    pub size: f64,
+    /// Fill price of the flagged trade.
+    pub price: f64,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct SuspiciousTradeMarket {
@@ -9497,6 +11267,96 @@ impl std::fmt::Display for Sweep {
 }
 
 impl AsRef<str> for Sweep {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+/// Optional current-game tennis facts from API-Tennis, aligned with live_score.scores display order. These facts have their own revision and expiry; Polymarket remains the source of sets, match status, period, and the outer live-score revision. New observations require corroborated identity, current set/games, and live state. Cached responses and replayed frames may still carry expired facts, so clients must enforce expires_at.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct TennisPoints {
+    pub source: String,
+    /// API-Tennis match ID. This is not a Polymarket market or event ID.
+    pub match_key: i64,
+    /// API-Tennis player IDs in the same first/second order as live_score.scores. These are not Polymarket team IDs.
+    pub player_keys: Vec<i64>,
+    /// Current-game point values in first/second order. Read strings, including A for advantage and numeric tiebreak points. Missing points are not zero.
+    pub points: Vec<String>,
+    /// The serving player in live_score.scores display order. Omitted when API-Tennis does not identify the server.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub serving_side: Option<ServingSide>,
+    /// Orders only the tennis_points group for the same match. Never compare this with live_score.source_revision.
+    pub source_revision: i64,
+    /// When 0xinsider observed these API-Tennis facts. This is not a timestamp from the court.
+    pub observed_at: String,
+    /// Stop displaying the point group at this instant, even if the enclosing score remains fresh. The group expires 30 seconds after observed_at.
+    pub expires_at: String,
+    /// Current set number. Display points only while this matches the enclosing scoreboard.
+    pub set_number: i64,
+    /// Current-set games in first/second order. Display points only while these match the enclosing scoreboard.
+    pub games: Vec<i64>,
+}
+
+/// A provider-reported ATP/WTA singles rank with independent retrieval and expiry clocks. API-Tennis provides no ranking publication date. Retrieval time does not establish when the tour published the ranking.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct TennisRanking {
+    /// Provider-reported singles rank.
+    pub rank: i64,
+    /// The player ranking tour.
+    pub tour: TennisRankingTour,
+    /// The standings provider.
+    pub source: String,
+    /// Successful snapshot retrieval time in UTC, not ranking publication date.
+    pub observed_at: String,
+    /// UTC deadline after which clients must hide this rank, including when an older game or pick response remains cached.
+    pub expires_at: String,
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum TennisRankingTour {
+    /// `atp`
+    #[serde(rename = "atp")]
+    Atp,
+    /// `wta`
+    #[serde(rename = "wta")]
+    Wta,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl TennisRankingTour {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Atp => "atp",
+            Self::Wta => "wta",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for TennisRankingTour {
+    fn from(value: &str) -> Self {
+        match value {
+            "atp" => Self::Atp,
+            "wta" => Self::Wta,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for TennisRankingTour {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for TennisRankingTour {
     fn as_ref(&self) -> &str {
         self.as_str()
     }
@@ -9653,7 +11513,7 @@ pub struct Trader {
     /// synced, unknown, or pending.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sync_status: Option<String>,
-    /// Data age and coverage for this trader body. Always present. Its five groups are sync (traders.last_synced, covering pnl.total, pnl.realized, stats.markets_traded, stats.win_rate, stats.daily_win_rate, last_active, synced_at and sync_status), ranking (trader_rankings.computed_at, covering grade, score, streak_tier, forecast_score and forecast_evidence), leaderboard_rank (leaderboard_rank_refresh_state.completed_at, the completion time of the latest fully completed global rank refresh, covering rank), volume (trader_usd_volume.observed_at, covering stats.total_volume) and positions (trader_position_snapshots.last_refreshed_at with traders.last_synced as fallback, covering pnl.unrealized, the open-position aggregate). The positions clock is the latest successful /positions snapshot when one exists, otherwise the last completed trader sync; it does not date closed or native accounting values. A rank or position value remains unknown or unavailable when its clock or value is absent. For an unknown wallet every group is unavailable. If the open-position read itself fails, positions is unavailable with a reason that says so, pnl.unrealized is absent, and the body is answered fresh (meta.cached false) and is not kept for later callers.
+    /// Data age and coverage for this trader body. Always present. Its six groups are sync (traders.last_synced, covering pnl.net_total, pnl.realized, stats.markets_traded, stats.win_rate, stats.daily_win_rate, last_active, synced_at and sync_status), ranking (trader_rankings.computed_at, covering grade, score, streak_tier, forecast_score and forecast_evidence), leaderboard_rank (leaderboard_rank_refresh_state.completed_at, the completion time of the latest fully completed global rank refresh, covering rank), volume (trader_usd_volume.observed_at, covering stats.total_volume) and positions (trader_position_snapshots.last_refreshed_at with traders.last_synced as fallback, covering pnl.unrealized, the open-position aggregate) and leaderboard_pnl (trader_profile_provider_snapshots.observed_at, covering pnl.total: unavailable when Polymarket's all-time leaderboard has no current observation ranking the wallet). The positions clock is the latest successful /positions snapshot when one exists, otherwise the last completed trader sync; it does not date closed or native accounting values. A rank or position value remains unknown or unavailable when its clock or value is absent. For an unknown wallet every group is unavailable. If the open-position read itself fails, positions is unavailable with a reason that says so, pnl.unrealized is absent, and the body is answered fresh (meta.cached false) and is not kept for later callers.
     pub data_quality: DataQuality,
     /// Field-level trust metadata. Present only when expand=trust or expand[]=trust is requested.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -9706,17 +11566,17 @@ pub struct TraderCategoryRecords {
 #[non_exhaustive]
 pub struct TraderContext {
     pub trader: Trader,
-    /// Aggregate position and P&L coverage for the trader. Omitted entirely (key absent, never null) when the trader is not in the local database or native net economics is unavailable. Realized fields remain numbers when present, including a genuine zero.
+    /// Aggregate position and P&L coverage for the trader. Counts all Polymarket markets, not only sports and esports. Omitted entirely (key absent, never null) when the trader is not in the local database or native net economics is unavailable. Realized fields remain numbers when present, including a genuine zero.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub position_summary: Option<TraderContextPositionSummary>,
     /// RFC3339 freshness of the OPEN-position-level data: when a position_summary is present this mirrors its as_of byte-for-byte (latest /positions snapshot, else last completed sync) -- the open-position freshness clock, since the snapshot advances only open positions; otherwise the trader's last completed sync, even if an unserved position snapshot exists. Null when the selected clock is unavailable; a missing breakdown does not establish position or accounting freshness.
     #[serde(default)]
     pub data_as_of: Option<String>,
-    /// Human-readable statement of the point-in-time snapshot semantics (data_as_of is the open-position clock -- the latest /positions snapshot, else the last completed sync; the snapshot advances only open positions, so resolved counts and win rate date to the last full sync; native realized P&L follows its accounting snapshot -- not a live feed; re-fetch for fresher data).
+    /// Human-readable statement of the point-in-time snapshot semantics (data_as_of is the open-position clock -- the latest /positions snapshot, else the last completed sync; the snapshot advances only open positions, so resolved counts and win rate can include settled markets recorded after the last full sync; native realized P&L follows its accounting snapshot -- not a live feed; re-fetch for fresher data).
     pub freshness_note: String,
 }
 
-/// Aggregate position and P&L coverage for the trader. Omitted entirely (key absent, never null) when the trader is not in the local database or native net economics is unavailable. Realized fields remain numbers when present, including a genuine zero.
+/// Aggregate position and P&L coverage for the trader. Counts all Polymarket markets, not only sports and esports. Omitted entirely (key absent, never null) when the trader is not in the local database or native net economics is unavailable. Realized fields remain numbers when present, including a genuine zero.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct TraderContextPositionSummary {
@@ -9739,7 +11599,7 @@ pub struct TraderContextPositionSummary {
     pub unrealized_mtm: f64,
     /// Cost basis (USD) currently tied up in open positions.
     pub cost_basis_locked: f64,
-    /// Win rate as a percentage (0-100): resolved_wins over resolved_decided. A resolved market that settled at exactly zero realized P&L (a void, a refund, a fully hedged position) is neither a win nor a loss and is not in the denominator, the same rule the leaderboard applies; null when no resolved market was decided.
+    /// Win rate as a percentage (0-100): resolved_wins over resolved_decided. A resolved market that settled at exactly zero realized P&L (a void, a refund, a fully hedged position) is neither a win nor a loss and is not in the denominator, the same rule the leaderboard applies; null when no resolved market was decided. It is the rule of trader.stats.win_rate, read from the synced rows at request time; stats.win_rate is the stored figure the profile shows, refreshed by each sync and a few minutes after a closed-history write. context.md prints one Market win rate: this one when position_summary is present, else stats.win_rate.
     #[serde(default)]
     pub resolved_win_rate: Option<f64>,
     /// Resolved markets that settled at positive realized P&L: the win-rate numerator. Additive; null only on a summary cached before the field existed.
@@ -9862,6 +11722,9 @@ pub struct TraderExportGeneration {
     pub selected_at: String,
     pub consistency: String,
     pub source_watermarks: TraderExportSourceWatermarks,
+    /// The markets the file's trades and markets sections hold: sports and esports markets only (export_metadata.scope_note in a JSON or NDJSON file names the sections that still cover every market). Absent on a file written before 2026-10-22, which holds every market; a submit never reuses such a file.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub product_scope: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -9879,8 +11742,10 @@ pub struct TraderExportJobData {
     /// queued: accepted, not started. running: the worker is streaming rows. reconcile_required: the upload finished but the storage completion answer was lost; the hourly reconciler reads the object back and moves the job to ready or failed, and expires_at bounds the wait. ready: downloadable until expires_at. failed: terminal; error says why; submit a new export. expired: the retention window passed; the file is retired, the download route answers 410, submit a new export. cancel_requested: the owner cancelled a running job (POST /api/v1/trader/{address}/export/cancel); the worker stops at its next safe point and the job reads cancelled. cancelled: terminal; the owner cancelled the job and no file was published; submit a new export. A job that has not reached ready by expires_at reads failed with error 'export expired before completion'. failed, cancelled and expired rows stay readable for 48 hours, then the job answers 404.
     pub status: TraderExportJobDataStatus,
     pub format: Format,
+    /// Trade rows the file holds: trades in the wallet's sports and esports markets, counted in the file's own read snapshot. Null until the worker has read the snapshot (queued, and early in running); a job accepted before 2026-10-22 can carry the earlier all-markets estimate until its file is read.
     #[serde(default)]
     pub total_trades: Option<i64>,
+    /// Trade rows written so far; equals total_trades once the file is read.
     #[serde(default)]
     pub processed_trades: Option<i64>,
     #[serde(default)]
@@ -10049,6 +11914,8 @@ pub struct TraderExportPositionWatermark {
 #[non_exhaustive]
 pub struct TraderExportSnapshot {
     pub address: String,
+    /// The markets the export file's trades and markets sections hold: sports and esports markets only. counts.exported_markets, counts.estimated_trade_rows, counts.estimated_size_mb, reconciliation.exported_market_cost_basis and source_range.latest_trade_at and latest_market_activity_at describe those markets. The pnl dates, pnl_days, exported_activity_volume and completeness cover every market of the wallet.
+    pub product_scope: String,
     pub generated_at: String,
     pub source_range: ExportSourceRange,
     pub completeness: ExportCompleteness,
@@ -10070,7 +11937,9 @@ pub struct TraderExportSourceWatermarks {
 #[non_exhaustive]
 pub struct TraderExportTradeWatermark {
     pub source: String,
+    /// sports_esports_rows: the file holds every stored trade in the wallet's sports and esports markets. all_matching_rows on a file written before 2026-10-22, which holds every market's trades.
     pub coverage: String,
+    /// Trade rows the file holds, counted in the same read snapshot as the rows.
     pub rows: i64,
     #[serde(default)]
     pub first_activity_date: Option<String>,
@@ -10111,7 +11980,7 @@ pub struct TraderGradeAtObservation {
     pub observed_at: String,
     /// Upper bound: a later snapshot confirmed the observation was committed. This is not an exact commit timestamp.
     pub published_by: String,
-    /// Writer-proven model family, such as grading-v4. Null when unknown.
+    /// Writer-proven model family, such as grading. Null when unknown.
     #[serde(default)]
     pub model_version: Option<String>,
     /// Exact writer build SHA when recorded. Null on old and non-model observations.
@@ -10165,6 +12034,7 @@ pub struct TraderPnlEntriesItem {
     pub date: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub markets_traded: Option<i64>,
+    /// Cash in USD this wallet traded on this UTC day, buys and sells, summed from the fills 0xinsider has stored for it. Not Polymarket's share count, and not the full-history stats.total_volume on GET /api/v1/trader/{address}. Omitted, with markets_traded, on a day above 20 times the wallet's median day.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub total_volume: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -10180,6 +12050,28 @@ pub struct TraderPnlEntriesItem {
 pub struct TraderPnlExact {
     /// Native Polymarket realized P&L plus credited maker and taker rebates, with fees included, from the trusted matching `trader_trading_pnl.net_realized_pnl` snapshot.
     pub realized: ExactDecimal,
+}
+
+/// A wallet's sports and esports record (#27311): Polymarket's published realized P&L (pnl.realized plus any published pnl.correction) split into the part earned on sports and esports markets. Fees, refunds and rebates stay in, apportioned by cost. A wallet wholly in sports keeps the published figure exactly; one with no sports market gets 0. Refreshed after each wallet sync; as_of dates it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct TraderPnlInScope {
+    /// Names the split rule, currently sports_esports_split_v1. A new value means the rule changed; compare figures only within one basis.
+    pub basis: String,
+    /// Sports and esports realized P&L in USD, display-safe. null when the wallet has no published realized figure to split.
+    #[serde(default)]
+    pub realized_pnl: Option<f64>,
+    /// Sports and esports markets the wallet has traded, any status.
+    pub markets: i64,
+    /// Of those, the markets that have resolved.
+    pub markets_resolved: i64,
+    /// Share of decided sports and esports markets the wallet won, 0 to 1. null with no decided market.
+    #[serde(default)]
+    pub win_rate: Option<f64>,
+    /// The wallet's markets outside sports and esports, which 0xinsider no longer lists.
+    pub markets_out_of_scope: i64,
+    /// When the record behind these figures was computed.
+    pub as_of: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -10276,8 +12168,18 @@ pub struct TraderPnlStatsD90 {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct TraderPnlSummary {
+    /// Polymarket's all-time leaderboard P&L in USD, from Polymarket's latest observation of this wallet on its all-time leaderboard (dated by the leaderboard_pnl data_quality group). Omitted when that leaderboard has no current observation ranking the wallet; 0xinsider requests one, and never serves an older stored figure in its place. Kept for provider parity and back-compat. Not the profile's Total P&L and not realized plus unrealized: it can differ from net_total by a wide margin. Read net_total for the figure the 0xinsider profile shows.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub total: Option<f64>,
+    /// Polymarket's net total P&L in USD: native Polymarket position P&L, with fees already included, plus credited maker and taker rebates (trader_trading_pnl.net_total_pnl). Truncated toward zero to cents before conversion to a JSON number. Omitted when the wallet has no native accounting snapshot; pnl.total is never substituted. The 0xinsider profile's Total P&L is this figure unless pnl.correction is present, then pnl.correction.net_total.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub net_total: Option<f64>,
+    /// The 0xinsider correction to Polymarket's P&L for neg-risk conversions. Present only when one is published; pnl.net_total and pnl.realized keep Polymarket's own figures, and correction.net_total and correction.realized add the amount to them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub correction: Option<PnlCorrection>,
+    /// true while 0xinsider is still checking some of the wallet's converted neg-risk markets (not yet measured, measured and not yet checked for transfers, or its latest reads keep failing), so the correction may change, or arrive where none is published yet. Omitted otherwise.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub correction_pending: Option<bool>,
     /// For pnl.realized, expand=trust marks a matching native accounting snapshot as computed: native Polymarket realized P&L plus credited maker and taker rebates, with fees already included. The exact numeric value is truncated toward zero to cents before conversion to a JSON number. Without a matching native accounting snapshot, pnl.realized is omitted and its trust metadata is unavailable. Raw total P&L is never substituted for realized P&L.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub realized: Option<f64>,
@@ -10292,6 +12194,9 @@ pub struct TraderPnlSummary {
     /// Additive lossless counterpart. Omitted when the trusted native realized-P&L source is unavailable; existing numeric fields keep their display-safe v1 semantics.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exact: Option<TraderPnlExact>,
+    /// Additive (#27311): the wallet's sports and esports record, the figure the 0xinsider profile headlines. Omitted until 0xinsider has computed the wallet's record; absent means not computed yet, never zero. The other pnl fields stay Polymarket's wallet-wide figures.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub in_scope: Option<TraderPnlInScope>,
 }
 
 /// Representation parameters applied to this body. Present only when the request sent `from`, `to` or `sections`; omitted otherwise, which is what keeps a no-parameter response identical to the one this route served before the parameters existed.
@@ -10345,7 +12250,7 @@ pub struct TraderQuantMetrics {
     /// Trader smart score on a 0..100 display scale; higher is stronger. Null when unavailable.
     #[serde(default)]
     pub smart_score: Option<f64>,
-    /// Copyability score, 0-100. Same base as smart_score minus penalties for traits that make a strategy hard to replicate: -20 if fewer than 50 markets traded, -15 if positions are highly concentrated, -15 if position sizing exceeds about 2x Kelly, -10 if the worst single-trade loss exceeds 30%, -10 if edge is inconsistent; result clamped to 0-100. Higher means easier to follow. null when insufficient history.
+    /// Copyability score, 0-100. Same base as smart_score minus penalties for traits that make a strategy hard to replicate: -20 if fewer than 50 markets traded, -15 if positions are highly concentrated, -15 if position sizing exceeds about 2x Kelly, -10 if the largest loss on one settled market exceeds 30% of the capital the wallet deployed across all its positions, -10 if edge is inconsistent; result clamped to 0-100. Higher means easier to follow. null when insufficient history.
     #[serde(default)]
     pub copy_score: Option<f64>,
     /// Sharpe ratio over the trailing 30 days (risk-adjusted return; higher is better). Magnitude can be large for small samples. null when insufficient history.
@@ -10392,19 +12297,29 @@ pub struct TraderStats {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct TraderStatsExact {
-    /// Full-history both-sides Polymarket user-volume atom from the verified `trader_usd_volume` observation.
+    /// stats.total_volume as an exact decimal: full-history both-sides cash volume in USD, Polymarket user-volume `volume_usdc`, from the verified `trader_usd_volume` observation. Never Polymarket's share count.
     pub total_volume: ExactDecimal,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct TraderStrategy {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub strategy_type: Option<String>,
+    /// Observed trading style identifier. New rows use two_sided, category_focused, high_activity, diversified, mixed, or unclassified, counted over the wallet's sports and esports markets only. Historical identifiers remain readable during normal reclassification; style does not predict skill or intent.
+    pub strategy_type: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<f64>,
+}
+
+/// `trader_synced` data: a tracked wallet finished a sync pass and has a fresh grade. The deprecated spelling `whale_trader_synced` delivers the same object.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct TraderSyncedData {
+    /// 0xinsider's numeric id for the wallet.
+    pub trader_id: i64,
+    /// Proxy wallet address.
+    pub wallet: String,
 }
 
 /// Field-level trust metadata returned only when GET /api/v1/trader/{address} includes expand=trust.
@@ -10413,6 +12328,10 @@ pub struct TraderStrategy {
 pub struct TraderTrust {
     pub total_pnl: TrustMetadata,
     pub realized_pnl: TrustMetadata,
+    pub net_total_pnl: TrustMetadata,
+    /// Present only with pnl.correction: a computed value owned by trader_pnl_corrections, dated by the newest measurement behind it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pnl_correction: Option<TrustMetadata>,
     pub unrealized_pnl: TrustMetadata,
     pub markets_traded: TrustMetadata,
     pub win_rate: TrustMetadata,
@@ -10466,8 +12385,12 @@ pub struct TrendingWallet {
     /// Hot-streak tier (trailing-7d cross-sectional percentile). Omitted when there is no recent activity.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub streak_tier: Option<StreakTier>,
+    /// Polymarket's net total P&L for the wallet in USD: native Polymarket position P&L across all markets, fees included, plus credited maker and taker rebates (trader_trading_pnl.net_total_pnl). The 0xinsider profile's Total P&L is this figure unless pnl_correction is present, then pnl_correction.net_total. Context only: it does not affect the ranking, which follows trending_pnl_usd. Omitted when the wallet is not in the 0xinsider database or has no native accounting snapshot; the Polymarket leaderboard all-time figure is never substituted.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub all_time_pnl_usd: Option<f64>,
+    /// The 0xinsider correction to Polymarket's P&L for neg-risk conversions. Present only when one is published; all_time_pnl_usd keeps Polymarket's own figure and pnl_correction.net_total is the profile's Total P&L.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pnl_correction: Option<PnlCorrection>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub all_time_score: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -10838,7 +12761,7 @@ pub struct UsageData {
     pub rate_limit: UsageDataRateLimit,
     /// UTC-day usage count. Current V1 has no daily hard cap, so limit and remaining are null rather than synthesized.
     pub daily_usage: UsageDataDailyUsage,
-    /// The monthly request quota (#16111): where the account stands against the requests Pro includes per UTC calendar month. Reading it here spends nothing. null only when the month's count could not be read for this response.
+    /// The monthly request quota (#16111): where the account stands against the requests the current Pro or Max plan includes per UTC calendar month. Reading it here spends nothing. null only when the month's count could not be read for this response.
     #[serde(default)]
     pub monthly_quota: Option<UsageDataMonthlyQuota>,
 }
@@ -10856,13 +12779,13 @@ pub struct UsageDataDailyUsage {
     pub window_seconds: i64,
 }
 
-/// The monthly request quota (#16111): where the account stands against the requests Pro includes per UTC calendar month. Reading it here spends nothing. null only when the month's count could not be read for this response.
+/// The monthly request quota (#16111): where the account stands against the requests the current Pro or Max plan includes per UTC calendar month. Reading it here spends nothing. null only when the month's count could not be read for this response.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct UsageDataMonthlyQuota {
     /// Admitted requests so far this UTC calendar month.
     pub used: i64,
-    /// Requests Pro includes per UTC calendar month.
+    /// Requests the account's plan includes per UTC calendar month: 500,000 for Pro, 2,000,000 for Max.
     pub limit: i64,
     pub remaining: i64,
     /// Unix seconds: the first instant of the next UTC calendar month.
@@ -10873,15 +12796,19 @@ pub struct UsageDataMonthlyQuota {
     pub binding: bool,
     /// Pay as you go is on: requests over the quota keep answering and bill on a monthly invoice, up to ceiling.
     pub pay_as_you_go: bool,
-    /// The most requests this account is admitted in a UTC calendar month once enforcement has begun: limit, or 1,000,000 with pay as you go on. null for an admin account, which no number stops. Additive since 2026-09-22.
+    /// The most requests this account is admitted in a UTC calendar month once enforcement has begun: limit, or four times limit with pay as you go on (2,000,000 for Pro). null for an admin account, which no number stops. Additive since 2026-09-22.
     #[serde(default)]
     pub ceiling: Option<i64>,
+    /// Why pay as you go is unavailable, or null. usage_price_reconciliation_required: the account's usage subscription carries a historical price whose included requests differ from its plan's, so pay as you go stays off (pay_as_you_go false) until billing reconciles it. Always sent since 2026-10-17.
+    #[serde(default)]
+    pub unavailable_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct UsageDataRateLimit {
     pub used: i64,
+    /// The per-minute window's limit for the caller's plan: 100 requests on Pro, 200 on Max. The same number RateLimit-Limit reports on a counted request.
     pub limit: i64,
     pub remaining: i64,
     pub reset_at: i64,
@@ -10900,6 +12827,128 @@ pub struct VerifyWebhookResponse {
     pub object: String,
     pub data: WebhookEndpoint,
     pub meta: ResponseMeta,
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum View {
+    /// `board`
+    #[serde(rename = "board")]
+    Board,
+    /// `signals`
+    #[serde(rename = "signals")]
+    Signals,
+    /// `observations`
+    #[serde(rename = "observations")]
+    Observations,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl View {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Board => "board",
+            Self::Signals => "signals",
+            Self::Observations => "observations",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for View {
+    fn from(value: &str) -> Self {
+        match value {
+            "board" => Self::Board,
+            "signals" => Self::Signals,
+            "observations" => Self::Observations,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for View {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for View {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+/// `wallet_grade_changed` data (Pro and Max): a tracked wallet's grade moved on a re-grade.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct WalletGradeChangedData {
+    /// Lowercased proxy wallet address.
+    pub wallet: String,
+    /// 0xinsider's numeric id for the wallet.
+    pub trader_id: i64,
+    /// The grade before the move. Never equal to `new_grade`.
+    pub old_grade: Grade,
+    pub new_grade: Grade,
+    /// `upgrade` when `new_grade` is better than `old_grade`, else `downgrade`.
+    pub direction: WalletGradeChangedDataDirection,
+    /// Cohort skill index that drove the grade, 0 to 1.
+    pub skill_index: f64,
+    /// Final 0 to 100 score banded into the new grade.
+    pub final_score: f64,
+    /// The ranking date of the re-grade.
+    pub date: String,
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum WalletGradeChangedDataDirection {
+    /// `upgrade`
+    #[serde(rename = "upgrade")]
+    Upgrade,
+    /// `downgrade`
+    #[serde(rename = "downgrade")]
+    Downgrade,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl WalletGradeChangedDataDirection {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Upgrade => "upgrade",
+            Self::Downgrade => "downgrade",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WalletGradeChangedDataDirection {
+    fn from(value: &str) -> Self {
+        match value {
+            "upgrade" => Self::Upgrade,
+            "downgrade" => Self::Downgrade,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for WalletGradeChangedDataDirection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for WalletGradeChangedDataDirection {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
 }
 
 /// Owner-scoped view of one webhook delivery attempt. Deliberately omits the request body and the endpoint signing secret: a delivery log never re-exposes the payload or any secret material.
@@ -11274,6 +13323,193 @@ pub struct WebhookVerification {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
+pub struct WebhookVerificationAttempt {
+    pub id: String,
+    pub object: String,
+    pub webhook_id: i64,
+    /// queued/running are pending consent. verified means the same endpoint revision answered 2xx and activated atomically. failed/cancelled/expired are terminal and do not restart on polling or replay.
+    pub state: WebhookVerificationAttemptState,
+    /// Sanitized last observation. Null before an observation; queued retries may retain their previous failure outcome.
+    #[serde(default)]
+    pub outcome: Option<WebhookVerificationAttemptOutcome>,
+    pub attempt_count: i64,
+    pub max_attempts: i64,
+    /// Earlier of the verification-token deadline and 15 minutes after admission. Activation is forbidden at or after this instant.
+    pub expires_at: String,
+    /// Scheduled retry/admission time while queued; null while running or terminal.
+    #[serde(default)]
+    pub next_attempt_at: Option<String>,
+    /// Actual receiver HTTP status, when one arrived. No receiver response body or resolved address is returned.
+    #[serde(default)]
+    pub last_response_status: Option<i64>,
+    #[serde(default)]
+    pub started_at: Option<String>,
+    #[serde(default)]
+    pub completed_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+    /// Relative authorized API path for this attempt. Uses the same bearer credential as admission.
+    pub status_url: String,
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum WebhookVerificationAttemptOutcome {
+    /// `verified`
+    #[serde(rename = "verified")]
+    Verified,
+    /// `target_rejected`
+    #[serde(rename = "target_rejected")]
+    TargetRejected,
+    /// `challenge_timeout`
+    #[serde(rename = "challenge_timeout")]
+    ChallengeTimeout,
+    /// `transport_failed`
+    #[serde(rename = "transport_failed")]
+    TransportFailed,
+    /// `receiver_rejected`
+    #[serde(rename = "receiver_rejected")]
+    ReceiverRejected,
+    /// `token_expired`
+    #[serde(rename = "token_expired")]
+    TokenExpired,
+    /// `endpoint_changed`
+    #[serde(rename = "endpoint_changed")]
+    EndpointChanged,
+    /// `owner_revoked`
+    #[serde(rename = "owner_revoked")]
+    OwnerRevoked,
+    /// `attempts_exhausted`
+    #[serde(rename = "attempts_exhausted")]
+    AttemptsExhausted,
+    /// `internal_error`
+    #[serde(rename = "internal_error")]
+    InternalError,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl WebhookVerificationAttemptOutcome {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Verified => "verified",
+            Self::TargetRejected => "target_rejected",
+            Self::ChallengeTimeout => "challenge_timeout",
+            Self::TransportFailed => "transport_failed",
+            Self::ReceiverRejected => "receiver_rejected",
+            Self::TokenExpired => "token_expired",
+            Self::EndpointChanged => "endpoint_changed",
+            Self::OwnerRevoked => "owner_revoked",
+            Self::AttemptsExhausted => "attempts_exhausted",
+            Self::InternalError => "internal_error",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookVerificationAttemptOutcome {
+    fn from(value: &str) -> Self {
+        match value {
+            "verified" => Self::Verified,
+            "target_rejected" => Self::TargetRejected,
+            "challenge_timeout" => Self::ChallengeTimeout,
+            "transport_failed" => Self::TransportFailed,
+            "receiver_rejected" => Self::ReceiverRejected,
+            "token_expired" => Self::TokenExpired,
+            "endpoint_changed" => Self::EndpointChanged,
+            "owner_revoked" => Self::OwnerRevoked,
+            "attempts_exhausted" => Self::AttemptsExhausted,
+            "internal_error" => Self::InternalError,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for WebhookVerificationAttemptOutcome {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for WebhookVerificationAttemptOutcome {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum WebhookVerificationAttemptState {
+    /// `queued`
+    #[serde(rename = "queued")]
+    Queued,
+    /// `running`
+    #[serde(rename = "running")]
+    Running,
+    /// `verified`
+    #[serde(rename = "verified")]
+    Verified,
+    /// `failed`
+    #[serde(rename = "failed")]
+    Failed,
+    /// `cancelled`
+    #[serde(rename = "cancelled")]
+    Cancelled,
+    /// `expired`
+    #[serde(rename = "expired")]
+    Expired,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl WebhookVerificationAttemptState {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Queued => "queued",
+            Self::Running => "running",
+            Self::Verified => "verified",
+            Self::Failed => "failed",
+            Self::Cancelled => "cancelled",
+            Self::Expired => "expired",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WebhookVerificationAttemptState {
+    fn from(value: &str) -> Self {
+        match value {
+            "queued" => Self::Queued,
+            "running" => Self::Running,
+            "verified" => Self::Verified,
+            "failed" => Self::Failed,
+            "cancelled" => Self::Cancelled,
+            "expired" => Self::Expired,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for WebhookVerificationAttemptState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for WebhookVerificationAttemptState {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct WhaleDatasetArtifactManifest {
     /// Version of the artifact manifest contract.
     pub manifest_version: String,
@@ -11435,7 +13671,7 @@ pub struct WhaleDatasetTrade {
     pub condition_id: String,
     pub platform: String,
     pub traded_at: String,
-    pub side: LargeTradeSide,
+    pub side: LargeTradeInsertedV2DataSide,
     /// Provider outcome index, null before the canonical outcome trust boundary.
     #[serde(default)]
     pub outcome_index: Option<i64>,
@@ -11455,12 +13691,15 @@ pub struct WhaleDatasetTrade {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Window {
+    /// `24h`
+    #[serde(rename = "24h")]
+    V24h,
     /// `7d`
     #[serde(rename = "7d")]
     V7d,
-    /// `30d`
-    #[serde(rename = "30d")]
-    V30d,
+    /// `all`
+    #[serde(rename = "all")]
+    All,
     /// A value this release does not know, kept as sent.
     #[serde(untagged)]
     Other(String),
@@ -11470,8 +13709,9 @@ impl Window {
     /// The value as the API spells it.
     pub fn as_str(&self) -> &str {
         match self {
+            Self::V24h => "24h",
             Self::V7d => "7d",
-            Self::V30d => "30d",
+            Self::All => "all",
             Self::Other(value) => value,
         }
     }
@@ -11480,8 +13720,9 @@ impl Window {
 impl From<&str> for Window {
     fn from(value: &str) -> Self {
         match value {
+            "24h" => Self::V24h,
             "7d" => Self::V7d,
-            "30d" => Self::V30d,
+            "all" => Self::All,
             other => Self::Other(other.to_owned()),
         }
     }
@@ -11494,6 +13735,54 @@ impl std::fmt::Display for Window {
 }
 
 impl AsRef<str> for Window {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum WithdrawalReason {
+    /// `provider_game_cancelled`
+    #[serde(rename = "provider_game_cancelled")]
+    ProviderGameCancelled,
+    /// `published_after_kickoff`
+    #[serde(rename = "published_after_kickoff")]
+    PublishedAfterKickoff,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl WithdrawalReason {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::ProviderGameCancelled => "provider_game_cancelled",
+            Self::PublishedAfterKickoff => "published_after_kickoff",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for WithdrawalReason {
+    fn from(value: &str) -> Self {
+        match value {
+            "provider_game_cancelled" => Self::ProviderGameCancelled,
+            "published_after_kickoff" => Self::PublishedAfterKickoff,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for WithdrawalReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for WithdrawalReason {
     fn as_ref(&self) -> &str {
         self.as_str()
     }

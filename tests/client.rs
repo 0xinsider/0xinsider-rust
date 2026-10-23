@@ -219,7 +219,7 @@ async fn an_unknown_enum_value_is_kept_not_rejected() {
     body["data"]["status"] = json!("brand_new_state");
     let server = Server::start(vec![Reply::json(200, &body)]).await;
     let health = client(&server).get_health(&Default::default()).await.unwrap();
-    let status = health.data.status.expect("the example reports a status");
+    let status = health.data.status;
     assert_eq!(status, GetHealthResponseDataStatus::Other("brand_new_state".to_owned()));
     assert_eq!(status.as_str(), "brand_new_state");
 }

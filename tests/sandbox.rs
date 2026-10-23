@@ -58,6 +58,19 @@ fn required_params(doc: &Value, operation: &Operation) -> (String, Vec<(String, 
     (path, query)
 }
 
+/// The generator's rule (`scripts/generate.py`, `retired`): deprecated, a
+/// documented 410 and no success response, so there is no body to decode.
+fn retired(doc: &Value, operation: &Operation) -> bool {
+    let spec = &doc["paths"][operation.path][operation.method.to_ascii_lowercase()];
+    let responses = spec["responses"].as_object();
+    spec["deprecated"].as_bool() == Some(true)
+        && responses.is_some_and(|r| r.contains_key("410"))
+        && !responses.is_some_and(|r| {
+            r.keys()
+                .any(|code| code.starts_with('2') || ["301", "302", "303", "307", "308"].contains(&code.as_str()))
+        })
+}
+
 #[tokio::test]
 async fn every_json_read_decodes_into_its_generated_type() {
     if !enabled() {
@@ -70,6 +83,9 @@ async fn every_json_read_decodes_into_its_generated_type() {
     let mut checked = 0;
     for operation in oxinsider::OPERATIONS {
         if operation.method != "GET" || operation.accept != "application/json" || operation.id == "openMcpEventStream" {
+            continue;
+        }
+        if retired(&doc, operation) {
             continue;
         }
         let (path, query) = required_params(&doc, operation);

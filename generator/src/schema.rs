@@ -192,7 +192,7 @@ impl EnumNames {
                 .into_iter()
                 .filter(|(_, key)| !self.by_values.contains_key(key))
                 .collect();
-            claims.sort_by(|left, right| right.0.cmp(&left.0));
+            claims.sort_by_key(|claim| std::cmp::Reverse(claim.0));
             for (index, (_, key)) in claims.into_iter().enumerate() {
                 let mut candidate = name.clone();
                 if index > 0 || taken.contains(&candidate) {

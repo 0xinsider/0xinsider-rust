@@ -1,0 +1,31 @@
+[package]
+name = "oxinsider-generator"
+description = "Generates the typed client in src/ from the 0xinsider OpenAPI document: cargo codegen [--check]."
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Its own workspace: the published crate at the repository root neither builds
+# nor locks the generator's dependencies.
+[workspace]
+
+[[bin]]
+name = "codegen"
+path = "src/main.rs"
+# No test or bench target: the generated files and their tests are the check.
+test = false
+bench = false
+
+[dependencies]
+# Ordered maps for the generator's insertion-ordered tables, the same crate
+# serde_json's preserve_order uses.
+indexmap = "2"
+# words() splits names on the same three patterns the Python generator used.
+regex = "1"
+# preserve_order: schemas, properties and paths are walked in document order.
+serde_json = { version = "1", features = ["preserve_order"] }
+# OPENAPI_SHA256 in src/provenance.rs.
+sha2 = "0.10"
+
+[profile.dev]
+debug = 0

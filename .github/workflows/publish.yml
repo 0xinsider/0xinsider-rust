@@ -41,7 +41,7 @@ jobs:
         id: version
         run: |
           set -euo pipefail
-          version="$(cargo metadata --no-deps --format-version 1 | python3 -c 'import json,sys;print(json.load(sys.stdin)["packages"][0]["version"])')"
+          version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           if [ "${GITHUB_EVENT_NAME}" = "release" ] && [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
             echo "::error::release tag ${GITHUB_REF_NAME} does not match Cargo.toml version ${version}"
@@ -56,7 +56,7 @@ jobs:
       - name: Test
         if: steps.version.outputs.published == 'false'
         run: |
-          python3 scripts/generate.py --check
+          cargo codegen --check
           cargo test --locked
       - name: Package
         if: steps.version.outputs.published == 'false'

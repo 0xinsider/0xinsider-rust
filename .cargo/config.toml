@@ -1,0 +1,4 @@
+# `cargo codegen [--check | path/to/openapi.json] [--app-commit SHA]` runs the
+# generator under generator/ (0xinsider/0xinsider#24564: tooling is Rust).
+[alias]
+codegen = "run --quiet --locked --manifest-path generator/Cargo.toml --"

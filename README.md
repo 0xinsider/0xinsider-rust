@@ -177,7 +177,7 @@ Bring your own `reqwest::Client` (a proxy, custom roots) with `Client::builder()
 
 ## How it is built
 
-`src/models.rs` and `src/operations.rs` are generated from the published [OpenAPI document](https://0xinsider.com/api/v1/openapi.json) by `scripts/generate.py` (Python 3 standard library, then `rustfmt`), and a weekly workflow opens a pull request when the contract changes. `python3 scripts/generate.py --check` fails when the generated files are stale. The generator understands every construct the document uses and stops on one it does not, rather than emitting an untyped value that hides the gap.
+`src/models.rs` and `src/operations.rs` are generated from the published [OpenAPI document](https://0xinsider.com/api/v1/openapi.json) by `cargo codegen` (the Rust program in `generator/`, then `rustfmt`), and a weekly workflow opens a pull request when the contract changes. `cargo codegen --check` fails when the generated files are stale. The generator understands every construct the document uses and stops on one it does not, rather than emitting an untyped value that hides the gap.
 
 `src/provenance.rs` says which document a release was generated from: `OPENAPI_SHA256` (the SHA-256 of the document bytes), `OPENAPI_VERSION`, `OPERATION_COUNT`, and `APP_COMMIT`, the `0xinsider/0xinsider` commit that last changed `web/public/api/v1/openapi.json` (or `None` when it could not be resolved). Compare `oxinsider::provenance::OPENAPI_SHA256` with `shasum -a 256` of the live document to see whether a release is behind the API.
 

@@ -23,8 +23,17 @@ jobs:
           toolchain: stable
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          # generator/ is its own workspace (cargo codegen), with its own target.
+          workspaces: |
+            . -> target
+            generator -> target
       - name: Generated files match the committed OpenAPI document
-        run: python3 scripts/generate.py --check
+        run: cargo codegen --check
+      - name: The generator is formatted and lint-clean
+        run: |
+          cargo fmt --check --manifest-path generator/Cargo.toml
+          cargo clippy --locked --manifest-path generator/Cargo.toml -- -D warnings
       - run: cargo fmt --check
       - run: cargo clippy --all-targets --locked -- -D warnings
       - run: cargo test --locked

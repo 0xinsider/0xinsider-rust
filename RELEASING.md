@@ -32,7 +32,7 @@ entry is updated to match.
 
 ## Every release
 
-1. Regenerate if the contract moved (`python3 scripts/generate.py`, or merge the
+1. Regenerate if the contract moved (`cargo codegen`, or merge the
    weekly regenerate pull request), then bump `version` in `Cargo.toml`. While
    the crate is `0.x`, a regenerate that renames or removes a type is a minor
    bump; one that only adds fields, values or operations is a patch.

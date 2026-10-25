@@ -7,7 +7,7 @@
 ## Directory structure
 
 ```
-scripts/generate.py        OpenAPI document -> the generated files below (stdlib Python, then rustfmt)
+generator/                 OpenAPI document -> the generated files below (cargo codegen, then rustfmt)
 openapi.json               the document exactly as fetched (generated; the tests read its examples)
 src/
   lib.rs                   crate docs and re-exports
@@ -33,7 +33,7 @@ examples/                  discovery, sandbox, stream
 
 ## Core components
 
-### Generator (`scripts/generate.py`)
+### Generator (`generator/`, run as `cargo codegen`)
 
 Reads the document (the published URL by default, a file path, or the committed snapshot with `--check`) and writes the generated files through `rustfmt`, so they never drift from `cargo fmt`. Rules it applies:
 
@@ -95,4 +95,4 @@ Client::list_whale_trades(&params)            generated (operations.rs)
 
 - `cargo test`: unit tests in each module, `tests/examples.rs` (every `example`/`examples` in the document decodes; `x-examples` are reported, not enforced, matching the app repository's own policy), `tests/client.rs` (scripted loopback server), and the README's complete programs as doctests.
 - `OXINSIDER_SANDBOX_TESTS=1 cargo test --test sandbox`: every JSON GET's live sandbox answer decodes into its type; typed calls, errors and a pager walk end to end.
-- `python3 scripts/generate.py --check`: the generated files match the committed document.
+- `cargo codegen --check`: the generated files match the committed document.

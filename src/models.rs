@@ -243,7 +243,7 @@ pub struct ApiErrorBody {
     pub retry_at: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub freshness: Option<FreshnessFailure>,
-    /// ADDITIVE (#7209). The specific, actionable cause behind `code`, when there is one more specific than the code itself. `code` keeps its published values, so existing clients are unaffected; new clients branch on `reason`. Omitted when the code already says everything we know. pick_not_released: no Pick of the Day is published for the current product day; schedule one request against retry_at instead of polling. unknown_endpoint: the PATH is not a route on this API -- read GET /api/v1, do not retry. trader_not_tracked: the wallet is real and the URL is right, but the trader is not on the warm sync tier (the wallets we sync most often) -- stop asking for this wallet. market_out_of_scope (404 not_found, #27303): the market or event is real and the URL is right, but 0xinsider serves sports and esports markets only -- stop asking for this market; neither a retry nor another URL for it can succeed. cursor_expired: pagination went stale mid-walk -- re-request the first page and continue. read_model_warming: the requested endpoint cannot serve its read model yet; exact causes are endpoint-specific and can include a cold or contended refresh or a dependency that prevented refresh. database_unavailable: the API's database or its connection pool is temporarily unreachable (a connection-class failure, not a query fault); code stays rate_limit_unavailable, nothing is rate-limited, retry after Retry-After / retry_at. idempotency_in_progress: retain the exact Idempotency-Key and request body, then retry shortly. webhook_delivery_in_progress: retry the URL or signing-secret configuration change after the destination's active request completes. request_accounting_unavailable: accounting capacity is unavailable before the handler executes; retry after Retry-After / retry_at. sandbox_api_key: the credential is a sandbox key (oxi_sk_test_) from POST /api/v1/agents/register, which only the sandbox server accepts -- call the sandbox base URL with it, or get a live key or OAuth access token; do not retry it here. api_key_in_query: the key was sent as a ?token= query parameter, which no route reads because URLs land in logs and history; the key itself was not checked -- resend it as Authorization: Bearer. subscription_inactive: the key is valid but the account's Pro subscription has lapsed (402 subscription_required); permanent until a person reactivates at https://0xinsider.com/billing, which the message names -- stop retrying on a schedule and surface the link. The key owner is emailed once per lapse. monthly_quota_exceeded: the account has used the requests its plan includes for the UTC calendar month (429 rate_limited); retry_at and Retry-After name the first of next month, the only retry that can succeed, and the message names https://0xinsider.com/developers, where pay as you go for requests over the quota is turned on. The X-Monthly-Quota-Limit, X-Monthly-Quota-Remaining and X-Monthly-Quota-Reset headers on every authenticated response say how close the account is. invalid_query, invalid_path, invalid_body (400 bad_request, #16146): a query parameter, a path segment or the JSON body did not parse or does not fit the route's schema, so no handler ran; param names the field when the parser named one (a query key, a path segment, a JSON path such as traders[0], or body); fix the request, never retry it as sent. unsupported_media_type (415 bad_request, param content-type): send the body with Content-Type: application/json. payload_too_large (413 bad_request, param body): the body is over 1048576 bytes. method_not_allowed (405 bad_request): the path is a route but not with this method; the Allow header names the methods it serves. ip_rate_limited (429 rate_limited, #16380): the per-address budget every caller behind one IP shares, counted before authentication, is spent; not the key's own window, and the RateLimit-* headers describe that bucket. ip_throttled (429 rate_limited): the address is in a cooldown after sustained over-limit traffic; Retry-After is minutes to days, and a request before it does not shorten the cooldown. max_plan_required (403 forbidden, #23085): the key is valid and its account is on Pro, but the route is part of Max (GET /api/v1/edge-hunter); every Pro route keeps working with the same key, so do not disable it. The message names https://0xinsider.com/pricing, where the account upgrades; a retry never clears it. endpoint_retired (410): this legacy sports endpoint no longer serves data. Migrate to GET /api/v1/edge-hunter; retrying the retired path cannot succeed.
+    /// ADDITIVE (#7209). The specific, actionable cause behind `code`, when there is one more specific than the code itself. `code` keeps its published values, so existing clients are unaffected; new clients branch on `reason`. Omitted when the code already says everything we know. pick_not_released: no Pick of the Day is published for the current product day; schedule one request against retry_at instead of polling. unknown_endpoint: the PATH is not a route on this API -- read GET /api/v1, do not retry. trader_not_tracked: the wallet is real and the URL is right, but the trader is not on the warm sync tier (the wallets we sync most often) -- stop asking for this wallet. market_out_of_scope (404 not_found, #27303): the market or event is real and the URL is right, but 0xinsider serves sports and esports markets only -- stop asking for this market; neither a retry nor another URL for it can succeed. cursor_expired: pagination went stale mid-walk -- re-request the first page and continue. read_model_warming: the requested endpoint cannot serve its read model yet; exact causes are endpoint-specific and can include a cold or contended refresh or a dependency that prevented refresh. database_unavailable: the API's database or its connection pool is temporarily unreachable (a connection-class failure, not a query fault); code stays rate_limit_unavailable, nothing is rate-limited, retry after Retry-After / retry_at. idempotency_in_progress: retain the exact Idempotency-Key and request body, then retry shortly. webhook_delivery_in_progress: retry the URL or signing-secret configuration change after the destination's active request completes. request_accounting_unavailable: accounting capacity is unavailable before the handler executes; retry after Retry-After / retry_at. sandbox_api_key: the credential is a sandbox key (oxi_sk_test_) from POST /api/v1/agents/register, which only the sandbox server accepts -- call the sandbox base URL with it, or get a live key or OAuth access token; do not retry it here. api_key_in_query: the key was sent as a ?token= query parameter, which no route reads because URLs land in logs and history; the key itself was not checked -- resend it as Authorization: Bearer. subscription_inactive: the key is valid but the account's Pro subscription has lapsed (402 subscription_required); permanent until a person reactivates at https://0xinsider.com/billing, which the message names -- stop retrying on a schedule and surface the link. The key owner is emailed once per lapse. monthly_quota_exceeded: the account has used the requests its plan includes for the UTC calendar month (429 rate_limited); retry_at and Retry-After name the first of next month, the only retry that can succeed, and the message names https://0xinsider.com/developers, where pay as you go for requests over the quota is turned on. The X-Monthly-Quota-Limit, X-Monthly-Quota-Remaining and X-Monthly-Quota-Reset headers on every authenticated response say how close the account is. invalid_query, invalid_path, invalid_body (400 bad_request, #16146): a query parameter, a path segment or the JSON body did not parse or does not fit the route's schema, so no handler ran; param names the field when the parser named one (a query key, a path segment, a JSON path such as traders[0], or body); fix the request, never retry it as sent. unsupported_media_type (415 bad_request, param content-type): send the body with Content-Type: application/json. payload_too_large (413 bad_request, param body): the body is over 1048576 bytes. method_not_allowed (405 bad_request): the path is a route but not with this method; the Allow header names the methods it serves. ip_rate_limited (429 rate_limited, #16380): the per-address budget every caller behind one IP shares, counted before authentication, is spent; not the key's own window, and the RateLimit-* headers describe that bucket. ip_throttled (429 rate_limited): the address is in a cooldown after sustained over-limit traffic; Retry-After is minutes to days, and a request before it does not shorten the cooldown. cold_read_limited (429 rate_limited, #28752): the account has used its share of cold reads on GET /api/v1/market/{condition_id}/holders, requests for a market whose roster is not cached, each of which walks Polymarket (6 a minute, in bursts of up to 400); not the per-minute window, so a cached market still answers, and the next cold read is admitted at Retry-After. max_plan_required (403 forbidden, #23085): the key is valid and its account is on Pro, but the route is part of Max (GET /api/v1/edge-hunter); every Pro route keeps working with the same key, so do not disable it. The message names https://0xinsider.com/pricing, where the account upgrades; a retry never clears it. endpoint_retired (410): this legacy sports endpoint no longer serves data. Migrate to GET /api/v1/edge-hunter; retrying the retired path cannot succeed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reason: Option<ErrorReason>,
 }
@@ -263,7 +263,7 @@ pub struct ApiErrorError {
     pub retry_at: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub freshness: Option<FreshnessFailure>,
-    /// ADDITIVE (#7209). The specific, actionable cause behind `code`, when there is one more specific than the code itself. `code` keeps its published values, so existing clients are unaffected; new clients branch on `reason`. Omitted when the code already says everything we know. pick_not_released: no Pick of the Day is published for the current product day; schedule one request against retry_at instead of polling. unknown_endpoint: the PATH is not a route on this API -- read GET /api/v1, do not retry. trader_not_tracked: the wallet is real and the URL is right, but the trader is not on the warm sync tier (the wallets we sync most often) -- stop asking for this wallet. market_out_of_scope (404 not_found, #27303): the market or event is real and the URL is right, but 0xinsider serves sports and esports markets only -- stop asking for this market; neither a retry nor another URL for it can succeed. cursor_expired: pagination went stale mid-walk -- re-request the first page and continue. read_model_warming: the requested endpoint cannot serve its read model yet; exact causes are endpoint-specific and can include a cold or contended refresh or a dependency that prevented refresh. database_unavailable: the API's database or its connection pool is temporarily unreachable (a connection-class failure, not a query fault); code stays rate_limit_unavailable, nothing is rate-limited, retry after Retry-After / retry_at. idempotency_in_progress: retain the exact Idempotency-Key and request body, then retry shortly. webhook_delivery_in_progress: retry the URL or signing-secret configuration change after the destination's active request completes. request_accounting_unavailable: accounting capacity is unavailable before the handler executes; retry after Retry-After / retry_at. sandbox_api_key: the credential is a sandbox key (oxi_sk_test_) from POST /api/v1/agents/register, which only the sandbox server accepts -- call the sandbox base URL with it, or get a live key or OAuth access token; do not retry it here. api_key_in_query: the key was sent as a ?token= query parameter, which no route reads because URLs land in logs and history; the key itself was not checked -- resend it as Authorization: Bearer. subscription_inactive: the key is valid but the account's Pro subscription has lapsed (402 subscription_required); permanent until a person reactivates at https://0xinsider.com/billing, which the message names -- stop retrying on a schedule and surface the link. The key owner is emailed once per lapse. monthly_quota_exceeded: the account has used the requests its plan includes for the UTC calendar month (429 rate_limited); retry_at and Retry-After name the first of next month, the only retry that can succeed, and the message names https://0xinsider.com/developers, where pay as you go for requests over the quota is turned on. The X-Monthly-Quota-Limit, X-Monthly-Quota-Remaining and X-Monthly-Quota-Reset headers on every authenticated response say how close the account is. invalid_query, invalid_path, invalid_body (400 bad_request, #16146): a query parameter, a path segment or the JSON body did not parse or does not fit the route's schema, so no handler ran; param names the field when the parser named one (a query key, a path segment, a JSON path such as traders[0], or body); fix the request, never retry it as sent. unsupported_media_type (415 bad_request, param content-type): send the body with Content-Type: application/json. payload_too_large (413 bad_request, param body): the body is over 1048576 bytes. method_not_allowed (405 bad_request): the path is a route but not with this method; the Allow header names the methods it serves. ip_rate_limited (429 rate_limited, #16380): the per-address budget every caller behind one IP shares, counted before authentication, is spent; not the key's own window, and the RateLimit-* headers describe that bucket. ip_throttled (429 rate_limited): the address is in a cooldown after sustained over-limit traffic; Retry-After is minutes to days, and a request before it does not shorten the cooldown. max_plan_required (403 forbidden, #23085): the key is valid and its account is on Pro, but the route is part of Max (GET /api/v1/edge-hunter); every Pro route keeps working with the same key, so do not disable it. The message names https://0xinsider.com/pricing, where the account upgrades; a retry never clears it. endpoint_retired (410): this legacy sports endpoint no longer serves data. Migrate to GET /api/v1/edge-hunter; retrying the retired path cannot succeed.
+    /// ADDITIVE (#7209). The specific, actionable cause behind `code`, when there is one more specific than the code itself. `code` keeps its published values, so existing clients are unaffected; new clients branch on `reason`. Omitted when the code already says everything we know. pick_not_released: no Pick of the Day is published for the current product day; schedule one request against retry_at instead of polling. unknown_endpoint: the PATH is not a route on this API -- read GET /api/v1, do not retry. trader_not_tracked: the wallet is real and the URL is right, but the trader is not on the warm sync tier (the wallets we sync most often) -- stop asking for this wallet. market_out_of_scope (404 not_found, #27303): the market or event is real and the URL is right, but 0xinsider serves sports and esports markets only -- stop asking for this market; neither a retry nor another URL for it can succeed. cursor_expired: pagination went stale mid-walk -- re-request the first page and continue. read_model_warming: the requested endpoint cannot serve its read model yet; exact causes are endpoint-specific and can include a cold or contended refresh or a dependency that prevented refresh. database_unavailable: the API's database or its connection pool is temporarily unreachable (a connection-class failure, not a query fault); code stays rate_limit_unavailable, nothing is rate-limited, retry after Retry-After / retry_at. idempotency_in_progress: retain the exact Idempotency-Key and request body, then retry shortly. webhook_delivery_in_progress: retry the URL or signing-secret configuration change after the destination's active request completes. request_accounting_unavailable: accounting capacity is unavailable before the handler executes; retry after Retry-After / retry_at. sandbox_api_key: the credential is a sandbox key (oxi_sk_test_) from POST /api/v1/agents/register, which only the sandbox server accepts -- call the sandbox base URL with it, or get a live key or OAuth access token; do not retry it here. api_key_in_query: the key was sent as a ?token= query parameter, which no route reads because URLs land in logs and history; the key itself was not checked -- resend it as Authorization: Bearer. subscription_inactive: the key is valid but the account's Pro subscription has lapsed (402 subscription_required); permanent until a person reactivates at https://0xinsider.com/billing, which the message names -- stop retrying on a schedule and surface the link. The key owner is emailed once per lapse. monthly_quota_exceeded: the account has used the requests its plan includes for the UTC calendar month (429 rate_limited); retry_at and Retry-After name the first of next month, the only retry that can succeed, and the message names https://0xinsider.com/developers, where pay as you go for requests over the quota is turned on. The X-Monthly-Quota-Limit, X-Monthly-Quota-Remaining and X-Monthly-Quota-Reset headers on every authenticated response say how close the account is. invalid_query, invalid_path, invalid_body (400 bad_request, #16146): a query parameter, a path segment or the JSON body did not parse or does not fit the route's schema, so no handler ran; param names the field when the parser named one (a query key, a path segment, a JSON path such as traders[0], or body); fix the request, never retry it as sent. unsupported_media_type (415 bad_request, param content-type): send the body with Content-Type: application/json. payload_too_large (413 bad_request, param body): the body is over 1048576 bytes. method_not_allowed (405 bad_request): the path is a route but not with this method; the Allow header names the methods it serves. ip_rate_limited (429 rate_limited, #16380): the per-address budget every caller behind one IP shares, counted before authentication, is spent; not the key's own window, and the RateLimit-* headers describe that bucket. ip_throttled (429 rate_limited): the address is in a cooldown after sustained over-limit traffic; Retry-After is minutes to days, and a request before it does not shorten the cooldown. cold_read_limited (429 rate_limited, #28752): the account has used its share of cold reads on GET /api/v1/market/{condition_id}/holders, requests for a market whose roster is not cached, each of which walks Polymarket (6 a minute, in bursts of up to 400); not the per-minute window, so a cached market still answers, and the next cold read is admitted at Retry-After. max_plan_required (403 forbidden, #23085): the key is valid and its account is on Pro, but the route is part of Max (GET /api/v1/edge-hunter); every Pro route keeps working with the same key, so do not disable it. The message names https://0xinsider.com/pricing, where the account upgrades; a retry never clears it. endpoint_retired (410): this legacy sports endpoint no longer serves data. Migrate to GET /api/v1/edge-hunter; retrying the retired path cannot succeed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reason: Option<ErrorReason>,
 }
@@ -2032,6 +2032,7 @@ impl AsRef<str> for CounterpartyAnalysisStatus {
 #[non_exhaustive]
 pub struct CounterpartyExecution {
     pub execution_id: String,
+    /// Polymarket exchange contract that emitted the execution: `ctf_v2` the CTF Exchange v2, `neg_risk_ctf_v2` the Neg Risk CTF Exchange v2, `exchange_v3` ExchangeV3, which settles Polymarket Protocol V2 binary and neg-risk markets. Treat an unknown value as another exchange.
     pub exchange_family: ExchangeFamily,
     pub transaction_hash: String,
     pub orders_matched_log_index: i64,
@@ -2710,7 +2711,7 @@ pub struct EdgeHunterObservation {
 pub struct EdgeHunterObservationCoverage {
     /// Sum of canonical source-generation funnel input across all sports, before category, cohort or selector projection.
     pub input_markets: i64,
-    /// Canonical source-generation input assigned capacity_limited. These markets were intentionally outside the bounded holder-work admission and are not missing emitted rows.
+    /// Canonical source-generation input assigned capacity_limited. These markets were intentionally outside the bounded holder-work admission and are not missing emitted rows. It includes the admitted pregame wider_holder markets of any sport no request named in the last 30 minutes, whose holders the generation did not read.
     pub capacity_limited_markets: i64,
     /// All wider_holder and in_play observations emitted in the canonical source generation, before cohort, category or selector projection. Emerging pile is an overlapping projection and does not add source emissions.
     pub emitted_observations: i64,
@@ -3579,6 +3580,9 @@ pub enum ErrorReason {
     /// `ip_throttled`
     #[serde(rename = "ip_throttled")]
     IpThrottled,
+    /// `cold_read_limited`
+    #[serde(rename = "cold_read_limited")]
+    ColdReadLimited,
     /// `export_expired`
     #[serde(rename = "export_expired")]
     ExportExpired,
@@ -3625,6 +3629,7 @@ impl ErrorReason {
             Self::MethodNotAllowed => "method_not_allowed",
             Self::IpRateLimited => "ip_rate_limited",
             Self::IpThrottled => "ip_throttled",
+            Self::ColdReadLimited => "cold_read_limited",
             Self::ExportExpired => "export_expired",
             Self::FreshnessCeilingUnsatisfied => "freshness_ceiling_unsatisfied",
             Self::MaxPlanRequired => "max_plan_required",
@@ -3662,6 +3667,7 @@ impl From<&str> for ErrorReason {
             "method_not_allowed" => Self::MethodNotAllowed,
             "ip_rate_limited" => Self::IpRateLimited,
             "ip_throttled" => Self::IpThrottled,
+            "cold_read_limited" => Self::ColdReadLimited,
             "export_expired" => Self::ExportExpired,
             "freshness_ceiling_unsatisfied" => Self::FreshnessCeilingUnsatisfied,
             "max_plan_required" => Self::MaxPlanRequired,
@@ -3879,6 +3885,9 @@ pub enum ExchangeFamily {
     /// `neg_risk_ctf_v2`
     #[serde(rename = "neg_risk_ctf_v2")]
     NegRiskCtfV2,
+    /// `exchange_v3`
+    #[serde(rename = "exchange_v3")]
+    ExchangeV3,
     /// A value this release does not know, kept as sent.
     #[serde(untagged)]
     Other(String),
@@ -3890,6 +3899,7 @@ impl ExchangeFamily {
         match self {
             Self::CtfV2 => "ctf_v2",
             Self::NegRiskCtfV2 => "neg_risk_ctf_v2",
+            Self::ExchangeV3 => "exchange_v3",
             Self::Other(value) => value,
         }
     }
@@ -3900,6 +3910,7 @@ impl From<&str> for ExchangeFamily {
         match value {
             "ctf_v2" => Self::CtfV2,
             "neg_risk_ctf_v2" => Self::NegRiskCtfV2,
+            "exchange_v3" => Self::ExchangeV3,
             other => Self::Other(other.to_owned()),
         }
     }
@@ -4385,17 +4396,18 @@ pub struct ExportSourceRange {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct ExportVolumeReconciliation {
-    /// Verified full-history both-sides USD cash volume. Null without coverage; the local activity numerator may cover only a subset of history.
+    /// Verified full-history both-sides USD cash volume across every market of the wallet. Null without coverage.
     #[serde(default)]
     pub provider_lifetime_volume: Option<f64>,
-    /// Cash in USD, buys and sells, summed over the daily P&L rows this export carries, from the fills 0xinsider has stored for the wallet. It can cover less history than provider_lifetime_volume; never Polymarket's share count.
-    pub exported_activity_volume: f64,
+    /// Cash in USD, buys and sells, in sports and esports markets, summed over the daily P&L rows this export carries (their total_volume, from the fills 0xinsider stores for the wallet). Never Polymarket's share count. Null when any of those rows has no volume: a sum over the other days would be a partial subtotal. A wallet whose stored history 0xinsider has not rebuilt yet still sums cash across every market, and is null once it has a day from 2026-10-23 on.
+    #[serde(default)]
+    pub exported_activity_volume: Option<f64>,
     /// Cost basis in USD summed over the wallet's sports and esports markets, the markets section of the export.
     pub exported_market_cost_basis: f64,
-    /// provider_lifetime_volume minus exported_activity_volume, in USD, rounded to cents. Null when provider_lifetime_volume is null.
+    /// Always null. provider_lifetime_volume covers every market and exported_activity_volume sports and esports markets only, so their difference measures nothing; the field stays so existing clients keep parsing the object.
     #[serde(default)]
     pub provider_activity_volume_gap: Option<f64>,
-    /// exported_activity_volume divided by provider_lifetime_volume, a fraction of the cash, not a percent. Null when provider_lifetime_volume is null or zero.
+    /// Always null, for the same reason as provider_activity_volume_gap.
     #[serde(default)]
     pub activity_volume_coverage: Option<f64>,
 }
@@ -6202,7 +6214,7 @@ pub struct LeaderboardEntry {
     /// Native realized P&L plus credited maker and taker rebates in USD, with fees already included. The exact numeric value is truncated toward zero to cents before JSON conversion. Omitted when the wallet has no native snapshot or the snapshot has no net realized value; never filled from another P&L basis.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub realized_pnl: Option<f64>,
-    /// The 0xinsider correction to Polymarket's P&L for neg-risk conversions. Present only when one is published; realized_pnl keeps Polymarket's own figure and pnl_correction.realized adds the amount to it. The grade and the ranking use the corrected figure. net_total is omitted here.
+    /// The 0xinsider correction to Polymarket's P&L for neg-risk conversions. Present only when one is published; realized_pnl keeps Polymarket's own figure and pnl_correction.realized adds the amount to it. Since 2026-10-22 the grade and the ranking read the sports and esports share of the corrected figure. net_total is omitted here.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pnl_correction: Option<PnlCorrection>,
     /// Full-history both-sides USD cash volume from a verified Polymarket user-volume observation. Omitted without coverage.
@@ -6210,9 +6222,12 @@ pub struct LeaderboardEntry {
     pub volume: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub markets_traded: Option<i64>,
-    /// The wallet's win rate across ALL categories, not the filtered one. ?category= decides WHICH wallets are listed (the wallet must be ranked in that category); it does not rescope this field, so a soccer-filtered list still reports each wallet's overall rate. For a per-category record use GET /api/v1/trader/{address}/categories.
+    /// The wallet's win rate across ALL categories, not the filtered one. ?category= decides WHICH wallets are listed (the wallet must be ranked in that category); it does not rescope this field, so a soccer-filtered list still reports each wallet's overall rate. For a per-category record use GET /api/v1/trader/{address}/categories. in_scope.win_rate is the sports and esports rate.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub win_rate: Option<f64>,
+    /// Additive (#27859): the wallet's sports and esports record, the same object as GET /api/v1/trader/{address} pnl.in_scope, as of the leaderboard's last refresh. The 0xinsider leaderboard page shows and sorts by in_scope.realized_pnl and in_scope.win_rate. Omitted until 0xinsider has computed the wallet's record; absent means not computed yet, never zero. pnl, realized_pnl and win_rate stay wallet-wide.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub in_scope: Option<TraderPnlInScope>,
     /// Observed trading style identifier. New rows use two_sided, category_focused, high_activity, diversified, mixed, or unclassified, counted over the wallet's sports and esports markets only. Historical identifiers remain readable during normal reclassification; style does not predict skill or intent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub strategy_type: Option<String>,
@@ -6760,7 +6775,7 @@ pub struct MarketHolder {
     pub category_win_rate_status: CategoryWinRateStatus,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_evidence: Option<HolderCategoryEvidence>,
-    /// Days since this wallet's first trade. The five badge fields are present together, only for a wallet that draws at least one badge.
+    /// Whole days since this wallet's first trade, rounded down (3.6 days reads 3), so it changes once a day, not on every request. The five badge fields are present together, only for a wallet that draws at least one badge.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wallet_age_days: Option<f64>,
     /// True when the wallet's first trade was under 30 days ago.
@@ -7909,7 +7924,7 @@ pub struct PickHolder {
     /// Why `category_win_rate` is present or absent on a `display_holders` entry: `measured` (rate present), `not_enough_data` (the wallet is below the resolved-market floor of 5 in the category), or `unavailable` (the annotation read failed; retry later). Absent entirely on `holders` entries, legacy rows, and payloads predating the field -- absence means the roster was never annotated, not a small sample.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_win_rate_status: Option<CategoryWinRateStatus>,
-    /// Days since this wallet's first trade. Stamped at serve time from the wallet's current trader record, never frozen with the pick. The five badge fields are present together, and only for a wallet that carries at least one badge; all absent means no badge, or a body cached before the fields shipped.
+    /// Whole days since this wallet's first trade, rounded down (3.6 days reads 3), so it changes once a day, not on every request, and the pick's ETag holds between requests. Stamped at serve time from the wallet's current trader record, never frozen with the pick. The five badge fields are present together, and only for a wallet that carries at least one badge; all absent means no badge, or a body cached before the fields shipped.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wallet_age_days: Option<f64>,
     /// True when the wallet's first trade was under 30 days ago. Stamped at serve time from the wallet's current trader record, never frozen with the pick. The five badge fields are present together, and only for a wallet that carries at least one badge; all absent means no badge, or a body cached before the fields shipped.
@@ -8767,14 +8782,14 @@ pub struct PickOfTheDayUncommittedPayload {
     pub platform: String,
 }
 
-/// Provider-first sports context for a Pick of the Day market: team crests, league branding, and live score. Team logos and league logo are provider-owned (Polymarket /teams crests for clubs, country flags for national teams and tennis players); no local derivation.
+/// Provider-first sports context for a Pick of the Day market: team crests, league branding, and live score. Each team `logo` is a registered club crest or national flag as a same-origin path where one exists, and provider artwork otherwise.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct PickSportsContext {
     /// League or competition display name (e.g. "Premier League").
     #[serde(default)]
     pub league_name: Option<String>,
-    /// Provider-owned event taxonomy from Gamma eventMetadata, joined in league · serie · tournament order with blanks and case-insensitive duplicates removed. Separate from league_name; omitted when the provider does not supply the metadata.
+    /// Provider-owned event taxonomy from Gamma eventMetadata, joined in league · serie · tournament order with blanks and case-insensitive duplicates removed. A tennis qualifying match ends in ", Qualification", including an ATP Challenger qualifying match, which Gamma marks only in eventMetadata.tennisFixtureSource. Separate from league_name; omitted when the provider does not supply the metadata.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub competition_label: Option<String>,
     /// League logo URL (provider-owned).
@@ -8815,7 +8830,7 @@ pub struct PickSportsTeam {
     /// Provider team identifier (Polymarket /teams id).
     #[serde(default)]
     pub provider_id: Option<i64>,
-    /// Team crest or flag URL. Official NFL (32), WNBA (15), NBA (30), NHL (32), and MLB (30) club crests use same-origin relative paths (`/api/sports/team-logos/{league}/{abbr}.svg?v=<content hash>`); resolve relative URLs against the API origin. Vendored soccer club crests use the same path with `.png`. Other teams use provider artwork, including country flags for national teams and tennis players. Novelty and national-team rows outside the vendored club sets retain provider artwork.
+    /// Team crest or flag URL. Official NFL (32), WNBA (15), NBA (30), NHL (32), and MLB (30) club crests use same-origin relative paths (`/api/sports/team-logos/{league}/{abbr}.svg?v=<content hash>`); resolve relative URLs against the API origin. Vendored soccer club crests use the same path with `.png`. National teams in the registered national-team competitions use the same path with `.svg`: the official national flag, drawn whole at its own aspect. Other teams use provider artwork, including country flags for tennis players. Novelty rows, and national-team rows that are not exactly one country, retain provider artwork.
     #[serde(default)]
     pub logo: Option<String>,
     /// True when artwork measurements show that the team mark needs a light plate on a dark background. Vendored crest verdicts are tied to the exact asset bytes; provider artwork is measured by the teams sync. Always sent; false when no current measurement marks the logo dark.
@@ -8929,7 +8944,7 @@ pub struct PlatformsPlatforms {
     pub polymarket: PlatformCapabilities,
 }
 
-/// A derived 0xinsider correction to Polymarket's P&L, never a Polymarket value. Polymarket misbooks neg-risk conversions, in both directions: it puts cost on placeholder YES outcomes minted by a conversion and never books it as a loss (negative amount), and its position records leave out shares the wallet really got, such as YES minted by a conversion, so it books no P&L on them (positive amount). Per neg-risk market the wallet converted in, 0xinsider measures Polymarket's own activity cash against the sum of its position P&L, and sums the difference over every measured market whose shares did not move by direct transfer: transferred shares have no activity row, so such a market keeps Polymarket's figure and is counted in markets_excluded. It is published once every neg-risk market the wallet converted in is measured and checked for transfers, and stays as last published until then (on the trader body, pnl.correction_pending says so); a sum under $1 either way publishes nothing. The body's own P&L fields keep Polymarket's figures; this object adds the amount and the corrected figures. Money is truncated toward zero to cents.
+/// A derived 0xinsider correction to Polymarket's P&L, never a Polymarket value. Polymarket misbooks neg-risk conversions, in both directions: it puts cost on placeholder YES outcomes minted by a conversion and never books it as a loss (negative amount), and its position records leave out shares the wallet really got, such as YES minted by a conversion, so it books no P&L on them (positive amount). Per neg-risk market the wallet converted in, 0xinsider measures Polymarket's own activity cash against the sum of its position P&L, and sums the difference over every measured market whose shares did not move by direct transfer: transferred shares have no activity row, so such a market keeps Polymarket's figure and is counted in markets_excluded. It is published once every neg-risk market with a sports or esports event that the wallet converted in is measured and checked for transfers, and stays as last published until then; a market with no sports or esports event is not measured, and counts only when it was measured before (on the trader body, pnl.correction_pending says so); a sum under $1 either way publishes nothing. The body's own P&L fields keep Polymarket's figures; this object adds the amount and the corrected figures. Money is truncated toward zero to cents.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct PnlCorrection {
@@ -8937,7 +8952,7 @@ pub struct PnlCorrection {
     pub basis: String,
     /// The correction in USD. Negative when Polymarket overstates the wallet.
     pub amount: f64,
-    /// Polymarket's net realized P&L plus amount: the figure 0xinsider grades on. Omitted when Polymarket's figure is.
+    /// Polymarket's net realized P&L plus amount. Since 2026-10-22 the grade reads this figure's sports and esports share. Omitted when Polymarket's figure is.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub realized: Option<f64>,
     /// Polymarket's net total P&L plus amount: the 0xinsider profile's Total P&L. Omitted when Polymarket's figure is, and on leaderboard entries.
@@ -11500,7 +11515,7 @@ pub struct Trader {
     pub stats: TraderStats,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub strategy: Option<TraderStrategy>,
-    /// Per-category rank context when expand=categories is requested. Values include available rank, category totals, performance and record counts; scaled_total_pnl is a legacy alias of total_pnl. Its measurement basis and update timing differ from the plain record returned by GET /api/v1/trader/{address}/categories, so the two need not agree. Use this for rank context and that route for the plain record. The inner key-set is intentionally unconstrained and may contain additional compatibility fields.
+    /// Per-category rank context when expand=categories is requested. Values include available rank, category totals, performance and record counts; scaled_total_pnl is a legacy alias of total_pnl. Its measurement basis and update timing differ from the plain record returned by GET /api/v1/trader/{address}/categories, so the two need not agree. Use this for rank context and that route for the plain record. Sports and esports only (#28761): keys are sports and esports categories, and a category outside them is omitted, as on that route. The inner key-set is intentionally unconstrained and may contain additional compatibility fields.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_strengths: Option<serde_json::Map<String, serde_json::Value>>,
     /// Curated advanced risk/performance metrics (expand=quant_metrics or expand[]=quant_metrics). Omitted unless expanded and backed by a computed row strictly under six hours old; a missing row, NULL computed_at, or age of exactly six hours or more is stale and omitted. Provider-input changes may intentionally lag inside the bounded six-hour window. When present, all listed fields are present (each is a number or null); null means insufficient trade history and must not be treated as 0. The fixed field shape is unchanged.
@@ -11518,7 +11533,7 @@ pub struct Trader {
     /// Field-level trust metadata. Present only when expand=trust or expand[]=trust is requested.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub trust: Option<TraderTrust>,
-    /// Current evidence for observed and known categories (expand=categories or expand[]=categories). Omitted unless expanded. Includes insufficient, stale, unknown and degraded rows; absence of a category is not proof of skill. The global grade is unchanged.
+    /// Current evidence for observed and known categories (expand=categories or expand[]=categories). Omitted unless expanded. Includes insufficient, stale, unknown and degraded rows; absence of a category is not proof of skill. The global grade is unchanged. Sports and esports only (#28827): a category outside them is omitted, as on GET /api/v1/trader/{address}/categories.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_records: Option<Vec<CategorySkillV2>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -11914,7 +11929,7 @@ pub struct TraderExportPositionWatermark {
 #[non_exhaustive]
 pub struct TraderExportSnapshot {
     pub address: String,
-    /// The markets the export file's trades and markets sections hold: sports and esports markets only. counts.exported_markets, counts.estimated_trade_rows, counts.estimated_size_mb, reconciliation.exported_market_cost_basis and source_range.latest_trade_at and latest_market_activity_at describe those markets. The pnl dates, pnl_days, exported_activity_volume and completeness cover every market of the wallet.
+    /// The markets the export file's trades and markets sections hold: sports and esports markets only. counts.exported_markets, counts.estimated_trade_rows, counts.estimated_size_mb, reconciliation.exported_market_cost_basis and source_range.latest_trade_at and latest_market_activity_at describe those markets, and reconciliation.exported_activity_volume is the cash the wallet traded in sports and esports markets. The pnl dates, pnl_days and completeness cover every market of the wallet.
     pub product_scope: String,
     pub generated_at: String,
     pub source_range: ExportSourceRange,
@@ -12034,7 +12049,7 @@ pub struct TraderPnlEntriesItem {
     pub date: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub markets_traded: Option<i64>,
-    /// Cash in USD this wallet traded on this UTC day, buys and sells, summed from the fills 0xinsider has stored for it. Not Polymarket's share count, and not the full-history stats.total_volume on GET /api/v1/trader/{address}. Omitted, with markets_traded, on a day above 20 times the wallet's median day.
+    /// Cash in USD this wallet traded on this UTC day in sports and esports markets, buys and sells, summed from the fills 0xinsider stores for it. Not Polymarket's share count, and not the full-history stats.total_volume on GET /api/v1/trader/{address}, which covers every market. markets_traded counts every market the wallet traded that day. Omitted, with markets_traded, on a day above 20 times the wallet's median day. A wallet whose stored history 0xinsider has not rebuilt yet still serves the earlier figure, cash across every market, omitted on every day from 2026-10-23 on; one wallet's entries never mix the two.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub total_volume: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -12052,13 +12067,13 @@ pub struct TraderPnlExact {
     pub realized: ExactDecimal,
 }
 
-/// A wallet's sports and esports record (#27311): Polymarket's published realized P&L (pnl.realized plus any published pnl.correction) split into the part earned on sports and esports markets. Fees, refunds and rebates stay in, apportioned by cost. A wallet wholly in sports keeps the published figure exactly; one with no sports market gets 0. Refreshed after each wallet sync; as_of dates it.
+/// A wallet's sports and esports record (#27311). basis names the rule behind realized_pnl (#29370): polymarket_sports_esports_v1 is Polymarket's own realized P&L for the wallet in its sports and esports categories, plus the wallet's maker and taker rebates apportioned by cost and the in-scope part of any published pnl.correction; sports_esports_split_v1, used until both of the wallet's category figures are confirmed, is Polymarket's published realized P&L (pnl.realized plus any published pnl.correction) split into the part earned on sports and esports markets, with fees, refunds and rebates apportioned by cost. Refreshed after each wallet sync and each read of Polymarket's category leaderboards; as_of dates the market counts.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct TraderPnlInScope {
-    /// Names the split rule, currently sports_esports_split_v1. A new value means the rule changed; compare figures only within one basis.
+    /// The rule behind realized_pnl: polymarket_sports_esports_v1 (Polymarket's sports and esports category figures plus apportioned rebates) or sports_esports_split_v1 (the published realized figure split by cost). A new value means the rule changed; compare figures only within one basis.
     pub basis: String,
-    /// Sports and esports realized P&L in USD, display-safe. null when the wallet has no published realized figure to split.
+    /// Sports and esports realized P&L in USD, display-safe. null when the split basis has no published realized figure to split.
     #[serde(default)]
     pub realized_pnl: Option<f64>,
     /// Sports and esports markets the wallet has traded, any status.
@@ -12177,7 +12192,7 @@ pub struct TraderPnlSummary {
     /// The 0xinsider correction to Polymarket's P&L for neg-risk conversions. Present only when one is published; pnl.net_total and pnl.realized keep Polymarket's own figures, and correction.net_total and correction.realized add the amount to them.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub correction: Option<PnlCorrection>,
-    /// true while 0xinsider is still checking some of the wallet's converted neg-risk markets (not yet measured, measured and not yet checked for transfers, or its latest reads keep failing), so the correction may change, or arrive where none is published yet. Omitted otherwise.
+    /// true while 0xinsider is still checking some of the wallet's converted neg-risk markets with a sports or esports event (not yet measured, measured and not yet checked for transfers, or its latest reads keep failing), so the correction may change, or arrive where none is published yet. Omitted otherwise.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub correction_pending: Option<bool>,
     /// For pnl.realized, expand=trust marks a matching native accounting snapshot as computed: native Polymarket realized P&L plus credited maker and taker rebates, with fees already included. The exact numeric value is truncated toward zero to cents before conversion to a JSON number. Without a matching native accounting snapshot, pnl.realized is omitted and its trust metadata is unavailable. Raw total P&L is never substituted for realized P&L.
@@ -12379,7 +12394,7 @@ pub struct TrendingWallet {
     pub window_markets_traded: i64,
     /// Distinct in-window UTC trade days from our trades (0 if the winner is not in our DB).
     pub window_trade_days: i64,
-    /// All-time trader grade; a separate axis from streak_tier. Led by realized profit (the money actually banked, about 95 percent of the grade), with forecasting calibration, risk-adjusted returns, and consistency as the tie-breaker and proven-trader guardrails: any grade above C requires verified net-positive realized profit, and the top grades also require a real resolved-market track record plus a survivable drawdown. Relative, so it drifts as the cohort moves. Omitted when the trader is Unranked (fewer than 5 markets, or too little verified record to cohort-rank).
+    /// All-time trader grade; a separate axis from streak_tier. Led by realized profit on sports and esports markets (the money actually banked, about 95 percent of the grade; since 2026-10-22, the sports and esports share of the wallet's realized P&L), with forecasting calibration, risk-adjusted returns, and consistency as the tie-breaker and proven-trader guardrails: any grade above C requires verified net-positive realized profit on those markets, and the top grades also require a real track record of resolved sports and esports markets plus a survivable drawdown. Relative, so it drifts as the cohort moves. Omitted when the trader is Unranked (fewer than 5 markets, or too little verified record to cohort-rank).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub grade: Option<Grade>,
     /// Hot-streak tier (trailing-7d cross-sectional percentile). Omitted when there is no recent activity.

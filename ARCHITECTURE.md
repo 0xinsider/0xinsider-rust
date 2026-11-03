@@ -48,7 +48,7 @@ Reads the document (the published URL by default, a file path, or the committed 
 
 ### Client (`client.rs`)
 
-`ClientBuilder::build` validates the base URL and key, applies the credential policy, and builds a `reqwest::Client` that follows no redirects. Every generated method builds a `Call` (operation, path, query, headers, body) and hands it to `send_json`, `send_json_optional`, `send_text` or `send_download`. `execute` retries by the call's `RetryClass`; `api_error` decodes both the error envelope and the per-IP limiter's flat shape, reading at most 1 MiB.
+`ClientBuilder::build` validates the base URL and key, applies the credential policy, and builds a `reqwest::Client` that follows no redirects. Every generated method builds a `Call` (operation, path, query, headers, body) and hands it to `send_json`, `send_json_tagged` (the `..._with_etag` methods, which keep the response `ETag` in `Tagged`), `send_json_optional`, `send_text` or `send_download`. `execute` retries by the call's `RetryClass`; `api_error` decodes both the error envelope and the per-IP limiter's flat shape, reading at most 1 MiB.
 
 ### Credential policy (`policy.rs`)
 

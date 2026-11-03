@@ -44,6 +44,21 @@ const MAX_ERROR_BODY_BYTES: usize = 1 << 20;
 const RETRY_STATUSES: [u16; 5] = [408, 429, 502, 503, 504];
 const LIVE_KEY_PREFIX: &str = "oxi_sk_live_";
 
+/// A decoded body and the `ETag` validator its response carried, from an
+/// operation's `..._with_etag` method.
+///
+/// Send `etag` back as the params' `if_none_match` on the next read: an
+/// unchanged resource then answers `Error::NotModified { etag }` without a body.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct Tagged<T> {
+    /// The decoded response body.
+    pub data: T,
+    /// The response's `ETag`, exactly as sent; `None` when the response
+    /// carried none.
+    pub etag: Option<String>,
+}
+
 /// When a failed request may be sent again.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
@@ -253,12 +268,20 @@ impl Client {
     }
 
     pub(crate) async fn send_json<T: DeserializeOwned>(&self, call: Call) -> Result<T> {
-        let (status, body) = self.send_for_body(&call).await?;
+        let (status, _, body) = self.send_for_body(&call).await?;
         decode(&call, status, &body)
     }
 
+    pub(crate) async fn send_json_tagged<T: DeserializeOwned>(&self, call: Call) -> Result<Tagged<T>> {
+        let (status, etag, body) = self.send_for_body(&call).await?;
+        Ok(Tagged {
+            data: decode(&call, status, &body)?,
+            etag,
+        })
+    }
+
     pub(crate) async fn send_json_optional<T: DeserializeOwned>(&self, call: Call) -> Result<Option<T>> {
-        let (status, body) = self.send_for_body(&call).await?;
+        let (status, _, body) = self.send_for_body(&call).await?;
         if body.iter().all(u8::is_ascii_whitespace) {
             return Ok(None);
         }
@@ -266,7 +289,7 @@ impl Client {
     }
 
     pub(crate) async fn send_text(&self, call: Call) -> Result<String> {
-        let (_, body) = self.send_for_body(&call).await?;
+        let (_, _, body) = self.send_for_body(&call).await?;
         Ok(String::from_utf8_lossy(&body).into_owned())
     }
 
@@ -275,17 +298,18 @@ impl Client {
         Download::follow(self, &call, response).await
     }
 
-    async fn send_for_body(&self, call: &Call) -> Result<(u16, bytes::Bytes)> {
+    /// The status, the `ETag` and the body of a successful response.
+    async fn send_for_body(&self, call: &Call) -> Result<(u16, Option<String>, bytes::Bytes)> {
         let response = self.execute(call).await?;
         let status = response.status();
+        let etag = header_string(response.headers(), ETAG.as_str());
         if status == StatusCode::NOT_MODIFIED {
-            let etag = header_string(response.headers(), ETAG.as_str());
             return Err(Error::NotModified { etag });
         }
         if !status.is_success() {
             return Err(api_error(response).await);
         }
-        Ok((status.as_u16(), response.bytes().await?))
+        Ok((status.as_u16(), etag, response.bytes().await?))
     }
 }
 

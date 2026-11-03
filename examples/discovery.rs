@@ -25,7 +25,7 @@ async fn main() -> oxinsider::Result<()> {
         .await?;
     for entry in &board.data {
         // An absent grade is an ungraded wallet: uncovered, not unskilled.
-        let grade = entry.grade.as_deref().unwrap_or("ungraded");
+        let grade = entry.grade.as_ref().map_or("ungraded", |grade| grade.as_str());
         println!("{grade:>8}  {}", entry.address);
     }
     Ok(())

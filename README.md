@@ -76,7 +76,7 @@ async fn main() -> oxinsider::Result<()> {
 - **Absent is not zero.** A field the API did not report is `None`. Serve a truthful unavailable state; never read it as `0`. An ungraded wallet is uncovered, not unskilled.
 - **Additive changes do not break you.** Unknown JSON keys are ignored, and an enum value this release does not know lands in `Other(String)` instead of failing the response.
 - **Numbers.** Money and price fields are `f64`, the precision the API sends. Do not round before you display them.
-- **Conditional reads.** Set `if_none_match` on the params; an unchanged resource returns `Error::NotModified { etag }`.
+- **Conditional reads.** An operation whose response carries an `ETag` also has a `..._with_etag` method (`list_games_with_etag`) that returns `Tagged { data, etag }`. Send that `etag` back as `if_none_match` on the params; an unchanged resource returns `Error::NotModified { etag }`.
 - **Writes.** Webhook writes take `idempotency_key` on their params. Reuse the same key when you retry by hand, and never reuse it with a different body.
 - **Markdown and files.** `get_trader_context_markdown` and `get_market_context_markdown` return `String`. `download_trader_export` returns a streaming `Download`.
 

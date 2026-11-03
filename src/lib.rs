@@ -50,7 +50,7 @@ mod stream;
 pub mod webhooks;
 
 pub use client::{
-    API_KEY_ENV, Client, ClientBuilder, Operation, PRODUCTION_BASE_URL, RetryClass, SANDBOX_BASE_URL, VERSION,
+    API_KEY_ENV, Client, ClientBuilder, Operation, PRODUCTION_BASE_URL, RetryClass, SANDBOX_BASE_URL, Tagged, VERSION,
 };
 pub use download::{DEFAULT_MAX_READ_BYTES, Download, DownloadError, DownloadErrorReason, SavedDownload};
 pub use error::{ApiError, ApiErrorKind, DecodeError, Error, Result};

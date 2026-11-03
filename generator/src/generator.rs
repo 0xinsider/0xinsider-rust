@@ -79,6 +79,17 @@ fn arr_or_empty<'a>(value: Option<&'a Value>, what: &str) -> Result<&'a [Value]>
         .ok_or_else(|| format!("{what} is not an array"))
 }
 
+/// Whether the operation's 200 response declares an `ETag` header. Header
+/// names are case-insensitive, so the key is compared that way.
+fn declares_etag(operation: &Obj) -> Result<bool> {
+    let responses = obj_or_empty(operation.get("responses"), "responses")?;
+    let Some(ok) = responses.get("200") else {
+        return Ok(false);
+    };
+    let headers = obj_or_empty(as_obj(ok, "a 200 response")?.get("headers"), "a 200 response's headers")?;
+    Ok(headers.keys().any(|name| name.eq_ignore_ascii_case("etag")))
+}
+
 fn as_obj<'a>(value: &'a Value, what: &str) -> Result<&'a Obj> {
     value.as_object().ok_or_else(|| format!("{what} is not an object"))
 }
@@ -902,7 +913,13 @@ impl<'a> Generator<'a> {
         }
         for param in &required {
             if param.rust_type.starts_with("Vec<") {
-                return Err(format!("{op_id}: a required array query parameter is not supported"));
+                // A required array is a slice argument: `&[&str]` for strings, as a
+                // required string is `&str`, else `&[T]`. `explode` decides the wire
+                // form below.
+                let inner = inner_of(&param.rust_type);
+                let item = if inner == "String" { "&str" } else { inner };
+                args.push(format!("{}: &[{item}]", param.ident));
+                continue;
             }
             let rust = if param.rust_type == "String" {
                 "&str"
@@ -964,6 +981,7 @@ impl<'a> Generator<'a> {
             "    pub async fn {name}({}) -> Result<{returns}> {{",
             signature.join(", ")
         ));
+        let body_start = lines.len();
         if fmt_args.is_empty() {
             lines.push(format!("        let path = String::from({});", rust_str(path)));
         } else {
@@ -980,6 +998,29 @@ impl<'a> Generator<'a> {
             snake(op_id)?.to_uppercase()
         ));
         for param in &required {
+            if param.rust_type.starts_with("Vec<") {
+                let inner = inner_of(&param.rust_type);
+                // OpenAPI's `form` style explodes unless the parameter says
+                // `explode: false`: one `name=value` pair per item, or one pair
+                // whose value is the items joined by commas.
+                if param.spec.get("explode").and_then(Value::as_bool) == Some(false) {
+                    lines.push(format!(
+                        "        call.query({}, {}.iter().map(|value| {}).collect::<Vec<_>>().join(\",\"));",
+                        rust_str(&param.name),
+                        param.ident,
+                        self.query_value("value", inner)?
+                    ));
+                } else {
+                    lines.push(format!("        for value in {} {{", param.ident));
+                    lines.push(format!(
+                        "            call.query({}, {});",
+                        rust_str(&param.name),
+                        self.query_value("value", inner)?
+                    ));
+                    lines.push("        }".to_string());
+                }
+                continue;
+            }
             lines.push(format!(
                 "        call.query({}, {});",
                 rust_str(&param.name),
@@ -1020,8 +1061,33 @@ impl<'a> Generator<'a> {
             Success::Text => "send_text",
             Success::Download => "send_download",
         };
+        let body: Vec<String> = lines[body_start..].to_vec();
         lines.push(format!("        self.{send}(call).await"));
         lines.push("    }".to_string());
+
+        // A 200 that declares an `ETag` header gets a second method returning
+        // the validator beside the body, so a caller has the first value for
+        // `if_none_match` (0xinsider/0xinsider#32692). The plain method keeps
+        // its signature, so this is additive.
+        if kind == Success::Json && !may_be_empty && declares_etag(operation)? {
+            lines.push(String::new());
+            lines.extend([
+                format!("    /// {}, with the response's `ETag`.", py::strip(summary)),
+                "    ///".to_string(),
+                format!("    /// `{method_upper} {path}`"),
+                "    ///".to_string(),
+                format!("    /// [`Self::{name}`], returning the `ETag` validator the response carried beside"),
+                "    /// the decoded body. Send it back as `if_none_match` on the next read: an".to_string(),
+                "    /// unchanged resource answers `Error::NotModified { etag }`.".to_string(),
+                format!(
+                    "    pub async fn {name}_with_etag({}) -> Result<Tagged<{returns}>> {{",
+                    signature.join(", ")
+                ),
+            ]);
+            lines.extend(body);
+            lines.push("        self.send_json_tagged(call).await".to_string());
+            lines.push("    }".to_string());
+        }
 
         if kind == Success::Json
             && !may_be_empty
@@ -1536,7 +1602,7 @@ impl<'a> Generator<'a> {
             "use crate::client::{encode_path_segment, Call};",
             "use crate::models::*;",
             "use crate::pagination::{CursorParams, ListPage};",
-            "use crate::{Client, Download, Operation, Result, RetryClass};",
+            "use crate::{Client, Download, Operation, Result, RetryClass, Tagged};",
             "",
             "impl Operation {",
         ]

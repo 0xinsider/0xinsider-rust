@@ -128,6 +128,17 @@ while let Some(frame) = reader.next().await? {
 
 A frame that breaks the SSE contract (not JSON, not an object, no usable sequence, a malformed `resync` marker, a `200` that is not `text/event-stream`, or a frame past the byte ceiling) ends the stream with `Error::Stream(StreamProtocolError)` whose `reason`, `last_seq` and `frame_id` say which frame and where to resume from; a malformed frame never moves `last_seq`. Keep-alive comments are consumed silently, `retry:` is exposed as `retry_hint()`, and the response headers are on `headers()`. The stream has no deadline and is never retried for you. `StreamFrame::decode::<T>()` turns a frame into your own type.
 
+A `MarketSettled` frame (Pro and Max) decodes into `models::MarketSettledData`, the same type as a `market_settled` webhook's `data`: a sports or esports game market settled, once per settled state. A market can settle twice, first as a resolved UMA question row whose `settlement.payouts` is `None` and then as the condition row with payouts, so deduplicate on `settlement_id`. A game's end time is `GameStatus::ended_at`, with `ended_at_source` naming who observed it; both are `None` when no end was observed, never inferred.
+
+```rust,ignore
+use oxinsider::models::MarketSettledData;
+
+if frame.event_type == "MarketSettled" {
+    let settled: MarketSettledData = frame.decode()?;
+    println!("{} {} {:?}", settled.settlement_id, settled.condition_id, settled.settlement.winning_outcome_index);
+}
+```
+
 ## Exports
 
 ```rust,ignore

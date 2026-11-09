@@ -3593,11 +3593,14 @@ pub struct EdgeHunterObservation {
     pub directional_confidence: Option<f64>,
     /// Recorded side ordering score; higher values sort first.
     pub directional_rank_score: f64,
-    /// 1-based rank within this observation cohort and snapshot.
+    /// 1-based rank within this observation cohort and snapshot: directional_rank_score descending, then conviction_score descending, then category and condition_id. Admission decides which markets a response holds, not their rank, so under admission=most_held_48h or most_held_48h_by_type rank does not follow indexed_graded_holders.
     pub rank: i64,
     /// Required nullable frozen metadata context. Null only during the legacy-generation transition; selected reads require sidecar readiness and fail closed with 503 instead.
     #[serde(default)]
     pub market_context: Option<EdgeHunterMarketContext>,
+    /// S, A and B graded wallets in the 0xinsider index holding either outcome of the market, as the stored market universe last counted them. Every most-held place ranks by this count: admission=most_held_48h and most_held_48h_by_type, the default selection's most_held places and in_play slots. It can be larger or smaller than graded_holders, which counts the piled side of the provider's holder page. Null only on a row of a generation computed before this field existed.
+    #[serde(default)]
+    pub indexed_graded_holders: Option<i64>,
 }
 
 /// Measured coverage of the frozen canonical observation generation and this requested page. For sports and esports reads, the first four counts remain global through category, cohort and all selectors; with admission=most_held_48h they count that selection's generation, where every wider_holder candidate it did not take is capacity_limited. They are neither a census of all provider markets nor a count of successfully evaluated holders. Selected and returned counts describe the requested projection. An unmappable legacy category synthesizes a zero-work empty generation with all six counts zero and no degradation reasons; it does not read the all-sports cache.
@@ -6036,6 +6039,8 @@ pub struct GameMarketSettlement {
     pub was_disputed: Option<bool>,
     #[serde(default)]
     pub winning_outcome_index: Option<i64>,
+    #[serde(default)]
+    pub oracle_updated_at: Option<String>,
 }
 
 /// A value this release does not know is kept in `Other`, so a new value never fails a response.
@@ -7696,6 +7701,64 @@ impl AsRef<str> for Granularity {
     }
 }
 
+/// A value this release does not know is kept in `Other`, so a new value never fails a response.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum Hold {
+    /// `category_loss`
+    #[serde(rename = "category_loss")]
+    CategoryLoss,
+    /// `too_few_markets`
+    #[serde(rename = "too_few_markets")]
+    TooFewMarkets,
+    /// `sample_mismatch`
+    #[serde(rename = "sample_mismatch")]
+    SampleMismatch,
+    /// `no_markets`
+    #[serde(rename = "no_markets")]
+    NoMarkets,
+    /// A value this release does not know, kept as sent.
+    #[serde(untagged)]
+    Other(String),
+}
+
+impl Hold {
+    /// The value as the API spells it.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::CategoryLoss => "category_loss",
+            Self::TooFewMarkets => "too_few_markets",
+            Self::SampleMismatch => "sample_mismatch",
+            Self::NoMarkets => "no_markets",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl From<&str> for Hold {
+    fn from(value: &str) -> Self {
+        match value {
+            "category_loss" => Self::CategoryLoss,
+            "too_few_markets" => Self::TooFewMarkets,
+            "sample_mismatch" => Self::SampleMismatch,
+            "no_markets" => Self::NoMarkets,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
+impl std::fmt::Display for Hold {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for Hold {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
 /// Current category evidence, independent of the global grade. Pick of the Day stamps only the served display roster; frozen entry snapshots remain unchanged.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -8604,6 +8667,8 @@ pub struct ListGameMarketsResponseDataItemSettlement {
     pub was_disputed: Option<bool>,
     #[serde(default)]
     pub winning_outcome_index: Option<i64>,
+    #[serde(default)]
+    pub oracle_updated_at: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -9173,6 +9238,38 @@ impl AsRef<str> for ListLeaderboardSort {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
+pub struct ListMarketTradesResponse {
+    pub object: String,
+    /// Newest first by traded_at, then transaction_hash, then log_index.
+    pub data: Vec<MarketTrade>,
+    /// True when older fills in the window remain: send next_cursor for them.
+    pub has_more: bool,
+    /// Opaque mtr_v1_ cursor for the next page; null when has_more is false.
+    #[serde(default)]
+    pub next_cursor: Option<String>,
+    /// The market's raw condition_id, lowercase.
+    pub condition_id: String,
+    /// What the record holds. A window outside it reads empty because it is outside the record, not because nothing traded.
+    pub coverage: ListMarketTradesResponseCoverage,
+    pub meta: ResponseMeta,
+}
+
+/// What the record holds. A window outside it reads empty because it is outside the record, not because nothing traded.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ListMarketTradesResponseCoverage {
+    /// A fill smaller than this, in USD, is not stored: 100.
+    pub min_size_usd: i64,
+    /// Where the record starts: the later of when recording began and 00:00 UTC on the day retention_days before today. No fill before this instant is served.
+    pub recorded_from: String,
+    /// Every fill at or before this instant is in the record, and a first page serves none after it. It trails now by a few minutes.
+    pub complete_through: String,
+    /// A stored fill is served at least this many days, then deleted.
+    pub retention_days: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct ListPositionsResponse {
     pub object: String,
     pub data: Vec<Position>,
@@ -9402,6 +9499,17 @@ impl AsRef<str> for ListPropsStatus {
     fn as_ref(&self) -> &str {
         self.as_str()
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ListSettledMarketsResponse {
+    pub complete_through: String,
+    pub data: Vec<MarketSettledData>,
+    pub has_more: bool,
+    pub meta: ResponseMeta,
+    pub next_cursor: String,
+    pub object: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -9925,7 +10033,7 @@ pub struct MarketHolder {
     pub category_win_rate_status: CategoryWinRateStatus,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_evidence: Option<HolderCategoryEvidence>,
-    /// Whole days since this wallet's first trade, rounded down (3.6 days reads 3), so it changes once a day, not on every request. The five badge fields are present together, only for a wallet that draws at least one badge.
+    /// Whole UTC calendar days since this wallet's first trade: the number of UTC dates from the first trade's date to today, so a first trade at 23:00 UTC reads 1 an hour later. Every wallet's age changes at 00:00 UTC, once a day, not on every request. The five badge fields are present together, only for a wallet that draws at least one badge.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wallet_age_days: Option<f64>,
     /// True when the wallet's first trade was under 30 days ago.
@@ -10447,7 +10555,7 @@ impl AsRef<str> for MarketSearchResultStatus {
     }
 }
 
-/// `market_settled` data, also the MarketSettled frame on GET /api/v1/stream: a sports or esports game market settled, sent once per settled state the first time 0xinsider records it. A market can settle in two states, a resolved UMA question row without payouts and then the condition row with them; each is its own event with its own settlement_id.
+/// `market_settled` data, also the MarketSettled frame on GET /api/v1/stream: a sports or esports game market settled, sent once per settled state the first time 0xinsider records it. A market can settle in more than one state: a resolved UMA question row with no winner yet, the same row with the winner ConditionalTokens paid on chain, and the condition row with the provider's payouts; each is its own event with its own settlement_id, except a state naming the winner an earlier event named, which is not sent.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct MarketSettledData {
@@ -10461,7 +10569,7 @@ pub struct MarketSettledData {
     /// Polymarket game ID for the event as a string, the game_id of GET /api/v1/games, or null when the market stores none.
     #[serde(default)]
     pub game_id: Option<String>,
-    /// The event slug league prefix (nba in nba-lal-gsw-2026-11-01), lowercase, read after a polyv2 copy prefix; null when the slug has none.
+    /// The event slug league prefix (nba in nba-lal-gsw-2026-11-01), lowercase, read after a polyv2 copy prefix. A PGA Tour golf slug starts with the year, so its markets are pga, from their series. null when neither names a league.
     #[serde(default)]
     pub league: Option<String>,
     /// Polymarket sportsMarketType of the market (moneyline, spreads, totals, a prop type) verbatim, or null when the market stores none.
@@ -10472,11 +10580,11 @@ pub struct MarketSettledData {
     /// Set on a Polymarket polyv2 copy of a game whose original event has a moneyline market: the original event slug, which GET /api/v1/games serves. Such a copy reaches a webhook only when its settlement_filters name its condition ID or its own event slug.
     #[serde(default)]
     pub copy_of_event_slug: Option<String>,
-    /// The settled state, the block GET /api/v1/games/{event_slug}/markets serves as settlement: status observed, oracle_status resolved, settled true. payouts is null on a resolved UMA question row and set on the condition row that follows, which is sent as its own event. observed_at is when 0xinsider first saw this state.
+    /// The settled state, the block GET /api/v1/games/{event_slug}/markets serves as settlement: status observed, oracle_status resolved, settled true. payouts is null on a resolved UMA question row, whose result and winning_outcome_index come from the payout ConditionalTokens reported on chain (null in an event sent before it paid), and set on the condition row that follows, sent as its own event unless it names a winner already sent. observed_at is when 0xinsider first saw this state.
     pub settlement: MarketSettledDataSettlement,
 }
 
-/// The settled state, the block GET /api/v1/games/{event_slug}/markets serves as settlement: status observed, oracle_status resolved, settled true. payouts is null on a resolved UMA question row and set on the condition row that follows, which is sent as its own event. observed_at is when 0xinsider first saw this state.
+/// The settled state, the block GET /api/v1/games/{event_slug}/markets serves as settlement: status observed, oracle_status resolved, settled true. payouts is null on a resolved UMA question row, whose result and winning_outcome_index come from the payout ConditionalTokens reported on chain (null in an event sent before it paid), and set on the condition row that follows, sent as its own event unless it names a winner already sent. observed_at is when 0xinsider first saw this state.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct MarketSettledDataSettlement {
@@ -10503,6 +10611,8 @@ pub struct MarketSettledDataSettlement {
     pub was_disputed: Option<bool>,
     #[serde(default)]
     pub winning_outcome_index: Option<i64>,
+    #[serde(default)]
+    pub oracle_updated_at: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -10705,6 +10815,8 @@ pub struct MarketSnapshotSettlement {
     pub was_disputed: Option<bool>,
     #[serde(default)]
     pub winning_outcome_index: Option<i64>,
+    #[serde(default)]
+    pub oracle_updated_at: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -10880,7 +10992,7 @@ pub struct MarketTopHolder {
     /// Why `category_win_rate` is present or absent: `measured` (rate present), `not_enough_data` (the wallet is on file and under the floor of 5 decided markets in the category), `untracked` (0xinsider has no record of the wallet, so nothing was measured; `grade`, `in_scope_realized_pnl` and `in_scope_volume` are null too), or `unavailable` (a read failed; retry later). Absent when the market has no canonical category.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_win_rate_status: Option<CategoryWinRateStatus>,
-    /// Whole days since this wallet's first trade, rounded down (3.6 days reads 3), so it changes once a day, not on every request. The five badge fields are present together, only for a wallet that draws at least one badge.
+    /// Whole UTC calendar days since this wallet's first trade: the number of UTC dates from the first trade's date to today, so a first trade at 23:00 UTC reads 1 an hour later. Every wallet's age changes at 00:00 UTC, once a day, not on every request. The five badge fields are present together, only for a wallet that draws at least one badge.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wallet_age_days: Option<f64>,
     /// True when the wallet's first trade was under 30 days ago.
@@ -10944,6 +11056,38 @@ pub struct MarketTopHoldersTotals {
     pub no_shares: f64,
     /// The most holders the sample keeps per outcome (100).
     pub sample_cap: i64,
+}
+
+/// One taker fill of 100 USD or more on a market, from the exchange's on-chain fill events.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct MarketTrade {
+    /// {transaction_hash}:{log_index}: one fill event, listed once. Deduplicate on it across reads.
+    pub id: String,
+    /// The fill's block time, to the second.
+    pub traded_at: String,
+    /// The taker's side: BUY took outcome shares, SELL gave them.
+    pub side: Side,
+    /// The traded outcome's label; null when the market names none.
+    #[serde(default)]
+    pub outcome: Option<String>,
+    /// 0 for the first (Yes) outcome token, 1 for the second (No).
+    pub outcome_index: i64,
+    /// The traded outcome token's id (decimal string); null when the market holds none for that outcome.
+    #[serde(default)]
+    pub token_id: Option<String>,
+    /// Fill price per share, 0 to 1.
+    pub price: f64,
+    /// Outcome shares filled.
+    pub shares: f64,
+    /// USDC notional of the fill.
+    pub size_usd: f64,
+    /// The taker's wallet, lowercase.
+    pub taker: String,
+    /// The fill's transaction, lowercase 0x hex.
+    pub transaction_hash: String,
+    /// The fill event's log index in its transaction.
+    pub log_index: i64,
 }
 
 /// One market's net buyers and net sellers over a 24h or 7d window, as the market page's wallets in/out panel shows a Pro viewer.
@@ -11608,7 +11752,7 @@ pub struct PickHolder {
     /// All-time trader grade (S, A, B, C, D, F).
     #[serde(default)]
     pub grade: Option<String>,
-    /// The wallet's most recent recorded trade time, stamped at serve time from its current trader record rather than frozen with the pick. Always sent; null when no trade time is recorded.
+    /// The UTC day of the wallet's most recent recorded trade, served as that day's 00:00:00Z, stamped at serve time from its current trader record rather than frozen with the pick. It changes at most once a day per wallet, so the pick's ETag holds between polls. Always sent; null when no trade time is recorded.
     #[serde(default)]
     pub last_traded_at: Option<String>,
     /// 0xinsider profile path segment this wallet links to: `@<username>` when that username resolves to this wallet alone, otherwise the lowercase wallet. Percent-encode the part after `@` and append to `https://0xinsider.com/profile/`. Stamped at serve time; absent on a body cached before the field shipped.
@@ -11636,7 +11780,7 @@ pub struct PickHolder {
     /// Why `category_win_rate` is present or absent on a `display_holders` entry: `measured` (rate present), `not_enough_data` (the wallet is below the settled-market floor of 5 in the category), or `unavailable` (the annotation read failed; retry later). Never `untracked`: every recorded holder is a graded wallet 0xinsider has on file. Absent entirely on `holders` entries, legacy rows, and payloads predating the field -- absence means the roster was never annotated, not a small sample.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category_win_rate_status: Option<CategoryWinRateStatus>,
-    /// Whole days since this wallet's first trade, rounded down (3.6 days reads 3), so it changes once a day, not on every request, and the pick's ETag holds between requests. Stamped at serve time from the wallet's current trader record, never frozen with the pick. The five badge fields are present together, and only for a wallet that carries at least one badge; all absent means no badge, or a body cached before the fields shipped.
+    /// Whole UTC calendar days since this wallet's first trade: the number of UTC dates from the first trade's date to today, so a first trade at 23:00 UTC reads 1 an hour later. Every wallet's age changes at 00:00 UTC, once a day, not on every request, and the pick's ETag holds between requests. Stamped at serve time from the wallet's current trader record, never frozen with the pick. The five badge fields are present together, and only for a wallet that carries at least one badge; all absent means no badge, or a body cached before the fields shipped.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wallet_age_days: Option<f64>,
     /// True when the wallet's first trade was under 30 days ago. Stamped at serve time from the wallet's current trader record, never frozen with the pick. The five badge fields are present together, and only for a wallet that carries at least one badge; all absent means no badge, or a body cached before the fields shipped.
@@ -11651,6 +11795,18 @@ pub struct PickHolder {
     /// The wallet's X handle from its Polymarket profile, normalized to 1-15 characters of [A-Za-z0-9_] with no `@`. Link it as `https://x.com/<handle>`. Stamped at serve time from the wallet's current trader record, never frozen with the pick. The five badge fields are present together, and only for a wallet that carries at least one badge; all absent means no badge, or a body cached before the fields shipped.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub x_username: Option<String>,
+    /// The wallet's edge over the price it paid in the pick's canonical category (`category`): how often the side it bought won, minus the average price it paid, over its settled markets there of $20 or more at a known entry price. The rule the site's sport leaderboards use for their Edge column, and the figure the pick card prints on the sport's line. Not `category_win_rate` minus `category_avg_price`: the edge counts its own sample. Present only with `category_win_rate_status` = `measured`, when the edge ranks (30 or more such markets, and the share of the decided ones that made money at settlement within 10 points of the win rate) and the wallet's realized P&L over them is above zero; otherwise `category_price_edge_hold` says why. Beside `category_win_rate_game` it is still the whole category's edge; the game's or league's is `category_scope_price_edge`. Recomputed at serve time from the daily record rebuild, not frozen with the pick. Absent otherwise and on payloads predating the field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category_price_edge: Option<PickHolderPriceEdge>,
+    /// The same edge over the markets of the game or league `category_win_rate_game` names alone: the edge the pick card prints beside a game or league win rate (for example `-17.1 pp` in the Premier League). Present only beside `category_win_rate_game`, under the same rule over that game's or league's markets and the wallet's realized P&L there; otherwise, beside a game or league rate, `category_scope_price_edge_hold` says why. Never the whole category's edge in its place. Recomputed at serve time, not frozen with the pick. Absent otherwise and on payloads predating the field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category_scope_price_edge: Option<PickHolderPriceEdge>,
+    /// Why there is no `category_price_edge` for a wallet with a measured rate, with the rule's figures when it has them. Present only with `category_win_rate_status` = `measured`, and never beside `category_price_edge`. Absent otherwise and on payloads predating the field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category_price_edge_hold: Option<PickHolderPriceEdgeHold>,
+    /// Why there is no `category_scope_price_edge` beside a game or league rate, with the rule's figures when it has them. Present only beside `category_win_rate_game`, and never beside `category_scope_price_edge`. Absent otherwise and on payloads predating the field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category_scope_price_edge_hold: Option<PickHolderPriceEdgeHold>,
 }
 
 /// The two counts `category_win_rate` is the ratio of, read from the same row: `wins / decided` equals the rate. Counts every settled Polymarket market the wallet traded (it closed its position by selling out, or the market resolved) in the pick's canonical category (or in its game or league, when `category_win_rate_game` is present), at any position size; the counts are rebuilt daily. Present only with `category_win_rate_status` = `measured`; absent otherwise and on payloads predating the field.
@@ -11661,6 +11817,31 @@ pub struct PickHolderCategoryWinRecord {
     pub wins: i64,
     /// Settled markets in the category that this wallet closed with a profit or a loss. A market resolved at zero realized P&L is in neither count.
     pub decided: i64,
+}
+
+/// Edge over the price paid in one category, game or league: how often the side a wallet bought won, minus the average price it paid, over its settled markets there of $20 or more at a known entry price. Probabilities throughout: edge -0.171 is -17.1 percentage points. A market bought on both sides counts by its shares: the winning side's share of the shares bought is its hit, the cost over those shares its price. Figures from the daily record rebuild.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PickHolderPriceEdge {
+    /// Settled markets of $20 or more at a known entry price that the edge is measured over.
+    pub markets: i64,
+    /// Share of those markets whose bought side won, 0-1.
+    pub hit_rate: f64,
+    /// Mean entry price paid over the same markets, 0-1. Its sample is these markets, so it can differ from `category_avg_price` and `category_scope_avg_price`.
+    pub avg_price: f64,
+    /// hit_rate minus avg_price, full precision.
+    pub edge: f64,
+}
+
+/// An edge the holder row does not show, and why.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PickHolderPriceEdgeHold {
+    /// category_loss: the edge ranks, and the wallet's realized P&L over the same markets is zero or below. too_few_markets: fewer than 30 counted markets. sample_mismatch: the share of the decided markets that made money at settlement is more than 10 points from the win rate over the same markets, so these markets do not describe the wallet's record. no_markets: no settled market of $20 or more at a known entry price.
+    pub hold: Hold,
+    /// The rule's figures, as a shown edge carries them. Omitted for no_markets, and for too_few_markets when the wallet has fewer than 5 such markets.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record: Option<PickHolderPriceEdge>,
 }
 
 /// Recorded lead wallet facts on a full response when available. Position and category history are frozen at publication; they are not live balances or pick win probabilities.
@@ -11740,7 +11921,7 @@ pub struct PickOfTheDay {
     /// True once the backed game's kickoff has passed (kickoff <= now). When true the snapshotted pre-game price is no longer actionable. Absent for a legacy pick with no stored kickoff (treat as not-started).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub game_started: Option<bool>,
-    /// Whether the backed game is over according to the cached live scoreboard, read at serve time. Tells a finished game from one still in play before `outcome` settles. Omitted when the pick has no event slug or no scoreboard is cached for it; absence is unknown, never false.
+    /// Whether the backed game is over, from the game's scoreboard. Once the game is recorded as finished it stays true, on later reads and on past days. A pick settled `win` or `loss` reads true unless the live scoreboard shows the game still in play. Tells a finished game from one still in play before `outcome` settles. Omitted when the game's state is unknown; absence is unknown, never false.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub game_ended: Option<bool>,
     /// Settlement outcome of the backed side; 'pending' until the market resolves.
@@ -14827,7 +15008,7 @@ pub struct ReportPayload {
     /// Counts of current grades for distinct Polymarket traders with at least one whale alert in the report's source date range. The grade is the current projection at snapshot materialization time, not a historical grade at trade time. Traders without a current ranking projection are omitted; a null grade entry means the active trader's current grade is unavailable.
     #[serde(default)]
     pub grade_distribution: Option<Vec<ReportPayloadGradeDistributionItem>>,
-    /// Which markets the report counts. sports_and_esports for a period that ends on or after 2026-10-21: totals, categories, top trades and the grade cohort cover sports and esports markets only. all_markets for an earlier period, whose stored report keeps every Polymarket market it published.
+    /// Which markets the report counts. sports_and_esports: totals, categories, top trades and the grade cohort cover sports and esports markets only. Every period that ends on or after 2026-10-21 and every custom from/to range says so, as does an earlier stored period first built after 2026-10-24. all_markets: an earlier stored period built before then, which keeps every Polymarket market it published. A custom range can therefore count fewer trades than the stored report of the same dates.
     pub market_scope: MarketScope,
 }
 
@@ -15662,10 +15843,10 @@ impl AsRef<str> for ServingSide {
     }
 }
 
-/// Settings for market_settled; every set field must match. Optional: subscribing without it stores {"sports_market_types": ["moneyline"]}, each game's winner market, and sending it without the event is refused (400). A PATCH without it keeps the stored settings while the event stays subscribed; removing the event clears them. Stored as the API normalized it: trimmed and deduplicated, leagues, market types and condition IDs lowercased, and sports_market_types filled in when omitted.
+/// Settings for market_settled; every set field must match. Optional: subscribing without it stores {"sports_market_types": ["moneyline"]}, every market Polymarket labels moneyline, and sending it without the event is refused (400). That label is each head-to-head game's winner market, but in golf and other field events Polymarket labels every player market moneyline (winner, make the cut, round leader), so one tournament can send hundreds of states. Narrow it with leagues, which no market outside the list matches, including one whose league is null (a golf event slug that starts with a year, such as 2026-world-wide-technology-championship), or with condition_ids. A PATCH without it keeps the stored settings while the event stays subscribed; removing the event clears them. Stored as the API normalized it: trimmed and deduplicated, leagues, market types and condition IDs lowercased, and sports_market_types filled in when omitted.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct SettlementSubscriptionFilters {
-    /// Event slug league prefixes such as nba or epl, matched case-insensitively; any one matches. A polyv2 copy's league is read after its polyv2 prefix.
+    /// Event slug league prefixes such as nba or epl, matched case-insensitively; any one matches. A polyv2 copy's league is read after its polyv2 prefix. PGA Tour golf, whose event slugs start with the year, is pga.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub leagues: Option<Vec<String>>,
     /// Polymarket sportsMarketType values such as moneyline, spreads, totals or a prop type, matched case-insensitively; any one matches, and * matches every type. Omitted, it is ["moneyline"], or ["*"] when condition_ids names the markets.
